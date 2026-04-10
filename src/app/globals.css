@@ -1,26 +1,356 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
+/* ─────────────────────────────────────────
+   DESIGN TOKENS — Editorial CMS Theme
+   "Digital Gallery" framework
+   ───────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ค่าคงที่ Spacing — ใช้ร่วมทั้ง 2 themes */
+  --sidebar-width: 16rem;
+  --topnav-height: 4rem;
+
+  /* Radius — editorial ใช้ค่าเล็กมาก (architectural feel) */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Transitions — ใช้ ease ที่ subtle */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 200ms ease-in-out;
+  --transition-slow: 300ms ease-in-out;
+
+  /* Semantic Colors — ใช้ร่วมทั้ง 2 themes */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-info: #3b82f6;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─────────────────────────────────────────
+   LIGHT THEME (Default — ตาม template)
+   Tonal layering: สร้าง depth ด้วย surface levels
+   ───────────────────────────────────────── */
+:root,
+[data-theme='light'] {
+  --color-bg: #f9f9f9;
+  --color-surface: #ffffff;
+  --color-surface-low: #f3f3f3;
+  --color-surface-mid: #eeeeee;
+  --color-surface-high: #e8e8e8;
+  --color-surface-highest: #e2e2e2;
+  --color-surface-dim: #dadada;
+
+  --color-primary: #000000;
+  --color-primary-dim: #3b3b3b;
+  --color-primary-fixed: #5e5e5e;
+  --color-on-primary: #e2e2e2;
+
+  --color-text: #1b1b1b;
+  --color-text-muted: #474747;
+  --color-text-subtle: #777777;
+  --color-text-faint: #a3a3a3;
+
+  --color-border: rgba(198, 198, 198, 0.2);
+  --color-border-strong: rgba(198, 198, 198, 0.4);
+
+  /* สีสำหรับ overlay / glassmorphism */
+  --color-glass: rgba(249, 249, 249, 0.8);
+  --color-glass-blur: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─────────────────────────────────────────
+   DARK THEME
+   ───────────────────────────────────────── */
+[data-theme='dark'],
+.dark {
+  --color-bg: #0a0a0a;
+  --color-surface: #0a0a0a;
+  --color-surface-low: #111111;
+  --color-surface-mid: #1a1a1a;
+  --color-surface-high: #282828;
+  --color-surface-highest: #333333;
+  --color-surface-dim: #1e1e1e;
+
+  --color-primary: #ffffff;
+  --color-primary-dim: #c6c6c6;
+  --color-primary-fixed: #5e5e5e;
+  --color-on-primary: #000000;
+
+  --color-text: #e2e2e2;
+  --color-text-muted: #919191;
+  --color-text-subtle: #5e5e5e;
+  --color-text-faint: #3b3b3b;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+
+  --color-glass: rgba(10, 10, 10, 0.8);
+  --color-glass-blur: 12px;
+
+  --color-error: #ff897d;
+  --color-error-container: #93000a;
+}
+
+/* ─────────────────────────────────────────
+   BASE RESET
+   ───────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+/* ─────────────────────────────────────────
+   SCROLLBAR — editorial-thin
+   ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-highest);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
+}
+
+/* ─────────────────────────────────────────
+   SELECTION
+   ───────────────────────────────────────── */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* ─────────────────────────────────────────
+   FOCUS — editorial minimal ring
+   ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────
+   TYPOGRAPHY UTILITIES
+   ───────────────────────────────────────── */
+
+/* Label ขนาดเล็กมาก — metadata, breadcrumb, timestamps */
+.label-xs {
+  font-size: 0.625rem; /* 10px */
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Label ขนาดเล็ก — section headings */
+.label-sm {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Editorial display heading — ขนาดใหญ่มาก */
+.display-lg {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+/* ─────────────────────────────────────────
+   EDITORIAL INPUT (borderless + bottom line)
+   รองรับทั้ง light/dark mode ผ่าน CSS variables
+   ───────────────────────────────────────── */
+.editorial-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border-strong);
+  border-radius: 0;
+  padding: 0.75rem 0;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  transition: border-color var(--transition-fast);
+}
+.editorial-input:focus {
+  outline: none;
+  border-bottom: 2px solid var(--color-primary);
+}
+.editorial-input::placeholder {
+  color: var(--color-text-faint);
+}
+.editorial-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────
+   EDITORIAL GRADIENT — ใช้สำหรับ primary actions
+   gradient จากดำ → เทาเข้ม
+   ───────────────────────────────────────── */
+.editorial-gradient {
+  background: linear-gradient(145deg, #000000 0%, #3b3b3b 100%);
+}
+
+[data-theme='dark'] .editorial-gradient {
+  background: linear-gradient(145deg, #ffffff 0%, #c6c6c6 100%);
+  color: #000000;
+}
+
+/* ─────────────────────────────────────────
+   GLASS OVERLAY — สำหรับ TopNav, modals
+   ───────────────────────────────────────── */
+.glass-overlay {
+  background: var(--color-glass);
+  backdrop-filter: blur(var(--color-glass-blur));
+}
+
+/* ─────────────────────────────────────────
+   EDITORIAL CARD — tonal layering surface
+   Card อยู่บน surface-low เพื่อสร้าง "soft lift"
+   ───────────────────────────────────────── */
+.editorial-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.editorial-card-elevated {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ─────────────────────────────────────────
+   MATERIAL SYMBOLS
+   ───────────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 300,
+    'GRAD' 0,
+    'opsz' 24;
+  vertical-align: middle;
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────
+   EDITORIAL BUTTON VARIANTS
+   ───────────────────────────────────────── */
+
+/* Primary — ปุ่มหลัก สีดำ (light) / ขาว (dark) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.btn-primary:hover {
+  opacity: 0.85;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Secondary — ปุ่มรอง มีขอบ */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ─────────────────────────────────────────
+   STATUS BADGES
+   ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+.badge-active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.badge-published {
+  background: var(--color-surface-highest);
+  color: var(--color-text);
+}
+.badge-archived {
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-subtle);
+}
+.badge-error {
+  background: var(--color-error-container);
+  color: var(--color-error);
+}
+
+/* ─────────────────────────────────────────
+   SKELETON SHIMMER ANIMATION
+   ───────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

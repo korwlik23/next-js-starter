@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/blob-report/
 
 # next.js
 /.next/
@@ -20,9 +23,25 @@
 # production
 /build
 
+# database (SQLite)
+*.db
+*.db-journal
+
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
 
 # debug
 npm-debug.log*
@@ -32,9 +51,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# stripe
+.stripe
 
 # typescript
 *.tsbuildinfo

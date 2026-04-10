@@ -1,0 +1,47 @@
+{
+  "auth": {
+    "login": "เข้าสู่ระบบ",
+    "register": "สมัครสมาชิก",
+    "logout": "ออกจากระบบ",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "forgotPassword": "ลืมรหัสผ่าน?",
+    "authenticate": "เข้าสู่ระบบ",
+    "noAccount": "ยังไม่มีบัญชี?",
+    "hasAccount": "มีบัญชีอยู่แล้ว?"
+  },
+  "nav": {
+    "dashboard": "แดชบอร์ด",
+    "users": "ผู้ใช้งาน",
+    "settings": "ตั้งค่า",
+    "profile": "โปรไฟล์"
+  },
+  "dashboard": {
+    "title": "แดชบอร์ด",
+    "overview": "ภาพรวม",
+    "totalUsers": "ผู้ใช้งานทั้งหมด",
+    "activeSessions": "เซสชันที่ใช้งาน"
+  },
+  "common": {
+    "save": "บันทึกการเปลี่ยนแปลง",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "create": "สร้าง",
+    "confirm": "ยืนยัน",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "success": "สำเร็จ",
+    "search": "ค้นหา...",
+    "noData": "ไม่พบข้อมูล",
+    "viewAll": "ดูทั้งหมด"
+  },
+  "table": {
+    "name": "ชื่อ",
+    "email": "อีเมล",
+    "role": "บทบาท",
+    "status": "สถานะ",
+    "createdAt": "วันที่สร้าง",
+    "actions": "การดำเนินการ"
+  }
+}
