@@ -1,6 +1,6 @@
-# 🚀 Ultimate Next.js SaaS Starter
+# 🚀 Ultimate Next.js SaaS Starter (Enterprise Ready)
 
-นี่คือฐานโปรเจกต์ (Core System Foundation) ที่ถูกออกแบบมารองรับการสร้างแอปพลิเคชันตั้งแต่ระดับพื้นฐานไปจนถึงระดับ Enterprise (SaaS) มีระบบสิทธิ์ (RBAC), การจัดการหลายองค์กร (Multi-tenant), การยืนยันตัวตน, Theme, i18n, ตลอดจนโครงสร้างรองรับ Payment และ Email ที่ถูกออกแบบอย่างมีมาตรฐานสากล
+นี่คือฐานโปรเจกต์ (Core System Foundation) ที่ถูกออกแบบมารองรับการสร้างแอปพลิเคชันตั้งแต่ระดับพื้นฐานไปจนถึงระดับ Enterprise (SaaS) อย่างสมบูรณ์ มีระบบสิทธิ์ (RBAC), การจัดการหลายองค์กร (Multi-tenant), การยืนยันตัวตน, Theme, i18n, Rate Limiting, Testing ตลอดจนโครงสร้างรองรับ Payment และ Email ที่ถูกออกแบบตามมาตรฐานสากล
 
 ---
 
@@ -8,126 +8,132 @@
 
 - **Framework**: Next.js 15 (App Router) + React 19
 - **Language**: TypeScript แบบ Strict Mode
-- **Styling**: Tailwind CSS + หางแนว Custom CSS Variables
+- **Styling**: Tailwind CSS v4 + ระบบ Design System (UI Template)
 - **Database ORM**: Prisma
 - **Database Engine**: MySQL / PostgreSQL 
-- **Authentication**: Custom JWT (Access + Refresh Token) & RBAC Guard
-- **i18n**: `next-intl`
+- **Authentication**: Custom JWT (Access + Refresh Token) & SSO (OAuth)
+- **Authorization**: RBAC (Role-Based Access Control) & ABAC พร้อม Feature Gating
+- **i18n**: ถอดคำแปลผ่าน Database หรือ Local fallback (next-intl)
 - **State Management**: Zustand + React Query (Tanstack)
-- **ID Generator**: ULID (เรียงลำดับได้ แก้ปัญหา CUID ที่มีขนาดใหญ่และอ่านยาก)
-- **Code Quality**: Prettier (กำหนดค่ามาตรฐาน: ไม่ใช้ Semicolon, Single Quotes)
+- **ID Generator**: ULID (เรียงลำดับได้ดีกว่า CUID/UUID)
+- **Performance & Security**: Upstash Redis (Rate Limiting), Zod (Validation)
+- **Testing**: Jest (Unit Test) + Playwright (E2E Test)
+- **CI/CD & DevOps**: GitHub Actions + Docker Support
+
+---
+
+## 🌟 ฟีเจอร์เด่น (Key Features)
+
+- **Multi-Tenant Architecture**: รองรับการทำ SaaS เต็มรูปแบบ แยกข้อมูลของแต่ละองค์กร (Tenant) ออกจากกันชัดเจน
+- **Advanced Auth/Authorization**: ควบคุมสิทธิ์การใช้งานระดับลึก ไม่ว่าจะเป็น Role-based หรือ Field-level
+- **Stripe Integration**: โครงสร้างรองรับระบบ Subscription, Webhook สำหรับการตัดบัตรและอัปเดตแพ็กเกจ
+- **Email Service**: เชื่อมต่อผ่าน Resend/Nodemailer พร้อมเทมเพลตอีเมลสวยงาม
+- **Testing Ready**: จัดเซตอัป Jest และ Playwright ให้คุณเขียนเทสต์อัปเดตระบบได้อย่างมั่นใจ
+- **Enterprise-Grade Logging**: ระบบ Audit Log ติดตามทุกกิจกรรม (Activity) และระบบจัดการ Error Boundary อย่างเป็นระบบ
+- **SEO & Performance**: วางโครงสร้าง sitemap.ts, robots.txt และใช้การ Caching ได้อย่างชาญฉลาด
 
 ---
 
 ## ⚠️ สิ่งที่คุณต้องทำต่อไป (Next Steps)
 
-ระบบโครงสร้างนั้นสมบูรณ์กว่า 90% แต่ระบบเหล่านี้ **"ต้องการข้อมูลจริงของคุณ"** ก่อนนำขึ้น Production เพื่อให้ครบ 100%:
+ระบบโครงสร้างนั้นถูกจัดเตรียมไว้อย่างสมบูรณ์เกือบ 100% แต่สิ่งเหล่านี้ **"ต้องการข้อมูลจริงของคุณ"** ก่อนใช้งานหรือนำขึ้น Production:
 
 ### 1. 🔥 เตรียม Environment Variables (`.env`)
-คุณต้องหา Service ควบคู่มาใส่ในช่องว่างเหล่านี้:
+คัดลอกไฟล์ `.env.example` เป็น `.env` และกรอกข้อมูลให้ครบถ้วน:
 
-```env
-# ฐานข้อมูล (สำคัญมาก)
-DATABASE_URL="mysql://root:@localhost:3306/nextjs_starter"
-
-# Secret Key (สำหรับเซ็น JWT - สร้างได้จากคำสั่ง `openssl rand -base64 32`)
-JWT_SECRET="YOUR_SUPER_SECRET_KEY_HERE"
-
-# URL ของระบบ (ใช้ใน Email Link / Webhook)
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-
-# --- SaaS & Enterprise Integrations ---
-
-# 1. ระบบอีเมล (แนะนำ Resend หรือ Nodemailer)
-RESEND_API_KEY="re_123456789"  
-
-# 2. ระบบจ่ายเงิน Stripe
-STRIPE_SECRET_KEY="sk_test_123456789"
-STRIPE_WEBHOOK_SECRET="whsec_123456789"
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_123456789"
-
-# 3. SSO (Single Sign-On ถ้าคุณต้องการ Google/Github Auth)
-GOOGLE_CLIENT_ID="..."
-GOOGLE_CLIENT_SECRET="..."
+```bash
+cp .env.example .env
 ```
 
----
+คุณต้องหา Service ควบคู่มาใส่ในช่องว่างเช่น:
+- **DATABASE_URL**: ฐานข้อมูลที่คุณใช้งาน (เช่น MySQL ใน XAMPP `mysql://root:@localhost:3306/nextjs_starter`)
+- **JWT_SECRET**: สร้างด้วยคำสั่ง `openssl rand -base64 32`
+- **RESEND_API_KEY**: จาก Resend สำหรับส่งอีเมล
+- **STRIPE_SECRET_KEY** / Webhook Secret: สำหรับระบบ Payment ทางฝั่ง Stripe
+- **UPSTASH_REDIS_REST_URL**: สำหรับการใช้ Redis ทำ Rate Limit เพื่อป้องกันสแปม (ถ้ามี)
 
 ### 2. 📧 ระบบ Email (Email Service)
-- **เปิดไฟล์:** `src/lib/email.ts`
-- **สิ่งที่คุณต้องทำ:** ปัจจุบันผมเขียนเป็น *Placeholder (console.log)* เอาไว้ คุณต้องไปสมัคร [Resend](https://resend.com/) หรือ [SendGrid](https://sendgrid.com/) จากนั้น:
-  1. `npm install resend`
-  2. เอา Comment ในฟังก์ชัน `SendEmail` ออก และนำไลบรารีจริงมาเสียบทำงานแทนที่
-  3. ผูกกับ `SendInviteEmail` และ `SendPasswordResetEmail` ได้ทันที
-
----
+ปัจจุบันระบบถูกตั้งโครงสำหรับ Resend/Nodemailer คุณสามารถเข้าไปดัดแปลงเทมเพลตและเปิดใช้งานการส่งอีเมลจริงได้ที่ `src/services/email.service.ts`
 
 ### 3. 💳 ระบบจ่ายเงิน (Stripe Subscription)
-- **เปิดไฟล์:** `src/lib/stripe.ts` และ `src/app/api/billing/webhook/route.ts`
-- **สิ่งที่คุณต้องทำ:**
-  1. `npm install stripe`
-  2. สมัครใช้งาน Stripe เอา Secret Key มาใส่ให้พร้อม
-  3. ในไฟล์ Webhook ระบบเตรียมดักจับ `checkout.session.completed` ไว้แล้ว เพียงแค่ปลด Comment เพื่อใช้ SDK ตรวจหาหน้าการทำรายการจ่ายเงิน และตัดแผนให้ผู้ใช้งานใน DB รัฐ
-
----
+ไฟล์ Webhook เตรียมสแตนด์บายรับค่า `checkout.session.completed` ไว้แล้วที่ `src/app/api/billing/webhook/route.ts` เพียงปลด Comment โค้ดออกมาก็จะตัดรอบบิลได้ทันที
 
 ### 4. 🪪 ระบบ SSO (OAuth)
-- **เปิดไฟล์:** `src/app/api/auth/[provider]/route.ts`
-- **สิ่งที่คุณต้องทำ:**
-  - สร้าง Application ใน Google Cloud Console หรือ GitHub Developer
-  - เขียน Logic ให้แลก Token กลับมา นำอีเมลมาเช็คใน Database ถ้ายังไม่มีก็บันทึกเข้าตาราง `User` และ `Account` ถ้ามีแล้วก็เข้าผ่านฟังก์ชัน Login เดิมได้เลย
+เพิ่ม Client ID และ Secret ของ Google/GitHub และเมื่อผู้ใช้งาน Sign-in ระบบจะจัดการเชื่อมโยงบัญชีในตาราง `User` อย่างอัตโนมัติ
+
+### 5. 🛡️ ตรวจเช็กข้อมูลผู้ทำระบบ (Database Seeding)
+เข้าไปดูที่ `prisma/seed.ts` เช็ก Email เบื้องต้นของ Admin (เช่น `owner@starter.dev` รหัสผ่าน `password123`) นี่คือ Owner ที่จะเข้าใช้ระบบทั้งหมด! สามารถเปลี่ยนข้อมูลได้ก่อน Seed ครับ
 
 ---
 
-### 5. 🛡️ ตรวจเช็คข้อมูลเริ่มต้น (Database Seeding)
-- **เปิดไฟล์:** `prisma/seed.ts`
-- **สิ่งที่คุณต้องทำ:** เช็ก Email ของ Admin `owner@starter.dev` (รหัสผ่าน: `password123`) นี่คือ Owner ที่จะเข้าใช้ระบบทั้งหมด! สามารถเปลี่ยนข้อมูลได้ตามความเหมาะสม
+## 🚀 วิธีการใช้งาน (Getting Started)
 
----
-
-## 🚀 วิธีการใช้งานและการติดเครื่อง (Getting Started)
-
-1. **ติดตั้งโมดูลทั้งหมด**
+1. **ติดตั้งโมดูลและ Dependencies ทั้งหมด**
    ```bash
    npm install
    ```
+
 2. **จัดการฐานข้อมูลและโครงสร้าง Prisma**
    ```bash
-   npx prisma generate
-   npx prisma db push
+   npm run db:generate
+   npm run db:push
    ```
-3. **กำหนดผู้ดูแลระบบเริ่มต้น**
+
+3. **กำหนดผู้ดูแลระบบเริ่มต้นและข้อมูลตั้งต้น**
    ```bash
-   npx prisma db seed
+   npm run db:seed
    ```
-4. **เปิดเซิฟเวอร์โหมด Development**
+
+4. **เปิดเซิร์ฟเวอร์โหมด Development**
    ```bash
    npm run dev
    ```
-
-พุ่งทะยานสู่ `http://localhost:3000` !
+   พุ่งทะยานสู่ [`http://localhost:3000`](http://localhost:3000) ถือเป็นอันเสร็จสิ้น!
 
 ---
 
-## 📁 โครงสร้างโปรเจกต์แบบย่อ
+## 🧪 การใช้งานระบบ Testing
+
+เพื่อป้องกัน Bug ตอนแก้ไขระบบใหญ่ เราเซตอัปทูลไว้ให้แล้ว:
+- **Unit Testing (Jest)**: ขับเคลื่อนตรรกะเบื้องหลัง
+  ```bash
+  npm run test
+  ```
+- **E2E Testing (Playwright)**: พฤติกรรมเสมือนใช้เบราว์เซอร์จริง
+  ```bash
+  npx playwright install # โหลด browser (เฉพาะครั้งแรก)
+  npm run test:e2e
+  ```
+
+---
+
+## 📦 Deployment & Containerization
+
+โปรเจกต์นี้เปิดมาให้รันด้วย Docker ได้เลย ทำให้ง่ายเวลาขึ้น Server:
+```bash
+docker build -t nextjs-starter .
+docker run -p 3000:3000 -d nextjs-starter
+```
+นอกจากนี้เรายังมีไฟล์ `.github/workflows/ci.yml` สำหรับการทำ CI/CD อัตโนมัติ (Linting & Testing) ทุกรูปบบที่ Push ขึ้น GitHub
+
+---
+
+## 📁 โครงสร้างโปรเจกต์ (Project Structure)
 
 ```text
 📁 src/
- ├── 📁 app/          # Next.js App Router (หน้า Layout / Pages / APIs)
- │    ├── 📁 (auth)/  # หน้า Login / Register / Forgot Password
- │    ├── 📁 (main)/  # หน้า Dashboard / Settings (มีการเช็ค Login ผ่าน Middleware)
- │    ├── 📁 api/     # API Route (หลังบ้านแบบ Serverless)
- ├── 📁 components/   # UI System แยกเป็น (ui, form, layout, table, feedback)
- ├── 📁 hooks/        # Custom Hooks
- ├── 📁 lib/          # Utilities Library แกนหลัก (auth, jwt, prisma, logger, stripe)
- ├── 📁 modules/      # Business Logic (User, Tenant, Auth) — แยก Controller กะ Service ชัดเจน
- ├── 📁 i18n/         # กฎของ Next-intl สำหรับภาษา (EN/TH)
- ├── 📁 store/        # Zustand State Management (authStore, uiStore)
- ├── 📁 utils/        # ตัวช่วยจิปาถะ (api utils, date format)
+ ├── 📁 app/          # Next.js App Router (Layout / Pages / API Routes)
+ │    ├── 📁 (auth)/  # หน้า Authentication (Login / Register) แยก Layout
+ │    ├── 📁 (main)/  # ลบส่วน Dashboard ทำงานผ่าน Middleware
+ │    ├── 📁 api/     # Serverless APIs แบบแยก Directory
+ ├── 📁 components/   # UI Library แยกหมวด (ui, form, layout, table, feedback)
+ ├── 📁 hooks/        # Custom React Hooks
+ ├── 📁 lib/          # แกนหลัก Core Utils (Auth, JWT, Prisma, Stripe, Rate Limit)
+ ├── 📁 modules/      # Business Logic (User, Tenant, Auth) ใช้ Clean Architecture แยก Layer ชัดเจน
+ ├── 📁 services/     # Third-party Services
+ ├── 📁 i18n/         # ศูนย์กลางภาษา (next-intl)
+ ├── 📁 store/        # ระบบจัดการแบบ Global (Zustand)
+ ├── 📁 utils/        # Helpers และ Formatters ทั่วไป
 ```
 
-## 🧠 คำแนะนำสุดท้าย
-
-> **"STARTER ชุดนี้ จะเป็นแกนกลางระบบของตลอดช่วงอายุโปรเจกต์ของคุณ!"**
-
-กรุณาศึกษาเนื้อหาไฟล์ `src/lib/` และ `src/modules/` เป็นหลัก เพราะมันบรรจุ Architecture แบบแยก Services ออกจาก Routing ทำให้คุณสามารถเปลี่ยน Framework หรือทำ Testing (Unit Test) ได้อย่างง่ายดายในอนาคต!
+> **"STARTER ชุดนี้ จะเป็นหัวใจและแกนกลางให้คุณลดเวลา Dev ประหยัดค่าแรงไปได้เป็นพันชั่วโมง!"**
