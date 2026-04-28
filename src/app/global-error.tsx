@@ -12,10 +12,12 @@ export default function GlobalError({
   return (
     <html lang="th" suppressHydrationWarning>
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=optional"
         />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -27,9 +29,7 @@ export default function GlobalError({
             <span className="material-symbols-outlined text-6xl text-red-500 mb-6 block">
               error
             </span>
-            <h1 className="text-3xl font-extrabold text-white mb-4">
-              เกิดข้อผิดพลาดร้ายแรง (500)
-            </h1>
+            <h1 className="text-3xl font-extrabold text-white mb-4">เกิดข้อผิดพลาดร้ายแรง (500)</h1>
             <p className="text-[var(--color-text-muted)] text-sm mb-8">
               พบปัญหา Internal Server Error ของระบบ ไม่สามารถประมวลผลคำขอนี้ได้ในขณะนี้
             </p>

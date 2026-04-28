@@ -59,6 +59,11 @@ export function SearchInput({
     // Sync กับ URL query param ถ้าระบุ
     if (query_param && typeof window !== 'undefined') {
       const url = new URL(window.location.href)
+      const current_val = url.searchParams.get(query_param) ?? ''
+
+      // ป้องกัน infinite loop: เช็คว่าค่าเปลี่ยนจริงๆ หรือไม่
+      if (debounced_value === current_val) return
+
       if (debounced_value) {
         url.searchParams.set(query_param, debounced_value)
       } else {

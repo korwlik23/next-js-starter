@@ -26,7 +26,7 @@ export class UserController {
       const limit = Number(searchParams.get('limit') ?? 10)
       const search = searchParams.get('search') ?? undefined
 
-      const { users, total } = await getUsersService({ page, limit, search })
+      const { users, total } = await getUsersService(user.tenantId ?? null, { page, limit, search })
       return paginatedResponse(users, { total, page, limit })
     } catch (error) {
       logger.error('UserController.GetUsers error', error)

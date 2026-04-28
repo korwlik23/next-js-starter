@@ -1,75 +1,52 @@
 'use client'
 
-import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { NotificationPanel } from '@/components/layout/NotificationPanel'
+import { NotificationDropdown } from '@/components/ui/NotificationDropdown'
 import { SearchInput } from '@/components/ui/SearchInput'
 
 // ────────────────────────────────────────
 // TopNav — แถบนำทางด้านบน
 // ตาม editorial template: glassmorphism, search + actions
-// เพิ่ม NotificationPanel dropdown
+// เพิ่ม NotificationDropdown
 // ────────────────────────────────────────
 
 interface TopNavProps {
   title?: string
+  onOpenSidebar: () => void
 }
 
-export function TopNav({ title: _title }: TopNavProps) {
-  // สถานะเปิด/ปิด notification panel
-  const [is_notification_open, set_is_notification_open] = useState(false)
-
-  // Toggle notification panel
-  const HandleToggleNotification = useCallback(() => {
-    set_is_notification_open((prev) => !prev)
-  }, [])
-
-  // ปิด notification panel
-  const HandleCloseNotification = useCallback(() => {
-    set_is_notification_open(false)
-  }, [])
-
+export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
   return (
     <header
-      className="fixed top-0 right-0 h-16 z-40 flex justify-between items-center px-8 glass-overlay"
+      className="sticky top-0 h-16 flex justify-between items-center px-4 lg:px-8 glass-overlay w-full"
       style={{
-        width: 'calc(100% - var(--sidebar-width))',
+        zIndex: 'var(--z-nav)',
         borderBottom: '1px solid var(--color-border)',
       }}
     >
-      {/* Search — ช่องค้นหาด้านซ้าย */}
-      <div className="flex-1 max-w-md">
-        <SearchInput
-          placeholder="Search..."
-          query_param="q"
-          size="sm"
-          className="border-0"
-        />
+      <div className="flex items-center gap-4 flex-1">
+        {/* Hamburger Menu (Mobile Only) */}
+        <button
+          onClick={onOpenSidebar}
+          className="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+
+        {/* Search — ช่องค้นหาด้านซ้าย */}
+        <div className="flex-1 max-w-md hidden sm:block">
+          <SearchInput placeholder="Search..." query_param="q" size="sm" className="border-0" />
+        </div>
       </div>
 
       {/* Actions — icons ด้านขวา */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 lg:gap-6">
         {/* สลับหน้าจอ ThemeToggle */}
         <ThemeToggle />
 
-        {/* Notifications bell — เปิด/ปิด panel */}
-        <div className="relative">
-          <button
-            onClick={HandleToggleNotification}
-            className="transition-colors hover:opacity-70"
-            style={{ color: 'var(--color-text-subtle)' }}
-            aria-label="Notifications"
-          >
-            <span className="material-symbols-outlined text-[1.2rem]">notifications</span>
-          </button>
-
-          {/* Notification dropdown panel */}
-          <NotificationPanel
-            is_open={is_notification_open}
-            onClose={HandleCloseNotification}
-          />
-        </div>
+        {/* Notifications bell — ใช้คอมโพเนนต์ใหม่ที่เชื่อมต่อ API จริง */}
+        <NotificationDropdown />
 
         {/* Settings gear */}
         <Link

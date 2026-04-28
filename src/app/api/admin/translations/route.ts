@@ -15,7 +15,11 @@ export async function GET(request: Request) {
     return NextResponse.json(translations, { status: 200 })
   } catch (error) {
     console.error('[Translations GET Error]', error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    // Fallback: ส่งคืน Array เปล่าเมื่อ Database ยังไม่พร้อม
+    return NextResponse.json(
+      { data: [], error: 'Database connection failed or not seeded.' },
+      { status: 200 }
+    )
   }
 }
 

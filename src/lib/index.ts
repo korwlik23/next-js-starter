@@ -34,10 +34,29 @@ export { SanitizeHtml, EscapeHtml, SanitizeInput, SanitizeObject, SanitizeEmail 
 export { CreateRateLimiter, AUTH_RATE_LIMITER, API_RATE_LIMITER, GetClientIp } from './rate-limit'
 
 // ─── SaaS Features
-export { CanAccessFeature, GetFeatureLimit, IsOverLimit, FEATURES, PLAN_LIMITS } from './feature-gate'
+export {
+  CanAccessFeature,
+  GetFeatureLimit,
+  IsOverLimit,
+  FEATURES,
+  PLAN_LIMITS,
+} from './feature-gate'
 export { CreateAuditLog } from './audit'
-export { CreateApiKey, ValidateApiKey, RevokeApiKey, ListApiKeys, GenerateApiKey, HashApiKey } from './api-key'
-export { StartTrial, IsInTrial, IsTrialExpired, DowngradeExpiredTrials, GetTrialDaysRemaining } from './trial'
+export {
+  CreateApiKey,
+  ValidateApiKey,
+  RevokeApiKey,
+  ListApiKeys,
+  GenerateApiKey,
+  HashApiKey,
+} from './api-key'
+export {
+  StartTrial,
+  IsInTrial,
+  IsTrialExpired,
+  DowngradeExpiredTrials,
+  GetTrialDaysRemaining,
+} from './trial'
 export { CheckUserLimit, CheckProjectLimit, CheckFileUploadLimit } from './usage-limit'
 
 // ─── SSO
@@ -50,7 +69,7 @@ export {
 } from './sso'
 
 // ─── Stripe
-export { stripe, GetStripeClient } from './stripe'
+export { GetStripeClient } from './stripe'
 
 // ─── Logging
 export { logger } from './logger'

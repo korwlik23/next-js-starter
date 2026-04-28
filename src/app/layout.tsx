@@ -60,13 +60,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
-        {/* Google Material Symbols — icon system สำหรับ editorial UI */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font, @next/next/google-font-display */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=optional"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap"
         />
-        {/* Google Font: Inter — editorial typography ตัวหลัก */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
@@ -79,22 +77,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": SITE_NAME,
-              "url": SITE_URL,
-              "description": SITE_DESCRIPTION,
-              "publisher": {
-                "@type": "Organization",
-                "name": SITE_NAME,
-                "url": SITE_URL
-              }
-            })
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: SITE_NAME,
+              url: SITE_URL,
+              description: SITE_DESCRIPTION,
+              publisher: {
+                '@type': 'Organization',
+                name: SITE_NAME,
+                url: SITE_URL,
+              },
+            }),
           }}
         />
         <NextIntlClientProvider messages={messages}>
           <QueryProvider>
-            <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem
+              disableTransitionOnChange
+            >
               {children}
             </ThemeProvider>
           </QueryProvider>

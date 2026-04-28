@@ -6,7 +6,7 @@ import { checkRateLimit } from '@/utils/rate-limit'
 // ─── ภาษาที่รองรับ (ต้อง sync กับ src/i18n/config.ts)
 const SUPPORTED_LOCALES = ['en', 'th'] as const
 const DEFAULT_LOCALE = 'th'
-const LOCALE_COOKIE_NAME = 'NEXT_LOCALE'
+const LOCALE_COOKIE_NAME = 'locale'
 
 // ─────────────────────────────────────────
 // LOCALE DETECTION — ตรวจจับภาษาจาก Accept-Language header
@@ -14,7 +14,10 @@ const LOCALE_COOKIE_NAME = 'NEXT_LOCALE'
 function DetectLocale(req: NextRequest): string {
   // 1. ตรวจสอบ cookie ก่อน (ผู้ใช้เลือกเอง)
   const cookie_locale = req.cookies.get(LOCALE_COOKIE_NAME)?.value
-  if (cookie_locale && SUPPORTED_LOCALES.includes(cookie_locale as typeof SUPPORTED_LOCALES[number])) {
+  if (
+    cookie_locale &&
+    SUPPORTED_LOCALES.includes(cookie_locale as (typeof SUPPORTED_LOCALES)[number])
+  ) {
     return cookie_locale
   }
 
@@ -24,13 +27,16 @@ function DetectLocale(req: NextRequest): string {
     .split(',')
     .map((lang) => {
       const [locale, quality] = lang.trim().split(';q=')
-      return { locale: locale.split('-')[0].toLowerCase(), quality: quality ? parseFloat(quality) : 1 }
+      return {
+        locale: locale.split('-')[0].toLowerCase(),
+        quality: quality ? parseFloat(quality) : 1,
+      }
     })
     .sort((a, b) => b.quality - a.quality)
 
   // 3. หา match แรกที่รองรับ
   for (const { locale } of preferred_locales) {
-    if (SUPPORTED_LOCALES.includes(locale as typeof SUPPORTED_LOCALES[number])) {
+    if (SUPPORTED_LOCALES.includes(locale as (typeof SUPPORTED_LOCALES)[number])) {
       return locale
     }
   }
@@ -43,7 +49,7 @@ function DetectLocale(req: NextRequest): string {
 // MIDDLEWARE — runs on Edge Runtime
 // รวม Auth Protection + Locale Detection
 // ─────────────────────────────────────────
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // ── Skip static files & Next.js internals
@@ -55,18 +61,26 @@ export async function middleware(req: NextRequest) {
   const detected_locale = DetectLocale(req)
 
   // ── Public routes — allow without auth แต่ยัง set locale
-  const isPublic = authConfig.publicRoutes.some((route) => pathname.startsWith(route))
-  
+  const isDevelopmentOnlyRoute = pathname === '/dev' || pathname.startsWith('/dev/')
+  const isPublic =
+    authConfig.publicRoutes.some((route) =>
+      route === '/' ? pathname === '/' : pathname.startsWith(route)
+    ) ||
+    (process.env.NODE_ENV === 'development' && isDevelopmentOnlyRoute)
+
   if (isPublic) {
     // ── Rate Limiting สำหรับหน้า Login ป้องกัน Brute force
     if (pathname === '/login' || pathname.startsWith('/api/auth/')) {
       const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
       const { success } = await checkRateLimit(ip, 'auth')
       if (!success) {
-         if (pathname.startsWith('/api/')) {
-            return NextResponse.json({ success: false, message: 'Too Many Requests' }, { status: 429 })
-         }
-         return NextResponse.redirect(new URL('/429', req.url)) // Or render error page
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json(
+            { success: false, message: 'Too Many Requests' },
+            { status: 429 }
+          )
+        }
+        return NextResponse.redirect(new URL('/429', req.url)) // Or render error page
       }
     }
 
@@ -84,13 +98,14 @@ export async function middleware(req: NextRequest) {
   }
 
   const isApiRoute = pathname.startsWith('/api/')
-  
+
   // ── Subdomain Routing สำหรับ Multi-Tenant
   const hostname = req.headers.get('host') || ''
   // เปลี่ยน yourdomain.com ตามโดเมนจริงของคุณในอนาคต (หรือใช้ env)
-  const currentHost = process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ROOT_DOMAIN 
-    ? process.env.NEXT_PUBLIC_ROOT_DOMAIN 
-    : 'localhost:3000'
+  const currentHost =
+    process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ROOT_DOMAIN
+      ? process.env.NEXT_PUBLIC_ROOT_DOMAIN
+      : 'localhost:3000'
 
   let tenantSlug = null
   if (hostname !== currentHost && !hostname.includes('vercel.app')) {
@@ -100,21 +115,21 @@ export async function middleware(req: NextRequest) {
 
   // ── Rate Limiting สำหรับ API ทั่วไป
   if (isApiRoute) {
-      const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
-      const { success, limit, remaining, reset } = await checkRateLimit(ip, 'api')
-      if (!success) {
-        return NextResponse.json(
-          { success: false, message: 'Too Many Requests' },
-          { 
-            status: 429,
-            headers: {
-              'X-RateLimit-Limit': (limit || 0).toString(),
-              'X-RateLimit-Remaining': (remaining || 0).toString(),
-              'X-RateLimit-Reset': (reset || 0).toString(),
-            }
-          }
-        )
-      }
+    const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
+    const { success, limit, remaining, reset } = await checkRateLimit(ip, 'api')
+    if (!success) {
+      return NextResponse.json(
+        { success: false, message: 'Too Many Requests' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': (limit || 0).toString(),
+            'X-RateLimit-Remaining': (remaining || 0).toString(),
+            'X-RateLimit-Reset': (reset || 0).toString(),
+          },
+        }
+      )
+    }
   }
 
   const accessToken = req.cookies.get(authConfig.cookieName.accessToken)?.value
@@ -130,6 +145,9 @@ export async function middleware(req: NextRequest) {
     if (payload) {
       requestHeaders.set('x-user-id', payload.sub)
       requestHeaders.set('x-user-roles', JSON.stringify(payload.roles))
+      if (payload.tenantId) {
+        requestHeaders.set('x-tenant-id', payload.tenantId)
+      }
     }
     return requestHeaders
   }
@@ -139,7 +157,7 @@ export async function middleware(req: NextRequest) {
     const payload = await verifyAccessToken(accessToken)
     if (payload) {
       const requestHeaders = constructHeaders(req.headers, payload)
-      
+
       const response = NextResponse.next({ request: { headers: requestHeaders } })
       if (!req.cookies.get(LOCALE_COOKIE_NAME)?.value) {
         response.cookies.set(LOCALE_COOKIE_NAME, detected_locale, {
@@ -157,6 +175,13 @@ export async function middleware(req: NextRequest) {
     const userId = await verifyRefreshToken(refreshToken)
     if (userId) {
       const refreshUrl = new URL('/api/auth/refresh', req.url)
+      refreshUrl.searchParams.set('callbackUrl', `${pathname}${req.nextUrl.search}`)
+      if (isApiRoute) {
+        return NextResponse.json(
+          { success: false, message: 'Access token expired' },
+          { status: 401, headers: { 'x-auth-refreshable': 'true' } }
+        )
+      }
       return NextResponse.redirect(refreshUrl)
     }
   }

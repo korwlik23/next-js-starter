@@ -1,9 +1,3 @@
-// ============================================================
-// ULTIMATE NEXT.JS STARTER — Prisma Schema
-// Database: MySQL (XAMPP) | nextjs_starter
-// Supports: Multi-tenant, Soft-delete, ULID, RBAC
-// ============================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,29 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────
-// USER
-// ─────────────────────────────────────────
 model User {
-  id        String    @id // ULID — สร้างจาก application code
-  name      String
-  email     String    @unique
-  password  String
-  avatar    String?
-  tenantId  String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  roles         UserRole[]
-  permissions   UserPermission[]
-  refreshTokens RefreshToken[]
+  id            String           @id
+  name          String
+  email         String           @unique
+  password      String
+  avatar        String?
+  tenantId      String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
   accounts      Account[]
-  notifications Notification[]
   auditLogs     AuditLog[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  permissions   UserPermission[]
+  roles         UserRole[]
+  idempotencyKeys IdempotencyKey[]
 
-  // Index สำหรับ Multi-tenant query และ Soft-delete filter เพื่อความเร็ว
   @@index([tenantId])
   @@index([isActive])
   @@index([deletedAt])
@@ -43,149 +33,126 @@ model User {
   @@map("users")
 }
 
-// ─────────────────────────────────────────
-// TENANT (SaaS multi-tenant)
-// ─────────────────────────────────────────
 model Tenant {
-  id          String    @id // ULID — สร้างจาก application code
-  name        String
-  slug        String    @unique
-  plan        String    @default("free")
-  isActive    Boolean   @default(true)
-  trialEndsAt DateTime? // วันหมดอายุ trial period
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  roles         Role[]
-  subscriptions Subscription[]
-  invitations   Invitation[]
-  auditLogs     AuditLog[]
+  id            String        @id
+  name          String
+  slug          String        @unique
+  plan          String        @default("free")
+  isActive      Boolean       @default(true)
+  trialEndsAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
   apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  invitations   Invitation[]
+  roles         Role[]
+  subscriptions Subscription?
 
-  // Index สำหรับ lookup by plan และ Soft-delete filter
   @@index([isActive])
   @@index([plan])
   @@index([deletedAt])
   @@map("tenants")
 }
 
-// ─────────────────────────────────────────
-// ROLE
-// ─────────────────────────────────────────
 model Role {
-  id          String   @id // ULID — สร้างจาก application code
+  id          String           @id
   name        String
   description String?
   tenantId    String?
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant      Tenant?          @relation(fields: [tenantId], references: [id])
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   permissions RolePermission[]
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id])
   users       UserRole[]
 
   @@unique([name, tenantId])
-  // Index สำหรับ filter role ของ tenant และ system roles
-  // tenantId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([isSystem])
+  @@index([tenantId], map: "roles_tenantId_fkey")
   @@map("roles")
 }
 
-// ─────────────────────────────────────────
-// PERMISSION
-// ─────────────────────────────────────────
 model Permission {
-  id          String   @id // ULID — สร้างจาก application code
-  name        String   @unique // e.g. "user.create"
+  id          String           @id
+  name        String           @unique
   description String?
-  module      String // e.g. "user", "order", "billing"
-  action      String // e.g. "create", "read", "update", "delete"
-  createdAt   DateTime @default(now())
+  module      String
+  action      String
+  createdAt   DateTime         @default(now())
+  roles       RolePermission[]
+  users       UserPermission[]
 
-  roles RolePermission[]
-  users UserPermission[]
-
-  // Index สำหรับ filter permission by module
   @@index([module])
   @@index([action])
   @@map("permissions")
 }
 
-// ─────────────────────────────────────────
-// ROLE <-> PERMISSION (Pivot)
-// ─────────────────────────────────────────
 model RolePermission {
   roleId       String
   permissionId String
-  createdAt    DateTime @default(now())
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
+  @@index([permissionId], map: "role_permissions_permissionId_fkey")
   @@map("role_permissions")
 }
 
-// ─────────────────────────────────────────
-// USER <-> ROLE (Pivot)
-// ─────────────────────────────────────────
 model UserRole {
   userId    String
   roleId    String
   tenantId  String?
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
-  // Index สำหรับ lookup user roles ใน tenant เฉพาะ
-  // userId+roleId PK และ userId, roleId FK indexes ถูกสร้างโดย MySQL อัตโนมัติ
   @@index([tenantId])
   @@index([userId, tenantId])
+  @@index([roleId], map: "user_roles_roleId_fkey")
   @@map("user_roles")
 }
 
-// ─────────────────────────────────────────
-// USER PERMISSION OVERRIDE
-// ─────────────────────────────────────────
 model UserPermission {
   userId       String
   permissionId String
-  createdAt    DateTime @default(now())
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, permissionId])
+  @@index([permissionId], map: "user_permissions_permissionId_fkey")
   @@map("user_permissions")
 }
 
-// ─────────────────────────────────────────
-// REFRESH TOKEN
-// ─────────────────────────────────────────
 model RefreshToken {
-  id        String    @id // ULID — สร้างจาก application code
+  id        String    @id
   userId    String
   token     String    @unique @db.VarChar(500)
   expiresAt DateTime
   createdAt DateTime  @default(now())
   revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Index สำหรับ cleanup token ที่หมดอายุ
-  // userId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([expiresAt])
   @@index([revokedAt])
+  @@index([userId], map: "refresh_tokens_userId_fkey")
   @@map("refresh_tokens")
 }
 
-// ─────────────────────────────────────────
-// ACCOUNT (SSO / OAuth)
-// ─────────────────────────────────────────
+model ResetPasswordToken {
+  id        String   @id
+  email     String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("reset_password_tokens")
+}
+
 model Account {
   id                String  @id
   userId            String
@@ -198,20 +165,16 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  // userId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
+  @@index([userId], map: "accounts_userId_fkey")
   @@map("accounts")
 }
 
-// ─────────────────────────────────────────
-// SUBSCRIPTION (Stripe Billing)
-// ─────────────────────────────────────────
 model Subscription {
   id                   String    @id
-  tenantId             String    @unique // 1 Tenant has 1 active subscription
+  tenantId             String    @unique
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?   @unique
   plan                 String    @default("free")
@@ -221,38 +184,28 @@ model Subscription {
   cancelAtPeriodEnd    Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
 
-// ─────────────────────────────────────────
-// INVITATION (Team Invite)
-// ─────────────────────────────────────────
 model Invitation {
   id        String   @id
   email     String
   tenantId  String
   token     String   @unique
   roleId    String
-  status    String   @default("pending") // pending, accepted, expired
+  status    String   @default("pending")
   expiresAt DateTime
   createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Index สำหรับ lookup invitation by email และ status
-  // tenantId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([email])
   @@index([status])
   @@index([tenantId, status])
   @@map("invitations")
 }
 
-// ─────────────────────────────────────────
-// NOTIFICATION (In-app)
-// ─────────────────────────────────────────
 model Notification {
   id        String   @id
   userId    String
@@ -262,19 +215,13 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Index สำหรับ notification panel
-  // userId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([isRead])
-  @@index([userId, isRead]) // Composite: query unread notifications ของ user
+  @@index([userId, isRead])
   @@map("notifications")
 }
 
-// ─────────────────────────────────────────
-// AUDIT LOG (Action Tracking)
-// ─────────────────────────────────────────
 model AuditLog {
   id        String   @id
   userId    String?
@@ -282,56 +229,45 @@ model AuditLog {
   action    String
   entity    String?
   entityId  String?
-  metadata  Json?
+  metadata  String?  @db.LongText
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-
-  // Index สำหรับ Audit log queries
-  // userId และ tenantId FK indexes ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([action])
   @@index([entity])
   @@index([createdAt])
-  @@index([tenantId, createdAt]) // Composite: เรียง log ตาม tenant
-  @@index([tenantId, action]) // Composite: filter action ใน tenant
+  @@index([tenantId, createdAt])
+  @@index([tenantId, action])
+  @@index([userId], map: "audit_logs_userId_fkey")
   @@map("audit_logs")
 }
 
-// ─────────────────────────────────────────
-// API KEY (External Access)
-// ─────────────────────────────────────────
 model ApiKey {
-  id         String    @id // ULID — สร้างจาก application code
+  id         String    @id
   tenantId   String
-  name       String // ชื่อที่ผู้ใช้ตั้ง เช่น "Production Key"
-  hashedKey  String    @unique // SHA-256 hash ของ API key
-  prefix     String // prefix สำหรับแสดงผล เช่น "nsk_a1b2c3..."
+  name       String
+  hashedKey  String    @unique
+  prefix     String
   isActive   Boolean   @default(true)
   lastUsedAt DateTime?
   expiresAt  DateTime?
-  createdBy  String // userId ที่สร้าง key
+  createdBy  String
   createdAt  DateTime  @default(now())
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  // Index สำหรับ lookup API key ของ tenant
-  // tenantId FK index ถูกสร้างอัตโนมัติโดย MySQL FK constraint
   @@index([isActive])
-  @@index([tenantId, isActive]) // Composite: filter active keys ใน tenant
+  @@index([tenantId, isActive])
   @@map("api_keys")
 }
 
-// ─────────────────────────────────────────
-// TRANSLATION (Dynamic i18n)
-// ─────────────────────────────────────────
 model Translation {
-  id        String   @id // ULID — สร้างจาก application code
-  locale    String   // e.g. "en", "th"
-  namespace String   // e.g. "auth", "common"
-  key       String   // e.g. "login", "submit"
+  id        String   @id
+  locale    String
+  namespace String
+  key       String
   value     String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -341,3 +277,28 @@ model Translation {
   @@map("translations")
 }
 
+model FeatureFlag {
+  id          String   @id
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model IdempotencyKey {
+  key          String   @id
+  userId       String?
+  requestHash  String   @db.Text
+  response     String?  @db.LongText
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("idempotency_keys")
+}

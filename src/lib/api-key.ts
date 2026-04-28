@@ -97,12 +97,13 @@ export async function ValidateApiKey(raw_key: string): Promise<{
 /**
  * ลบ (revoke) API key
  */
-export async function RevokeApiKey(api_key_id: string): Promise<boolean> {
+export async function RevokeApiKey(api_key_id: string, tenant_id?: string): Promise<boolean> {
   try {
-    await prisma.apiKey.update({
-      where: { id: api_key_id },
+    const result = await prisma.apiKey.updateMany({
+      where: { id: api_key_id, ...(tenant_id ? { tenantId: tenant_id } : {}) },
       data: { isActive: false },
     })
+    if (result.count === 0) return false
     logger.info(`[ApiKey] Revoked API key ${api_key_id}`)
     return true
   } catch {

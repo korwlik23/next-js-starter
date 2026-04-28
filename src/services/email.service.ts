@@ -1,13 +1,25 @@
 import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
-import { GetWelcomeEmailTemplate, GetPasswordResetTemplate, GetTeamInviteTemplate } from './templates/email.templates'
+import {
+  GetWelcomeEmailTemplate,
+  GetPasswordResetTemplate,
+  GetTeamInviteTemplate,
+} from './templates/email.templates'
 
 // ─────────────────────────────────────────
 // EMAIL SERVICE (Resend)
 // ─────────────────────────────────────────
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy_key')
 const DEFAULT_FROM_EMAIL = process.env.NEXT_PUBLIC_FROM_EMAIL || 'noreply@yourdomain.com'
+
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    return null
+  }
+
+  return new Resend(apiKey)
+}
 
 export class EmailService {
   /**
@@ -24,12 +36,13 @@ export class EmailService {
     html?: string
     text?: string
   }) {
-    if (!process.env.RESEND_API_KEY) {
-      logger.warn('RESEND_API_KEY is not set. Simulating email sending:', { to, subject })
-      return { success: true, simulated: true }
-    }
-
     try {
+      const resend = getResendClient()
+      if (!resend) {
+        logger.warn('RESEND_API_KEY is not set. Simulating email sending:', { to, subject })
+        return { success: true, simulated: true }
+      }
+
       const data = await resend.emails.send({
         from: DEFAULT_FROM_EMAIL,
         to,
@@ -53,17 +66,22 @@ export class EmailService {
 
   static async SendPasswordResetEmail(to: string, resetToken: string) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const resetUrl = `${appUrl}/forgot-password?token=${resetToken}`
-    
+    const resetUrl = `${appUrl}/reset-password?token=${resetToken}`
+
     const subject = 'รีเซ็ตรหัสผ่านของคุณ'
     const html = GetPasswordResetTemplate(resetUrl)
     return this.SendEmail({ to, subject, html })
   }
 
-  static async SendTeamInviteEmail(to: string, inviterName: string, tenantName: string, inviteToken: string) {
+  static async SendTeamInviteEmail(
+    to: string,
+    inviterName: string,
+    tenantName: string,
+    inviteToken: string
+  ) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const inviteUrl = `${appUrl}/invite?token=${inviteToken}`
-    
+
     const subject = `คุณ ${inviterName} ได้เชิญคุณเข้าร่วมทีม ${tenantName}`
     const html = GetTeamInviteTemplate(inviterName, tenantName, inviteUrl)
     return this.SendEmail({ to, subject, html })

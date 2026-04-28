@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { api } from '@/services/apiClient'
 import toast from 'react-hot-toast'
 import { Skeleton } from '@/components/ui'
+import Link from 'next/link'
 
 // ────────────────────────────────────────
 // Settings Page — แก้ไข profile + password จริง
@@ -12,12 +13,13 @@ import { Skeleton } from '@/components/ui'
 // ────────────────────────────────────────
 
 export default function SettingsPage() {
+  const [mounted, setMounted] = useState(false)
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
 
   // ── Form state สำหรับ profile
-  const [name, setName] = useState(user?.name ?? '')
-  const [email, setEmail] = useState(user?.email ?? '')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [is_saving_profile, setIsSavingProfile] = useState(false)
 
   // ── Form state สำหรับ password
@@ -25,6 +27,14 @@ export default function SettingsPage() {
   const [new_password, setNewPassword] = useState('')
   const [confirm_password, setConfirmPassword] = useState('')
   const [is_saving_password, setIsSavingPassword] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    if (user) {
+      setName(user.name)
+      setEmail(user.email)
+    }
+  }, [user])
 
   // ── Submit profile changes — ส่งไป API จริง
   const HandleSaveProfile = useCallback(async () => {
@@ -79,7 +89,7 @@ export default function SettingsPage() {
   }, [user, current_password, new_password, confirm_password])
 
   // ── Loading state (ไม่มี user)
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <div>
         <Skeleton width="300px" height="2.5rem" className="mb-4" />
@@ -89,224 +99,258 @@ export default function SettingsPage() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <header className="mb-12">
-        <p className="label-xs mb-2" style={{ color: 'var(--color-text-subtle)' }}>
-          Administrative Panel
-        </p>
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      {/* 1. PAGE HEADER — High Contrast & Clear Description */}
+      <header className="mb-10 pt-4">
         <h1
-          className="text-4xl font-extrabold tracking-tighter"
+          className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
-          Account Settings
+          General Settings
         </h1>
-        <p className="text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
-          จัดการ profile, ตั้งค่าความปลอดภัย, และอัปเดตข้อมูลบัญชีของคุณ
+        <p className="text-base font-medium max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
+          Manage your personal details, security preferences, and account metadata.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Profile Information — เชื่อมกับ API จริง */}
-          <section className="editorial-card-elevated p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2
-                className="text-xs font-extrabold uppercase tracking-widest"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* LEFT COLUMN: Main Form Area (70%) */}
+        <div className="lg:col-span-8 space-y-10">
+          {/* PROFILE SECTION — The most used part */}
+          <section className="editorial-card-elevated overflow-hidden shadow-sm">
+            <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
+              <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
                 Profile Information
               </h2>
-              <span className="label-xs" style={{ color: 'var(--color-text-faint)' }}>
-                Public Details
-              </span>
+              <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
+                This is how other members of your team will see you.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label
-                  className="label-xs block mb-2"
-                  style={{ color: 'var(--color-text-subtle)' }}
-                  htmlFor="settings-name"
-                >
-                  Full Name
-                </label>
-                <input
-                  id="settings-name"
-                  className="editorial-input w-full"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label
-                  className="label-xs block mb-2"
-                  style={{ color: 'var(--color-text-subtle)' }}
-                  htmlFor="settings-email"
-                >
-                  Email Address
-                </label>
-                <input
-                  id="settings-email"
-                  className="editorial-input w-full"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-          </section>
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-1 gap-8 max-w-md">
+                <div className="group">
+                  <label
+                    htmlFor="settings-name"
+                    className="text-[10px] font-black uppercase tracking-widest block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
+                    style={{ color: 'var(--color-text-faint)' }}
+                  >
+                    Display Name
+                  </label>
+                  <input
+                    id="settings-name"
+                    className="editorial-input w-full py-3 text-base"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                  />
+                  <p
+                    className="text-[10px] mt-2 italic"
+                    style={{ color: 'var(--color-text-faint)' }}
+                  >
+                    Your real name or alias.
+                  </p>
+                </div>
 
-          {/* Account Security — เปลี่ยน password จริง */}
-          <section className="editorial-card-elevated p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2
-                className="text-xs font-extrabold uppercase tracking-widest"
+                <div className="group">
+                  <label
+                    htmlFor="settings-email"
+                    className="text-[10px] font-black uppercase tracking-widest block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
+                    style={{ color: 'var(--color-text-faint)' }}
+                  >
+                    Email Address
+                  </label>
+                  <input
+                    id="settings-email"
+                    className="editorial-input w-full py-3 text-base"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Action Bar for Profile */}
+            <div className="px-8 py-6 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex items-center justify-end gap-4">
+              <button
+                className="text-xs font-bold px-4 py-2 hover:underline transition-all"
                 style={{ color: 'var(--color-text-muted)' }}
-              >
-                Change Password
-              </h2>
-              <span className="label-xs" style={{ color: 'var(--color-text-faint)' }}>
-                Authentication
-              </span>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label
-                  className="label-xs block mb-2"
-                  style={{ color: 'var(--color-text-subtle)' }}
-                  htmlFor="current-pw"
-                >
-                  Current Password
-                </label>
-                <input
-                  id="current-pw"
-                  type="password"
-                  className="editorial-input w-full"
-                  value={current_password}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className="label-xs block mb-2"
-                    style={{ color: 'var(--color-text-subtle)' }}
-                    htmlFor="new-pw"
-                  >
-                    New Password
-                  </label>
-                  <input
-                    id="new-pw"
-                    type="password"
-                    className="editorial-input w-full"
-                    value={new_password}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                </div>
-                <div>
-                  <label
-                    className="label-xs block mb-2"
-                    style={{ color: 'var(--color-text-subtle)' }}
-                    htmlFor="confirm-pw"
-                  >
-                    Confirm New Password
-                  </label>
-                  <input
-                    id="confirm-pw"
-                    type="password"
-                    className="editorial-input w-full"
-                    value={confirm_password}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-              <div className="pt-2">
-                <button
-                  onClick={HandleChangePassword}
-                  disabled={is_saving_password || !current_password || !new_password}
-                  className="btn-secondary text-[10px] py-2 px-4 disabled:opacity-40"
-                >
-                  {is_saving_password ? 'กำลังเปลี่ยน...' : 'เปลี่ยนรหัสผ่าน'}
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Action buttons — submit profile */}
-          <div className="flex gap-4">
-            <button
-              onClick={HandleSaveProfile}
-              disabled={is_saving_profile}
-              className="btn-primary disabled:opacity-50"
-            >
-              {is_saving_profile ? 'กำลังบันทึก...' : 'Save Changes'}
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => {
-                setName(user.name)
-                setEmail(user.email)
-              }}
-            >
-              Discard
-            </button>
-          </div>
-        </div>
-
-        {/* Right sidebar */}
-        <div className="space-y-6">
-          {/* Account Tier */}
-          <div
-            className="p-6 rounded-xl"
-            style={{
-              backgroundColor: 'var(--color-surface-low)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                Account Info
-              </h3>
-              <span
-                className="label-xs px-2 py-0.5"
-                style={{
-                  border: '1px solid var(--color-border-strong)',
-                  borderRadius: 'var(--radius-sm)',
+                onClick={() => {
+                  setName(user.name)
+                  setEmail(user.email)
                 }}
               >
-                {user.roles?.[0] ?? 'Member'}
-              </span>
+                Discard
+              </button>
+              <button
+                onClick={HandleSaveProfile}
+                disabled={is_saving_profile}
+                className="btn-primary px-6 py-2.5 rounded-md text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/5 disabled:opacity-50"
+              >
+                {is_saving_profile ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              User ID: <span className="font-mono text-xs">{user.id.slice(0, 16)}...</span>
-            </p>
-          </div>
+          </section>
 
-          {/* Quick links */}
-          <div className="editorial-card-elevated p-6">
-            <h3 className="label-xs mb-4" style={{ color: 'var(--color-text-subtle)' }}>
-              Quick Links
+          {/* SECURITY SECTION — Password management */}
+          <section className="editorial-card-elevated overflow-hidden shadow-sm">
+            <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
+              <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
+                Security & Authentication
+              </h2>
+              <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
+                Keep your account secure by using a strong, unique password.
+              </p>
+            </div>
+            <div className="p-8 space-y-10">
+              <div className="max-w-md space-y-8">
+                <div className="group">
+                  <label
+                    htmlFor="current-pw"
+                    className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                    style={{ color: 'var(--color-text-faint)' }}
+                  >
+                    Current Password
+                  </label>
+                  <input
+                    id="current-pw"
+                    type="password"
+                    className="editorial-input w-full py-3"
+                    value={current_password}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 pt-4 border-t border-[var(--color-border)] border-dashed">
+                  <div className="group">
+                    <label
+                      htmlFor="new-pw"
+                      className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                      style={{ color: 'var(--color-text-faint)' }}
+                    >
+                      New Password
+                    </label>
+                    <input
+                      id="new-pw"
+                      type="password"
+                      className="editorial-input w-full py-3"
+                      value={new_password}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min 8 characters"
+                    />
+                    <p className="text-[10px] mt-2" style={{ color: 'var(--color-text-faint)' }}>
+                      Must contain letters, numbers, and symbols.
+                    </p>
+                  </div>
+
+                  <div className="group">
+                    <label
+                      htmlFor="confirm-pw"
+                      className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                      style={{ color: 'var(--color-text-faint)' }}
+                    >
+                      Confirm New Password
+                    </label>
+                    <input
+                      id="confirm-pw"
+                      type="password"
+                      className="editorial-input w-full py-3"
+                      value={confirm_password}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="px-8 py-6 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex items-center justify-end">
+              <button
+                onClick={HandleChangePassword}
+                disabled={is_saving_password || !current_password || !new_password}
+                className="btn-secondary px-6 py-2.5 rounded-md text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+              >
+                {is_saving_password ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </section>
+
+          {/* DANGER ZONE (Optional but professional) */}
+          <section className="p-8 border border-[var(--color-error)]/20 rounded-[var(--radius-lg)] bg-[var(--color-error)]/5">
+            <h2 className="text-sm font-bold mb-1 text-[var(--color-error)]">Danger Zone</h2>
+            <p className="text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            <button className="text-[10px] font-black uppercase tracking-widest px-4 py-2 border border-[var(--color-error)] text-[var(--color-error)] rounded-sm hover:bg-[var(--color-error)] hover:text-white transition-all">
+              Delete Account
+            </button>
+          </section>
+        </div>
+
+        {/* RIGHT COLUMN: Account Context (30%) */}
+        <div className="lg:col-span-4 space-y-8">
+          <section className="editorial-card-elevated p-8 shadow-sm">
+            <h3
+              className="text-[10px] font-black uppercase tracking-widest mb-6"
+              style={{ color: 'var(--color-text-faint)' }}
+            >
+              Account Details
             </h3>
-            <div className="space-y-2">
-              {[
-                { label: 'Billing & Subscription', href: '/billing', icon: 'payments' },
-                { label: 'View Profile', href: '/profile', icon: 'person' },
-              ].map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  className="flex items-center gap-3 py-2 text-sm transition-colors hover:opacity-70"
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1">
+                <span
+                  className="text-[10px] font-bold"
+                  style={{ color: 'var(--color-text-subtle)' }}
+                >
+                  Member Role
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                  <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+                    {user.roles?.[0] ?? 'Member'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span
+                  className="text-[10px] font-bold"
+                  style={{ color: 'var(--color-text-subtle)' }}
+                >
+                  User Identifier
+                </span>
+                <span
+                  className="text-xs font-mono break-all p-3 bg-[var(--color-surface-low)] rounded-md border border-[var(--color-border)]"
                   style={{ color: 'var(--color-text-muted)' }}
                 >
-                  <span className="material-symbols-outlined text-base">{link.icon}</span>
-                  {link.label}
-                </a>
-              ))}
+                  {user.id}
+                </span>
+              </div>
             </div>
-          </div>
+          </section>
+
+          <section className="p-8 bg-[var(--color-surface-dim)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+            <h3
+              className="text-[10px] font-black uppercase tracking-widest mb-4"
+              style={{ color: 'var(--color-text-faint)' }}
+            >
+              Quick Links
+            </h3>
+            <div className="flex flex-col gap-4">
+              <Link
+                href="/billing"
+                className="text-sm font-bold flex items-center gap-2 hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                <span className="material-symbols-outlined text-base">payments</span> Billing Portal
+              </Link>
+              <Link
+                href="/team"
+                className="text-sm font-bold flex items-center gap-2 hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                <span className="material-symbols-outlined text-base">group</span> Manage Team
+              </Link>
+            </div>
+          </section>
         </div>
       </div>
     </div>

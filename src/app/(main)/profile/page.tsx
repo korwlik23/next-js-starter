@@ -1,16 +1,44 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { Skeleton } from '@/components/ui'
 import Link from 'next/link'
 
 // ────────────────────────────────────────
 // Profile Page — แสดงข้อมูลผู้ใช้จาก Auth Store
-// ดึง user data จริงจาก Zustand auth store (ไม่ใช้ mock)
+// โหลดหน้า → fetch /api/auth/me เพื่อ sync ข้อมูลล่าสุดจาก server
 // ────────────────────────────────────────
 
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user)
+  const setUser = useAuthStore((s) => s.setUser)
+
+  // ── Sync ข้อมูลล่าสุดจาก server ทุกครั้งที่โหลดหน้า
+  useEffect(() => {
+    async function SyncUserProfile() {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) return
+        const json = await res.json()
+        if (json.data && user) {
+          // อัปเดต authStore ด้วยข้อมูลล่าสุดจาก server
+          setUser({
+            ...user,
+            name: json.data.name ?? user.name,
+            email: json.data.email ?? user.email,
+            roles: json.data.roles ?? user.roles,
+            permissions: json.data.permissions ?? user.permissions,
+          })
+        }
+      } catch {
+        // silent fail — ใช้ข้อมูลใน cache แทน
+      }
+    }
+
+    if (user) SyncUserProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── ถ้ายังไม่มี user data → แสดง skeleton
   if (!user) {
@@ -108,10 +136,7 @@ export default function ProfilePage() {
                   <span className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>
                     {item.label}
                   </span>
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: 'var(--color-primary)' }}
-                  >
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
                     {item.value}
                   </span>
                 </div>
@@ -140,10 +165,7 @@ export default function ProfilePage() {
                   </span>
                 ))}
                 {user.permissions.length > 10 && (
-                  <span
-                    className="label-xs px-2 py-1"
-                    style={{ color: 'var(--color-text-faint)' }}
-                  >
+                  <span className="label-xs px-2 py-1" style={{ color: 'var(--color-text-faint)' }}>
                     +{user.permissions.length - 10} more
                   </span>
                 )}
@@ -160,14 +182,14 @@ export default function ProfilePage() {
                 <h3 className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>
                   Security Summary
                 </h3>
-                <p
-                  className="text-lg font-bold mt-1"
-                  style={{ color: 'var(--color-primary)' }}
-                >
+                <p className="text-lg font-bold mt-1" style={{ color: 'var(--color-primary)' }}>
                   Account Overview
                 </p>
               </div>
-              <span className="material-symbols-outlined" style={{ color: 'var(--color-text-faint)' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ color: 'var(--color-text-faint)' }}
+              >
                 shield
               </span>
             </div>

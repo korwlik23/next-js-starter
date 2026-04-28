@@ -1,8 +1,13 @@
 import { NextRequest } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
 import { can } from '@/lib/permissions'
-import { getUserByIdService, updateUserService, deleteUserService } from '@/modules/user/service'
-import { updateUserSchema } from '@/modules/user/schema'
+import {
+  getUserByIdService,
+  updateUserService,
+  deleteUserService,
+  updatePasswordService,
+} from '@/modules/user/service'
+import { updatePasswordSchema, updateUserSchema } from '@/modules/user/schema'
 import {
   successResponse,
   badRequest,
@@ -44,6 +49,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const { id } = await params
     const body = await req.json()
+
+    if ('currentPassword' in body || 'password' in body || 'newPassword' in body) {
+      if (authUser.sub !== id) return forbidden()
+
+      const parsedPassword = updatePasswordSchema.safeParse({
+        currentPassword: body.currentPassword,
+        newPassword: body.newPassword ?? body.password,
+        confirmPassword: body.confirmPassword ?? body.password,
+      })
+
+      if (!parsedPassword.success) {
+        return badRequest(
+          'à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸–à¸¹à¸à¸•à¹‰à¸­à¸‡',
+          parsedPassword.error.flatten().fieldErrors as Record<string, string[]>
+        )
+      }
+
+      await updatePasswordService(id, parsedPassword.data)
+      return successResponse(
+        null,
+        'à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸£à¸«à¸±à¸ªà¸œà¹ˆà¸²à¸™à¸ªà¸³à¹€à¸£à¹‡à¸ˆ'
+      )
+    }
+
     const parsed = updateUserSchema.safeParse(body)
     if (!parsed.success) {
       return badRequest(

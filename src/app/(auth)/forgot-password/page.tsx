@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { forgotPasswordSchema, type ForgotPasswordInput } from '@/modules/auth/schema'
+import { api } from '@/services/apiClient'
+import { toast } from 'react-hot-toast'
 
 // ────────────────────────────────────────
 // Forgot Password Page — ขอรีเซ็ตรหัสผ่าน
@@ -23,10 +25,17 @@ export default function ForgotPasswordPage() {
 
   /* ฟังก์ชัน submit — ส่ง reset link */
   async function HandleSubmit(data: ForgotPasswordInput) {
-    // TODO: เชื่อมต่อ API จริงเมื่อมี email service
-    await new Promise((r) => setTimeout(r, 800))
-    setSentEmail(data.email)
-    setIsSent(true)
+    try {
+      const res = await api.post('/api/auth/forgot-password', data)
+      if (res.error) {
+        toast.error(res.error)
+      } else {
+        setSentEmail(data.email)
+        setIsSent(true)
+      }
+    } catch {
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    }
   }
 
   return (
@@ -34,7 +43,10 @@ export default function ForgotPasswordPage() {
       {/* Brand */}
       <div className="mb-16 text-center">
         <div className="inline-flex items-center justify-center mb-4">
-          <span className="material-symbols-outlined text-4xl" style={{ color: 'var(--color-primary)' }}>
+          <span
+            className="material-symbols-outlined text-4xl"
+            style={{ color: 'var(--color-primary)' }}
+          >
             lock_reset
           </span>
         </div>
@@ -44,7 +56,10 @@ export default function ForgotPasswordPage() {
         >
           Forgot Password
         </h1>
-        <p className="text-[10px] tracking-[0.15em] uppercase" style={{ color: 'var(--color-text-subtle)' }}>
+        <p
+          className="text-[10px] tracking-[0.15em] uppercase"
+          style={{ color: 'var(--color-text-subtle)' }}
+        >
           Account Recovery
         </p>
       </div>
@@ -66,7 +81,9 @@ export default function ForgotPasswordPage() {
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-subtle)' }}>
               We sent a reset link to
               <br />
-              <span className="font-medium" style={{ color: 'var(--color-primary)' }}>{sent_email}</span>
+              <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
+                {sent_email}
+              </span>
             </p>
             <p className="text-xs" style={{ color: 'var(--color-text-faint)' }}>
               Didn&apos;t receive it? Check your spam folder.
@@ -76,7 +93,10 @@ export default function ForgotPasswordPage() {
           /* ฟอร์มกรอก email */
           <>
             <header className="mb-10">
-              <h2 className="font-bold text-xl tracking-tight mb-2" style={{ color: 'var(--color-primary)' }}>
+              <h2
+                className="font-bold text-xl tracking-tight mb-2"
+                style={{ color: 'var(--color-primary)' }}
+              >
                 Reset Password
               </h2>
               <p style={{ color: 'var(--color-text-subtle)' }} className="text-sm">
@@ -121,7 +141,9 @@ export default function ForgotPasswordPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      <span className="material-symbols-outlined text-sm animate-spin">
+                        progress_activity
+                      </span>
                       Sending...
                     </>
                   ) : (

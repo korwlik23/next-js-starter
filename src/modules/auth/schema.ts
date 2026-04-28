@@ -37,6 +37,22 @@ export const forgotPasswordSchema = z.object({
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
 
 // ─────────────────────────────────────────
+// RESET PASSWORD
+// ─────────────────────────────────────────
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, 'Token is required'),
+    password: z.string().min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'รหัสผ่านไม่ตรงกัน',
+    path: ['confirmPassword'],
+  })
+
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+
+// ─────────────────────────────────────────
 // REFRESH TOKEN
 // ─────────────────────────────────────────
 export const refreshTokenSchema = z.object({

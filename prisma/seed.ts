@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { ulid } from 'ulid'
 
 const prisma = new PrismaClient()
@@ -27,6 +28,7 @@ async function main() {
     },
     { name: 'billing.view', module: 'billing', action: 'view', description: 'View billing' },
     { name: 'billing.manage', module: 'billing', action: 'manage', description: 'Manage billing' },
+    { name: 'team.invite', module: 'team', action: 'invite', description: 'Invite team members' },
     { name: 'audit.view', module: 'audit', action: 'view', description: 'View audit logs' },
   ]
 
@@ -72,6 +74,10 @@ async function main() {
     'role.read',
     'dashboard.view',
     'settings.view',
+    'settings.update',
+    'billing.view',
+    'billing.manage',
+    'team.invite',
     'audit.view',
   ]
   for (const permName of adminPerms) {
@@ -118,6 +124,166 @@ async function main() {
     create: { userId: ownerUser.id, roleId: ownerRole.id },
   })
   console.log('✅ Owner user seeded: owner@starter.dev / password123')
+
+  // ─── Feature Flags (Runtime Toggles)
+  const featureFlags = [
+    { key: 'multiTenant', enabled: false, description: 'Enable multi-tenant mode' },
+    { key: 'registration', enabled: true, description: 'Allow new user registration' },
+    { key: 'forgotPassword', enabled: true, description: 'Enable forgot password flow' },
+    { key: 'darkMode', enabled: true, description: 'Enable dark mode toggle' },
+    { key: 'i18n', enabled: true, description: 'Enable internationalization' },
+    { key: 'trialSystem', enabled: true, description: 'Enable trial period for new tenants' },
+    { key: 'apiKeys', enabled: true, description: 'Enable API key management' },
+    { key: 'analytics', enabled: true, description: 'Enable analytics dashboard' },
+    { key: 'auditLog', enabled: true, description: 'Enable audit logging' },
+    { key: 'sso', enabled: false, description: 'Enable SSO/OAuth login' },
+  ]
+
+  for (const flag of featureFlags) {
+    await prisma.featureFlag.upsert({
+      where: { key: flag.key },
+      update: {},
+      create: { id: ulid(), ...flag },
+    })
+  }
+  console.log(`✅ ${featureFlags.length} feature flags seeded`)
+
+  // ─── Translations (Initial Seed)
+  const translations = [
+    { locale: 'en', namespace: 'common', key: 'welcome', value: 'Welcome' },
+    { locale: 'th', namespace: 'common', key: 'welcome', value: 'ยินดีต้อนรับ' },
+    { locale: 'en', namespace: 'auth', key: 'login', value: 'Login' },
+    { locale: 'th', namespace: 'auth', key: 'login', value: 'เข้าสู่ระบบ' },
+  ]
+
+  for (const t of translations) {
+    await prisma.translation.upsert({
+      where: {
+        locale_namespace_key: {
+          locale: t.locale,
+          namespace: t.namespace,
+          key: t.key,
+        },
+      },
+      update: {},
+      create: { id: ulid(), ...t },
+    })
+  }
+  console.log(`✅ ${translations.length} translations seeded`)
+
+  // ─── Mock Tenants & Tenant Users (SaaS Demo Data)
+  const acmeTenant = await prisma.tenant.upsert({
+    where: { slug: 'acme-corp' },
+    update: {},
+    create: { id: ulid(), name: 'Acme Corp', slug: 'acme-corp', plan: 'pro' },
+  })
+
+  // Acme Admin User
+  const acmeAdminUser = await prisma.user.upsert({
+    where: { email: 'admin@acme.com' },
+    update: {},
+    create: {
+      id: ulid(),
+      name: 'Acme Admin',
+      email: 'admin@acme.com',
+      password: hashedPassword,
+      tenantId: acmeTenant.id,
+    },
+  })
+
+  // Acme Editor User
+  const acmeEditorUser = await prisma.user.upsert({
+    where: { email: 'editor@acme.com' },
+    update: {},
+    create: {
+      id: ulid(),
+      name: 'Acme Editor',
+      email: 'editor@acme.com',
+      password: hashedPassword,
+      tenantId: acmeTenant.id,
+    },
+  })
+
+  // Acme Roles (Tenant specific)
+  const acmeAdminRole = await prisma.role.upsert({
+    where: { name_tenantId: { name: 'admin', tenantId: acmeTenant.id } },
+    update: {},
+    create: { id: ulid(), name: 'admin', description: 'Acme Admin Role', tenantId: acmeTenant.id },
+  })
+  const acmeEditorRole = await prisma.role.upsert({
+    where: { name_tenantId: { name: 'editor', tenantId: acmeTenant.id } },
+    update: {},
+    create: {
+      id: ulid(),
+      name: 'editor',
+      description: 'Acme Editor Role',
+      tenantId: acmeTenant.id,
+    },
+  })
+
+  for (const permName of adminPerms) {
+    const perm = createdPermissions[permName]
+    if (perm) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: acmeAdminRole.id, permissionId: perm.id } },
+        update: {},
+        create: { roleId: acmeAdminRole.id, permissionId: perm.id },
+      })
+    }
+  }
+
+  for (const permName of memberPerms) {
+    const perm = createdPermissions[permName]
+    if (perm) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: acmeEditorRole.id, permissionId: perm.id } },
+        update: {},
+        create: { roleId: acmeEditorRole.id, permissionId: perm.id },
+      })
+    }
+  }
+
+  // Assign role to user
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: acmeAdminUser.id, roleId: acmeAdminRole.id } },
+    update: {},
+    create: { userId: acmeAdminUser.id, roleId: acmeAdminRole.id, tenantId: acmeTenant.id },
+  })
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: acmeEditorUser.id, roleId: acmeEditorRole.id } },
+    update: {},
+    create: { userId: acmeEditorUser.id, roleId: acmeEditorRole.id, tenantId: acmeTenant.id },
+  })
+
+  // Assign Mock Subscription for Acme Corp
+  await prisma.subscription.upsert({
+    where: { tenantId: acmeTenant.id },
+    update: {},
+    create: {
+      id: ulid(),
+      tenantId: acmeTenant.id,
+      plan: 'pro',
+      status: 'active',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+    },
+  })
+
+  // Assign Mock API Key
+  const mockApiKeyHash = crypto.createHash('sha256').update('nsk_mock_api_key_123').digest('hex')
+  await prisma.apiKey.upsert({
+    where: { hashedKey: mockApiKeyHash },
+    update: {},
+    create: {
+      id: ulid(),
+      tenantId: acmeTenant.id,
+      name: 'Production Key',
+      hashedKey: mockApiKeyHash,
+      prefix: 'nsk_mock_api',
+      createdBy: acmeAdminUser.id,
+    },
+  })
+  console.log('✅ Mock Tenant & Users seeded: admin@acme.com / password123')
 
   console.log('\n🎉 Seeding complete!')
 }

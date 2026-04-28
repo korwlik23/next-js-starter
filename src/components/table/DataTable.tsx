@@ -101,14 +101,22 @@ export function DataTable<T extends Record<string, unknown>>({
 
   // ── Sync debounced search กลับไปยัง URL query params
   useEffect(() => {
+    const current_q = search_params.get('q') ?? ''
+
+    // ป้องกัน infinite loop: เช็คว่าค่าเปลี่ยนจริงๆ หรือไม่
+    if (debounced_search === current_q) return
+
     const params = new URLSearchParams(search_params.toString())
     if (debounced_search) {
       params.set('q', debounced_search)
     } else {
       params.delete('q')
     }
+
     const query_string = params.toString()
     const new_url = query_string ? `${pathname}?${query_string}` : pathname
+
+    // ใช้ replace เพื่อไม่ให้รก history stack
     router.replace(new_url, { scroll: false })
   }, [debounced_search, pathname, router, search_params])
 
@@ -175,9 +183,7 @@ export function DataTable<T extends Record<string, unknown>>({
 
       // เปรียบเทียบตามประเภทข้อมูล
       if (typeof val_a === 'string' && typeof val_b === 'string') {
-        return sort_order === 'asc'
-          ? val_a.localeCompare(val_b)
-          : val_b.localeCompare(val_a)
+        return sort_order === 'asc' ? val_a.localeCompare(val_b) : val_b.localeCompare(val_a)
       }
 
       if (typeof val_a === 'number' && typeof val_b === 'number') {
@@ -224,14 +230,17 @@ export function DataTable<T extends Record<string, unknown>>({
   const active_filter_count = Object.keys(active_filters).length
 
   return (
-    <div className="w-full">
+    <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* ── Toolbar: Search + Filter Toggle */}
       {(searchable || has_filterable_columns) && (
-        <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* ช่องค้นหา */}
           {searchable && (
-            <>
-              <span className="material-symbols-outlined text-[1.1rem]" style={{ color: 'var(--color-text-faint, #777)' }}>
+            <div className="relative flex-1 max-w-md group">
+              <span
+                className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg transition-colors group-focus-within:text-[var(--color-primary)]"
+                style={{ color: 'var(--color-text-faint)' }}
+              >
                 search
               </span>
               <input
@@ -241,33 +250,28 @@ export function DataTable<T extends Record<string, unknown>>({
                   setSearchInput(e.target.value)
                   onSearch?.(e.target.value)
                 }}
-                placeholder="ค้นหา..."
-                className="editorial-input flex-1"
+                placeholder="Search records..."
+                className="editorial-input w-full pl-10 py-2.5 text-sm shadow-sm focus:shadow-md transition-all"
               />
-            </>
+            </div>
           )}
 
           {/* ปุ่ม toggle filter panel */}
           {has_filterable_columns && (
             <button
               onClick={() => setShowFilters((prev) => !prev)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded transition-colors"
+              className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all"
               style={{
-                border: '1px solid var(--color-border, #1a1a1a)',
-                color: active_filter_count > 0 ? 'var(--color-primary, white)' : 'var(--color-text-muted, #777)',
-                backgroundColor: show_filters ? 'var(--color-surface-mid, #111)' : 'transparent',
+                borderColor:
+                  active_filter_count > 0 ? 'var(--color-primary)' : 'var(--color-border)',
+                color: active_filter_count > 0 ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                backgroundColor: show_filters ? 'var(--color-surface-low)' : 'transparent',
               }}
             >
               <span className="material-symbols-outlined text-sm">filter_list</span>
-              Filter
+              Filters
               {active_filter_count > 0 && (
-                <span
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
-                  style={{
-                    backgroundColor: 'var(--color-primary, white)',
-                    color: 'var(--color-on-primary, black)',
-                  }}
-                >
+                <span className="ml-1 w-4 h-4 rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-[8px] flex items-center justify-center">
                   {active_filter_count}
                 </span>
               )}
@@ -279,30 +283,29 @@ export function DataTable<T extends Record<string, unknown>>({
       {/* ── Filter Panel — แสดงเมื่อเปิด */}
       {show_filters && has_filterable_columns && (
         <div
-          className="mb-4 p-4 rounded-lg flex flex-wrap gap-4"
+          className="mb-6 p-6 rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-in slide-in-from-top-2 duration-300 shadow-inner"
           style={{
-            backgroundColor: 'var(--color-surface, #0d0d0d)',
-            border: '1px solid var(--color-border, #1a1a1a)',
+            backgroundColor: 'var(--color-surface-low)',
+            border: '1px solid var(--color-border)',
           }}
         >
           {columns
             .filter((col) => col.filterable)
             .map((col) => (
-              <div key={String(col.key)} className="flex flex-col gap-1.5 min-w-[160px]">
+              <div key={String(col.key)} className="flex flex-col gap-2">
                 <label
-                  className="text-[10px] font-bold uppercase tracking-widest"
-                  style={{ color: 'var(--color-text-faint, #777)' }}
+                  className="text-[10px] font-black uppercase tracking-widest"
+                  style={{ color: 'var(--color-text-faint)' }}
                 >
                   {col.label}
                 </label>
                 {col.filter_options ? (
-                  // Dropdown filter — สำหรับ column ที่มีตัวเลือก
                   <select
                     value={active_filters[String(col.key)] ?? '__all__'}
                     onChange={(e) => HandleFilterChange(String(col.key), e.target.value)}
-                    className="editorial-input text-sm py-1.5"
+                    className="editorial-input text-xs py-2 px-3 bg-transparent"
                   >
-                    <option value="__all__">ทั้งหมด</option>
+                    <option value="__all__">All {col.label}</option>
                     {col.filter_options.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -310,13 +313,12 @@ export function DataTable<T extends Record<string, unknown>>({
                     ))}
                   </select>
                 ) : (
-                  // Text filter — สำหรับ column ทั่วไป
                   <input
                     type="text"
                     value={active_filters[String(col.key)] ?? ''}
                     onChange={(e) => HandleFilterChange(String(col.key), e.target.value)}
-                    placeholder={`กรอง ${col.label}...`}
-                    className="editorial-input text-sm py-1.5"
+                    placeholder={`Filter ${col.label}...`}
+                    className="editorial-input text-xs py-2 px-3 bg-transparent"
                   />
                 )}
               </div>
@@ -330,33 +332,35 @@ export function DataTable<T extends Record<string, unknown>>({
                   setActiveFilters({})
                   onFilter?.([])
                 }}
-                className="text-xs px-3 py-1.5 rounded transition-colors"
-                style={{ color: 'var(--color-danger, #e74c3c)' }}
+                className="text-[10px] font-black uppercase tracking-widest px-4 py-2 hover:underline transition-all"
+                style={{ color: 'var(--color-error)' }}
               >
-                ล้างทั้งหมด
+                Clear All Filters
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Table */}
-      <div className="border overflow-hidden" style={{ borderColor: 'var(--color-border, #1a1a1a)' }}>
+      {/* ── Table Container */}
+      <div className="editorial-card-elevated overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full border-collapse">
             {/* ── Table Header */}
             <thead>
-              <tr style={{ backgroundColor: 'var(--color-surface-mid, #0a0a0a)', borderBottom: '1px solid var(--color-border, #1a1a1a)' }}>
+              <tr className="bg-[var(--color-surface-low)] border-b border-[var(--color-border)]">
                 {columns.map((col) => (
                   <th
                     key={String(col.key)}
-                    className={`text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest ${
-                      col.sortable ? 'cursor-pointer select-none hover:text-white transition-colors' : ''
+                    className={`text-left px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                      col.sortable
+                        ? 'cursor-pointer select-none hover:text-[var(--color-primary)]'
+                        : ''
                     }`}
-                    style={{ color: 'var(--color-text-faint, #555)' }}
+                    style={{ color: 'var(--color-text-faint)' }}
                     onClick={col.sortable ? () => HandleSort(String(col.key)) : undefined}
                   >
-                    <span className="inline-flex items-center">
+                    <span className="inline-flex items-center gap-1.5">
                       {col.label}
                       {col.sortable && RenderSortIcon(String(col.key))}
                     </span>
@@ -364,8 +368,8 @@ export function DataTable<T extends Record<string, unknown>>({
                 ))}
                 {actions && (
                   <th
-                    className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'var(--color-text-faint, #555)' }}
+                    className="text-right px-8 py-5 text-[10px] font-black uppercase tracking-widest"
+                    style={{ color: 'var(--color-text-faint)' }}
                   >
                     Actions
                   </th>
@@ -374,59 +378,77 @@ export function DataTable<T extends Record<string, unknown>>({
             </thead>
 
             {/* ── Table Body */}
-            <tbody>
+            <tbody className="divide-y divide-[var(--color-border)]/50">
               {isLoading ? (
-                // Skeleton loading rows
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--color-border-subtle, #0f0f0f)' }}>
+                  <tr key={i}>
                     {columns.map((col) => (
-                      <td key={String(col.key)} className="px-5 py-4">
-                        <div className="h-4 bg-neutral-800 animate-pulse rounded-sm w-3/4" />
+                      <td key={String(col.key)} className="px-8 py-6">
+                        <div className="h-4 bg-[var(--color-surface-mid)] animate-pulse rounded-md w-3/4 shadow-inner" />
                       </td>
                     ))}
                     {actions && (
-                      <td className="px-5 py-4">
-                        <div className="h-4 bg-neutral-800 animate-pulse rounded-sm w-16" />
+                      <td className="px-8 py-6">
+                        <div className="h-4 bg-[var(--color-surface-mid)] animate-pulse rounded-md w-12 ml-auto shadow-inner" />
                       </td>
                     )}
                   </tr>
                 ))
               ) : sorted_data.length === 0 ? (
-                // Empty state
                 <tr>
                   <td
                     colSpan={columns.length + (actions ? 1 : 0)}
-                    className="px-5 py-16 text-center text-sm"
-                    style={{ color: 'var(--color-text-faint, #555)' }}
+                    className="px-8 py-24 text-center"
                   >
-                    <span className="material-symbols-outlined text-4xl block mb-3" style={{ color: 'var(--color-border, #1a1a1a)' }}>
-                      inbox
-                    </span>
-                    {emptyMessage}
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-[var(--color-surface-low)] flex items-center justify-center text-[var(--color-text-faint)]">
+                        <span className="material-symbols-outlined text-3xl">inbox_customize</span>
+                      </div>
+                      <div className="space-y-1">
+                        <p
+                          className="text-sm font-black tracking-tight"
+                          style={{ color: 'var(--color-primary)' }}
+                        >
+                          {emptyMessage}
+                        </p>
+                        <p
+                          className="text-xs font-medium"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
+                          Try adjusting your search or filters to find what you&apos;re looking for.
+                        </p>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                // Data rows
                 sorted_data.map((row, i) => (
                   <tr
                     key={i}
-                    className="transition-colors"
-                    style={{ borderBottom: '1px solid var(--color-border-subtle, #0f0f0f)' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-mid, rgba(255,255,255,0.02))')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    className="group transition-colors hover:bg-[var(--color-surface-low)]/50"
                   >
                     {columns.map((col) => (
                       <td
                         key={String(col.key)}
-                        className="px-5 py-3.5 text-sm"
-                        style={{ color: 'var(--color-text-secondary, #bbb)' }}
+                        className="px-8 py-5 text-sm font-medium"
+                        style={{ color: 'var(--color-text-muted)' }}
                       >
-                        {col.render ? col.render(row) : GetCellValue(row, String(col.key))}
+                        {col.render ? (
+                          <div className="transition-transform group-hover:translate-x-0.5 duration-300">
+                            {col.render(row)}
+                          </div>
+                        ) : (
+                          <span className="group-hover:text-[var(--color-primary)] transition-colors">
+                            {GetCellValue(row, String(col.key))}
+                          </span>
+                        )}
                       </td>
                     ))}
                     {actions && (
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">{actions(row)}</div>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                          {actions(row)}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -439,28 +461,27 @@ export function DataTable<T extends Record<string, unknown>>({
 
       {/* ── Pagination */}
       {total > 0 && (
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <p
-            className="text-[10px] font-bold uppercase tracking-widest"
-            style={{ color: 'var(--color-text-faint, #555)' }}
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: 'var(--color-text-faint)' }}
           >
-            แสดง {Math.min((page - 1) * limit + 1, total)}–{Math.min(page * limit, total)} จาก{' '}
-            {total} รายการ
+            Showing {Math.min((page - 1) * limit + 1, total)}–{Math.min(page * limit, total)} of{' '}
+            {total} results
           </p>
-          <div className="flex items-center gap-1">
-            {/* ปุ่มก่อนหน้า */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onPageChange?.(page - 1)}
               disabled={page <= 1}
-              className="w-8 h-8 flex items-center justify-center border transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ borderColor: 'var(--color-border, #1a1a1a)', color: 'var(--color-text-muted, #777)' }}
+              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20 hover:bg-[var(--color-surface-low)] shadow-sm"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
             >
-              <span className="material-symbols-outlined text-sm">chevron_left</span>
+              <span className="material-symbols-outlined text-lg">chevron_left</span>
             </button>
 
-            {/* ปุ่มหมายเลขหน้า */}
             {Array.from({ length: Math.min(5, total_pages) }, (_, i) => {
               const p = Math.max(1, Math.min(page - 2, total_pages - 4)) + i
+              if (p < 1 || p > total_pages) return null
               return (
                 <button
                   key={p}
@@ -468,8 +489,12 @@ export function DataTable<T extends Record<string, unknown>>({
                   className="w-8 h-8 text-xs font-bold border transition-colors"
                   style={{
                     backgroundColor: p === page ? 'var(--color-primary, white)' : 'transparent',
-                    color: p === page ? 'var(--color-on-primary, black)' : 'var(--color-text-muted, #777)',
-                    borderColor: p === page ? 'var(--color-primary, white)' : 'var(--color-border, #1a1a1a)',
+                    color:
+                      p === page
+                        ? 'var(--color-on-primary, black)'
+                        : 'var(--color-text-muted, #777)',
+                    borderColor:
+                      p === page ? 'var(--color-primary, white)' : 'var(--color-border, #1a1a1a)',
                   }}
                 >
                   {p}
@@ -482,7 +507,10 @@ export function DataTable<T extends Record<string, unknown>>({
               onClick={() => onPageChange?.(page + 1)}
               disabled={page >= total_pages}
               className="w-8 h-8 flex items-center justify-center border transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ borderColor: 'var(--color-border, #1a1a1a)', color: 'var(--color-text-muted, #777)' }}
+              style={{
+                borderColor: 'var(--color-border, #1a1a1a)',
+                color: 'var(--color-text-muted, #777)',
+              }}
             >
               <span className="material-symbols-outlined text-sm">chevron_right</span>
             </button>

@@ -12,10 +12,9 @@ export default function ModuleCreatePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [fields, setFields] = useState<Record<string, string>>({
-    name: '',
-    email: '',
-  })
+  const [fields, setFields] = useState<Record<string, string>>(
+    moduleName === 'user' ? { name: '', email: '', password: '' } : { name: '', email: '' }
+  )
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

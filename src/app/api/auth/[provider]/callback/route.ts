@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { successResponse, badRequest, serverError } from '@/utils/api'
+import { badRequest, serverError } from '@/utils/api'
 import { ExchangeCodeForToken, GetOAuthUserInfo } from '@/lib/sso'
 import prisma from '@/lib/prisma'
 import { GenerateId } from '@/lib/ulid'
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!user_info) return badRequest('Failed to get user info')
 
     // 3. ค้นหา account ที่ผูกแล้ว
-    let account = await prisma.account.findUnique({
+    const account = await prisma.account.findUnique({
       where: {
         provider_providerAccountId: {
           provider,
@@ -46,7 +46,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         user: {
           include: {
-            roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } },
+            roles: {
+              include: { role: { include: { permissions: { include: { permission: true } } } } },
+            },
+          },
         },
       },
     })

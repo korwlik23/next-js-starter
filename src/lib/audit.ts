@@ -18,6 +18,23 @@ interface CreateAuditLogParams {
   metadata?: any // ข้อมูลเพิ่มเติม (JSON) เช่น before/after changes
 }
 
+const SENSITIVE_KEYS = ['password', 'token', 'secret', 'key', 'authorization', 'cookie']
+
+function redactSensitive(value: any): any {
+  if (Array.isArray(value)) return value.map(redactSensitive)
+  if (!value || typeof value !== 'object') return value
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => {
+      const normalizedKey = key.toLowerCase()
+      if (SENSITIVE_KEYS.some((sensitiveKey) => normalizedKey.includes(sensitiveKey))) {
+        return [key, '[REDACTED]']
+      }
+      return [key, redactSensitive(item)]
+    })
+  )
+}
+
 /**
  * สร้าง Audit Log และเก็บข้อมูลรายละเอียด Request เบื้องต้น (IP, User Agent)
  */
@@ -50,7 +67,7 @@ export async function CreateAuditLog({
         tenantId,
         entity,
         entityId,
-        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null,
+        metadata: metadata ? JSON.stringify(redactSensitive(metadata)) : null,
         ipAddress,
         userAgent,
       },

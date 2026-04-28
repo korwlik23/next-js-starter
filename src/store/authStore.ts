@@ -7,6 +7,11 @@ interface AuthUser {
   email: string
   roles: string[]
   permissions?: string[]
+  tenant?: {
+    id: string
+    name: string
+    plan: string
+  }
 }
 
 interface AuthState {

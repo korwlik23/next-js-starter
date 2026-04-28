@@ -18,7 +18,7 @@ const GetDbTranslations = unstable_cache(
       const records = await prisma.translation.findMany({
         where: { locale },
       })
-      
+
       const db_messages: Record<string, Record<string, string>> = {}
       for (const record of records) {
         if (!db_messages[record.namespace]) {
@@ -49,7 +49,7 @@ export default getRequestConfig(async () => {
   let base_messages = {}
   try {
     base_messages = (await import(`../../messages/${locale}.json`)).default
-  } catch (err) {
+  } catch {
     console.error(`[i18n] Missing ${locale}.json`)
   }
 

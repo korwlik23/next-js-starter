@@ -1,10 +1,12 @@
+import { env } from '@/lib/env'
+
 // ============================================================
 // APP CONFIG — Ultimate Next.js Starter
 // ============================================================
 
 export const appConfig = {
-  name: process.env.NEXT_PUBLIC_APP_NAME ?? 'Next.js Starter',
-  url: process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+  name: env.NEXT_PUBLIC_APP_NAME,
+  url: env.NEXT_PUBLIC_APP_URL,
   description: 'Ultimate Next.js Fullstack Starter Template',
   version: '1.0.0',
 } as const
@@ -24,7 +26,6 @@ export const authConfig = {
     '/login',
     '/register',
     '/forgot-password',
-    '/dev',
     '/api/auth/login',
     '/api/auth/register',
     '/api/auth/refresh',

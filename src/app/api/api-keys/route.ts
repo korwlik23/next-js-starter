@@ -12,7 +12,6 @@ import { z } from 'zod'
 
 const CreateKeySchema = z.object({
   name: z.string().min(1, 'ต้องระบุชื่อ API Key').max(100),
-  tenantId: z.string().min(1, 'ต้องระบุ Tenant ID'),
 })
 
 /**
@@ -23,8 +22,8 @@ export async function GET(request: NextRequest) {
     const user = await getAuthUserFromRequest(request)
     if (!user) return unauthorized()
 
-    const tenant_id = request.nextUrl.searchParams.get('tenantId')
-    if (!tenant_id) return badRequest('ต้องระบุ tenantId')
+    const tenant_id = user.tenantId
+    if (!tenant_id) return badRequest('User is not assigned to a tenant')
 
     // ตรวจสอบสิทธิ์
     if (!can(user, 'settings.view')) {
@@ -59,7 +58,10 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const result = await CreateApiKey(parsed.data.tenantId, parsed.data.name, user.sub)
+    const tenant_id = user.tenantId
+    if (!tenant_id) return badRequest('User is not assigned to a tenant')
+
+    const result = await CreateApiKey(tenant_id, parsed.data.name, user.sub)
 
     return successResponse(result, 'สร้าง API Key เรียบร้อย')
   } catch (error) {
@@ -82,7 +84,10 @@ export async function DELETE(request: NextRequest) {
     const { id } = await request.json()
     if (!id) return badRequest('ต้องระบุ API Key ID')
 
-    const success = await RevokeApiKey(id)
+    const tenant_id = user.tenantId
+    if (!tenant_id) return badRequest('User is not assigned to a tenant')
+
+    const success = await RevokeApiKey(id, tenant_id)
     if (!success) return badRequest('ไม่สามารถ revoke API Key ได้')
 
     return successResponse(null, 'Revoke API Key เรียบร้อย')

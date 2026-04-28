@@ -15,7 +15,7 @@ export { ThemeToggle } from './ThemeToggle'
 export { LanguageSwitcher } from './LanguageSwitcher'
 
 // ─── Notification
-export { NotificationPanel } from './NotificationPanel'
+// ใชั UI NotificationDropdown แทน
 
 // ─── Providers
 export { QueryProvider } from './QueryProvider'

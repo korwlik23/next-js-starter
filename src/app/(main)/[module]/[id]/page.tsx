@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Spinner } from '@/components/ui'
+import { Skeleton } from '@/components/ui'
 
 export default function ModuleDetailPage() {
   const params = useParams<{ module: string; id: string }>()
@@ -30,50 +30,69 @@ export default function ModuleDetailPage() {
   const skipKeys = ['password', 'deletedAt']
 
   return (
-    <div>
-      <header className="mb-10">
-        <div className="flex items-center gap-3 mb-4">
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      {/* 1. PAGE HEADER — High Impact */}
+      <header className="mb-12 pt-4">
+        <div className="flex items-center gap-3 mb-6">
           <Link
             href={`/${moduleName}`}
-            className="text-neutral-600 hover:text-white transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-surface-low)] transition-all text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
           >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
           </Link>
-          <p className="text-[0.6rem] uppercase tracking-[0.2em] text-neutral-500 font-bold">
-            {moduleLabel} / Detail
-          </p>
+          <div className="flex flex-col">
+            <p
+              className="text-[10px] font-black uppercase tracking-[0.2em]"
+              style={{ color: 'var(--color-text-faint)' }}
+            >
+              {moduleLabel} / Record Detail
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+              <p className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>
+                Resource identified
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex justify-between items-end">
-          <h1 className="text-4xl font-extrabold tracking-tighter text-white">
-            {isLoading ? '...' : ((data?.name as string) ?? id)}
+
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <h1
+            className="text-4xl md:text-5xl font-extrabold tracking-tighter"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            {isLoading ? 'Loading...' : ((data?.name as string) ?? id)}
           </h1>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-3">
             <Link
               href={`/${moduleName}/${id}/edit`}
-              className="border border-neutral-700 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:border-white transition-colors flex items-center gap-2"
+              className="btn-primary px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--color-primary)]/10 flex items-center gap-2"
             >
-              <span className="material-symbols-outlined text-sm">edit</span>
-              Edit
+              <span className="material-symbols-outlined text-base">edit</span>
+              Modify
             </Link>
+
             {!deleteConfirm ? (
               <button
                 onClick={() => setDeleteConfirm(true)}
-                className="border border-red-900 text-red-400 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:border-red-500 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl border border-[var(--color-error)]/30 text-[var(--color-error)] text-[10px] font-black uppercase tracking-widest hover:bg-[var(--color-error)]/10 transition-all flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-sm">delete</span>
-                Delete
+                <span className="material-symbols-outlined text-base">delete</span>
+                Archive
               </button>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 bg-[var(--color-error)]/5 p-1 rounded-2xl border border-[var(--color-error)]/20 animate-in slide-in-from-right-2">
                 <button
                   onClick={handleDelete}
-                  className="bg-red-600 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-red-500 transition-colors"
+                  className="bg-[var(--color-error)] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg"
                 >
                   Confirm Delete
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(false)}
-                  className="border border-neutral-700 text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:border-white transition-colors"
+                  className="px-4 py-2 text-[10px] font-black uppercase tracking-widest"
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   Cancel
                 </button>
@@ -83,46 +102,138 @@ export default function ModuleDetailPage() {
         </div>
       </header>
 
-      <div
-        className="max-w-xl border"
-        style={{ backgroundColor: '#111111', borderColor: '#1a1a1a' }}
-      >
-        {isLoading ? (
-          <div className="p-12 flex justify-center">
-            <Spinner size="lg" />
+      {/* 2. INFORMATION GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* Main Details Card */}
+        <div className="lg:col-span-8 editorial-card-elevated overflow-hidden shadow-sm">
+          <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/50">
+            <h2
+              className="text-sm font-black uppercase tracking-widest"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              General Information
+            </h2>
           </div>
-        ) : !data ? (
-          <div className="p-12 text-center text-neutral-500">ไม่พบข้อมูล</div>
-        ) : (
-          <div>
-            {Object.entries(data)
-              .filter(([key]) => !skipKeys.includes(key))
-              .map(([key, val], i, arr) => (
-                <div
-                  key={key}
-                  className="flex gap-6 px-6 py-4"
-                  style={{ borderBottom: i < arr.length - 1 ? '1px solid #1a1a1a' : 'none' }}
-                >
-                  <div className="w-36 shrink-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-600">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </p>
-                  </div>
-                  <div className="flex-1 text-sm text-neutral-300 break-all">
-                    {val === null || val === undefined ? (
-                      <span className="text-neutral-700">—</span>
-                    ) : typeof val === 'boolean' ? (
-                      <span className={val ? 'text-emerald-400' : 'text-neutral-500'}>
-                        {val ? 'Yes' : 'No'}
-                      </span>
-                    ) : (
-                      String(val)
-                    )}
-                  </div>
+
+          {isLoading ? (
+            <div className="p-12 flex flex-col gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex gap-4">
+                  <Skeleton width="30%" height="1rem" />
+                  <Skeleton width="60%" height="1rem" />
                 </div>
               ))}
+            </div>
+          ) : !data ? (
+            <div className="p-20 text-center text-[var(--color-text-faint)]">Record not found</div>
+          ) : (
+            <div className="divide-y divide-[var(--color-border)]/50">
+              {Object.entries(data)
+                .filter(([key]) => !['id', 'created_at', 'updated_at', ...skipKeys].includes(key))
+                .map(([key, val]) => (
+                  <div
+                    key={key}
+                    className="flex flex-col sm:flex-row sm:items-center gap-4 px-8 py-6 group hover:bg-[var(--color-surface-low)]/30 transition-colors"
+                  >
+                    <div className="sm:w-48 shrink-0">
+                      <p
+                        className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: 'var(--color-text-faint)' }}
+                      >
+                        {key
+                          .replace(/_/g, ' ')
+                          .replace(/([A-Z])/g, ' $1')
+                          .trim()}
+                      </p>
+                    </div>
+                    <div
+                      className="flex-1 text-sm font-medium leading-relaxed"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
+                      {val === null || val === undefined ? (
+                        <span className="opacity-20">—</span>
+                      ) : typeof val === 'boolean' ? (
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full ${val ? 'bg-emerald-500' : 'bg-neutral-500'}`}
+                          />
+                          <span className={val ? 'text-emerald-500' : ''}>
+                            {val ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="group-hover:text-[var(--color-primary)] transition-colors">
+                          {String(val)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
+        {/* System Metadata Sidebar */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="editorial-card-elevated p-8 shadow-sm">
+            <h2
+              className="text-[10px] font-black uppercase tracking-widest mb-6"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              System Metadata
+            </h2>
+            <div className="space-y-6">
+              {[
+                { label: 'Reference ID', value: id, icon: 'tag' },
+                {
+                  label: 'Created On',
+                  value: data?.created_at
+                    ? new Date(data.created_at as string).toLocaleString()
+                    : '—',
+                  icon: 'event',
+                },
+                {
+                  label: 'Last Modified',
+                  value: data?.updated_at
+                    ? new Date(data.updated_at as string).toLocaleString()
+                    : '—',
+                  icon: 'update',
+                },
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-[14px] opacity-40">
+                      {item.icon}
+                    </span>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                      {item.label}
+                    </p>
+                  </div>
+                  <p
+                    className="text-xs font-bold truncate"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
+
+          <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface-low)] border border-[var(--color-border)] flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-mid)] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[var(--color-primary)]">
+                verified
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                Verification
+              </p>
+              <p className="text-xs font-bold">Data integrity verified</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

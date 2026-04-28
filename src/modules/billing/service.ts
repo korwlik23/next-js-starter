@@ -1,4 +1,4 @@
-import { stripe } from '@/lib/stripe'
+import { GetStripeClient } from '@/lib/stripe'
 import prisma from '@/lib/prisma'
 import { GenerateId } from '@/lib/ulid'
 import { logger } from '@/lib/logger'
@@ -41,13 +41,14 @@ export class BillingService {
     }
 
     // ดึง Stripe Customer ID ถ้ามีอยู่แล้ว
-    const existing_customer_id = tenant.subscriptions[0]?.stripeCustomerId || undefined
+    const existing_customer_id = tenant.subscriptions?.stripeCustomerId || undefined
 
     // สร้าง Checkout Session
+    const stripe = GetStripeClient()
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       billing_address_collection: 'auto',
-      customer: existing_customer_id,
+      ...(existing_customer_id ? { customer: existing_customer_id } : {}),
       line_items: [
         {
           price: price_id,
@@ -91,6 +92,7 @@ export class BillingService {
     }
 
     // สร้าง portal session
+    const stripe = GetStripeClient()
     const portal_session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
       return_url,

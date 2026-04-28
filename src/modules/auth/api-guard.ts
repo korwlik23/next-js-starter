@@ -21,7 +21,7 @@ export async function hashApiKey(key: string): Promise<string> {
 
 /**
  * ฟังก์ชันสำหรับการเช็ค API Key ใน Next.js Route Handler หรือ Middleware
- * ตัวอย่างการใช้ใน Route:  
+ * ตัวอย่างการใช้ใน Route:
  * const tenant = await validateApiKey(req.headers.get('x-api-key'))
  */
 export async function validateApiKey(apiKey: string | null) {
@@ -52,13 +52,15 @@ export async function validateApiKey(apiKey: string | null) {
 
     // อัปเดตเวลาการใช้งานล่าสุด (Optional: ควรใช้ระบบ Queue/Background เพื่อไม่ให้หน่วง Request หลัก)
     // แต่เพื่อความเรียบง่ายตอนนี้อัพเดททันทีเลย
-    prisma.apiKey.update({
-      where: { id: keyRecord.id },
-      data: { lastUsedAt: new Date() }
-    }).catch(() => {})
+    prisma.apiKey
+      .update({
+        where: { id: keyRecord.id },
+        data: { lastUsedAt: new Date() },
+      })
+      .catch(() => {})
 
     return { isValid: true, tenant: keyRecord.tenant, error: null }
-  } catch (_error) {
+  } catch {
     return { isValid: false, tenant: null, error: 'Internal Server Error' }
   }
 }

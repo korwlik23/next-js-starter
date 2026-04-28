@@ -66,6 +66,10 @@ export function UseSearchQuery(options: UseSearchQueryOptions = {}): UseSearchQu
   // ── Sync debounced value กลับไปยัง URL
   useEffect(() => {
     const params = new URLSearchParams(search_params.toString())
+    const current_val = search_params.get(param_name) ?? ''
+
+    // ป้องกัน infinite loop: เช็คว่าค่าเปลี่ยนจริงๆ หรือไม่
+    if (debounced_query === current_val) return
 
     // ถ้ามีค่า → set param, ถ้าว่าง → ลบ param
     if (debounced_query) {
@@ -83,7 +87,15 @@ export function UseSearchQuery(options: UseSearchQueryOptions = {}): UseSearchQu
     const query_string = params.toString()
     const new_url = query_string ? `${pathname}?${query_string}` : pathname
     router.replace(new_url, { scroll: false })
-  }, [debounced_query, pathname, router, search_params, param_name, page_param_name, should_reset_page])
+  }, [
+    debounced_query,
+    pathname,
+    router,
+    search_params,
+    param_name,
+    page_param_name,
+    should_reset_page,
+  ])
 
   // ── ฟังก์ชัน set query
   const SetQuery = useCallback((value: string) => {

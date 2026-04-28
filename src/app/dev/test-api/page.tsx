@@ -36,6 +36,7 @@ export default function TestAPIPage() {
   const [body, setBody] = useState('')
   const [result, setResult] = useState<TestResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
 
   async function runTest(method: string, url: string, reqBody?: string) {
     setIsLoading(true)
@@ -50,6 +51,26 @@ export default function TestAPIPage() {
         opts.body = reqBody
       }
       const res = await fetch(url, opts)
+      const data = await res.json().catch(() => null)
+      const duration = Math.round(performance.now() - start)
+      setResult({ status: res.status, statusText: res.statusText, data, duration })
+    } catch (err) {
+      const duration = Math.round(performance.now() - start)
+      setResult({ status: 0, statusText: 'Network Error', data: String(err), duration })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function runUploadTest() {
+    if (!uploadFile) return
+    setIsLoading(true)
+    setResult(null)
+    const start = performance.now()
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
       const data = await res.json().catch(() => null)
       const duration = Math.round(performance.now() - start)
       setResult({ status: res.status, statusText: res.statusText, data, duration })
@@ -226,6 +247,53 @@ export default function TestAPIPage() {
                 resize: 'vertical',
               }}
             />
+          </div>
+
+          <div style={{ marginTop: '32px' }}>
+            <h2
+              style={{
+                fontSize: '10px',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                color: '#555',
+                fontWeight: 800,
+                marginBottom: '16px',
+              }}
+            >
+              Upload Test
+            </h2>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="file"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                style={{
+                  flex: 1,
+                  background: '#0a0a0a',
+                  border: '1px solid #1a1a1a',
+                  color: '#999',
+                  padding: '8px',
+                  fontSize: '12px',
+                }}
+              />
+              <button
+                onClick={runUploadTest}
+                disabled={!uploadFile || isLoading}
+                style={{
+                  background: 'white',
+                  color: 'black',
+                  padding: '8px 20px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase' as const,
+                  border: 'none',
+                  cursor: 'pointer',
+                  opacity: !uploadFile || isLoading ? 0.3 : 1,
+                }}
+              >
+                Upload
+              </button>
+            </div>
           </div>
         </div>
 

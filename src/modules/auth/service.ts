@@ -160,6 +160,71 @@ export async function refreshTokenService(
 }
 
 // ─────────────────────────────────────────
+// FORGOT & RESET PASSWORD
+// ─────────────────────────────────────────
+import { EmailService } from '@/services/email.service'
+import type { ForgotPasswordInput, ResetPasswordInput } from './schema'
+
+export async function forgotPasswordService(input: ForgotPasswordInput) {
+  const user = await prisma.user.findUnique({
+    where: { email: input.email },
+  })
+
+  // Security: อย่าแจ้งเตือนถ้าไม่มี email นี้ในระบบเพื่อป้องกัน User enumeration
+  if (!user || !user.isActive || user.deletedAt) return { success: true }
+
+  // Generate Reset Token
+  const token = GenerateId()
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 2) // 2 ชั่วโมง
+
+  // เคลียร์ token เก่าแล้วสร้างใหม่
+  await prisma.resetPasswordToken.deleteMany({ where: { email: user.email } })
+  await prisma.resetPasswordToken.create({
+    data: {
+      id: GenerateId(),
+      email: user.email,
+      token,
+      expiresAt,
+    },
+  })
+
+  // ส่งอีเมลโดยใช้ service มาตรฐานของระบบ
+  await EmailService.SendPasswordResetEmail(user.email, token)
+
+  logger.info(`Forgot password requested for: ${user.email}`)
+  return { success: true }
+}
+
+export async function resetPasswordService(input: ResetPasswordInput) {
+  const resetToken = await prisma.resetPasswordToken.findUnique({
+    where: { token: input.token },
+  })
+
+  if (!resetToken || resetToken.expiresAt < new Date()) {
+    throw new Error('Token ไม่ถูกต้องหรือหมดอายุแล้ว')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: resetToken.email },
+  })
+  if (!user) {
+    throw new Error('ไม่พบข้อมูลผู้ใช้')
+  }
+
+  const hashed = await bcrypt.hash(input.password, 12)
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashed },
+  })
+
+  // ลบ token ทิ้งทันทีหลังจากใช้งานเสร็จ
+  await prisma.resetPasswordToken.deleteMany({ where: { email: user.email } })
+
+  logger.info(`Password successfully reset for: ${user.email}`)
+  return { success: true }
+}
+
+// ─────────────────────────────────────────
 // LOGOUT
 // ─────────────────────────────────────────
 export async function logoutService(userId: string, refreshToken?: string) {

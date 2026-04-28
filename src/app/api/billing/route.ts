@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server'
-import { successResponse, unauthorized, serverError } from '@/utils/api'
+import { successResponse, unauthorized, forbidden, serverError } from '@/utils/api'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { BillingService } from '@/modules/billing/service'
 import { logger } from '@/lib/logger'
+import { can } from '@/lib/permissions'
 
 // ────────────────────────────────────────
 // Billing API — จัดการ subscription / checkout
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUserFromRequest(request)
     if (!user) return unauthorized()
+    if (!can(user, 'billing.view')) return forbidden()
 
     // ถ้ามี tenantId → ดึง subscription จริง, ไม่มี → free plan
     const tenant_id = (user as any).tenantId
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUserFromRequest(request)
     if (!user) return unauthorized()
+    if (!can(user, 'billing.manage')) return forbidden()
 
     const body = await request.json()
     const { action = 'checkout', plan } = body as {
@@ -60,7 +63,7 @@ export async function POST(request: NextRequest) {
       return serverError('User must belong to a tenant to manage billing')
     }
 
-    const return_url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing`
+    const return_url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/settings/billing`
 
     // ── สร้าง Customer Portal Session
     if (action === 'portal') {

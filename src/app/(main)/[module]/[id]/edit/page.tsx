@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Spinner } from '@/components/ui'
 
+const skipKeys = ['id', 'password', 'deletedAt', 'createdAt', 'updatedAt', 'roles', 'permissions']
+
 export default function ModuleEditPage() {
   const params = useParams<{ module: string; id: string }>()
   const router = useRouter()
@@ -15,9 +17,6 @@ export default function ModuleEditPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-
-  const skipKeys = ['id', 'password', 'deletedAt', 'createdAt', 'updatedAt', 'roles', 'permissions']
-
   useEffect(() => {
     fetch(`/api/${moduleName}/${id}`)
       .then((r) => r.json())

@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { DataTable } from '@/components/table/DataTable'
 import { useDebounce, usePagination } from '@/hooks'
-import { Badge } from '@/components/ui'
 
 // ────────────────────────────────────────
 // Module List Page — Dynamic CRUD listing
@@ -67,30 +66,53 @@ export default function ModuleListPage() {
       ]
 
   return (
-    <div>
-      {/* Header — Module title + Create button */}
-      <header className="mb-10">
-        <div className="flex justify-between items-end">
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      {/* 1. PAGE HEADER — Unified Pattern */}
+      <header className="mb-12 pt-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <p className="label-xs mb-2" style={{ color: 'var(--color-text-subtle)' }}>
-              Module
-            </p>
-            <h1 className="text-4xl font-extrabold tracking-tighter" style={{ color: 'var(--color-primary)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-1.5 h-6 bg-[var(--color-primary)] rounded-full" />
+              <p
+                className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: 'var(--color-text-faint)' }}
+              >
+                System Module
+              </p>
+            </div>
+            <h1
+              className="text-4xl md:text-5xl font-extrabold tracking-tighter"
+              style={{ color: 'var(--color-primary)' }}
+            >
               {module_label}
             </h1>
-            <p className="text-xs mt-1" style={{ color: 'var(--color-text-faint)' }}>
-              {total} total records
-            </p>
+            <div className="mt-2 flex items-center gap-4">
+              <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
+                Manage and monitor your <span className="font-bold lowercase">{module_label}</span>{' '}
+                records.
+              </p>
+              <span className="w-1 h-1 rounded-full bg-[var(--color-border-strong)]" />
+              <p
+                className="text-[10px] font-black uppercase tracking-tighter"
+                style={{ color: 'var(--color-text-faint)' }}
+              >
+                {total} Total Records
+              </p>
+            </div>
           </div>
-          <Link href={`/${module_name}/create`} className="btn-primary">
-            <span className="material-symbols-outlined text-sm">add</span>
+
+          <Link
+            href={`/${module_name}/create`}
+            className="btn-primary px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-black/5 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-base">add_circle</span>
             New {module_label}
           </Link>
         </div>
       </header>
 
-      {/* Table — editorial card wrapper */}
-      <div className="editorial-card-elevated overflow-hidden">
+      {/* 2. DATA TABLE — High Contrast Wrapper */}
+      <div className="relative">
         <DataTable
           data={data}
           columns={columns}
@@ -101,18 +123,20 @@ export default function ModuleListPage() {
           onPageChange={goToPage}
           onSearch={setSearch}
           actions={(row) => (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-1.5">
               <Link
                 href={`/${module_name}/${row.id}`}
-                className="btn-secondary text-[10px] py-1 px-2"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-low)] transition-all text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                title="View details"
               >
-                View
+                <span className="material-symbols-outlined text-lg">visibility</span>
               </Link>
               <Link
                 href={`/${module_name}/${row.id}/edit`}
-                className="btn-secondary text-[10px] py-1 px-2"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-low)] transition-all text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                title="Edit record"
               >
-                Edit
+                <span className="material-symbols-outlined text-lg">edit</span>
               </Link>
             </div>
           )}

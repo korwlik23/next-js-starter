@@ -24,12 +24,13 @@ const userSelect = {
 // ─────────────────────────────────────────
 // GET USERS (paginated)
 // ─────────────────────────────────────────
-export async function getUsersService(params: PaginationParams = {}) {
+export async function getUsersService(tenantId: string | null, params: PaginationParams = {}) {
   const page = params.page ?? paginationConfig.defaultPage
   const limit = Math.min(params.limit ?? paginationConfig.defaultLimit, paginationConfig.maxLimit)
   const skip = (page - 1) * limit
 
   const where = {
+    tenantId, // บังคับกรองตาม tenantId
     deletedAt: null,
     ...(params.search
       ? {
@@ -55,9 +56,13 @@ export async function getUsersService(params: PaginationParams = {}) {
 // ─────────────────────────────────────────
 // GET USER BY ID
 // ─────────────────────────────────────────
-export async function getUserByIdService(id: string) {
+export async function getUserByIdService(id: string, tenantId: string | null = null) {
   return prisma.user.findUnique({
-    where: { id, deletedAt: null },
+    where: {
+      id,
+      tenantId: tenantId ?? undefined, // ถ้าส่ง tenantId มาให้กรองด้วย
+      deletedAt: null,
+    },
     select: userSelect,
   })
 }

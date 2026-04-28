@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/apiClient'
 import { Skeleton } from '@/components/ui'
-import { formatDateTime, timeAgo } from '@/utils/format'
+import { timeAgo } from '@/utils/format'
 
 // ────────────────────────────────────────
 // Admin Panel — ใช้ React Query สำหรับ data fetching
@@ -42,10 +42,25 @@ const STAT_CONFIG = [
 
 // ── Quick action links
 const QUICK_ACTIONS = [
-  { label: 'จัดการผู้ใช้', href: '/user', icon: 'manage_accounts', desc: 'ดู/แก้ไข/ลบ ผู้ใช้ในระบบ' },
-  { label: 'Audit Log', href: '/settings/audit', icon: 'history', desc: 'ดูประวัติการกระทำทั้งหมด' },
+  {
+    label: 'จัดการผู้ใช้',
+    href: '/user',
+    icon: 'manage_accounts',
+    desc: 'ดู/แก้ไข/ลบ ผู้ใช้ในระบบ',
+  },
+  {
+    label: 'Audit Log',
+    href: '/settings/audit',
+    icon: 'history',
+    desc: 'ดูประวัติการกระทำทั้งหมด',
+  },
   { label: 'API Keys', href: '/settings/api-keys', icon: 'key', desc: 'จัดการ API Keys' },
-  { label: 'จัดการภาษา', href: '/admin/translations', icon: 'translate', desc: 'แก้ไขคำแปลของระบบ' },
+  {
+    label: 'จัดการภาษา',
+    href: '/admin/translations',
+    icon: 'translate',
+    desc: 'แก้ไขคำแปลของระบบ',
+  },
   { label: 'Billing', href: '/billing', icon: 'payments', desc: 'ดูข้อมูลบิลและ subscription' },
   { label: 'Analytics', href: '/analytics', icon: 'analytics', desc: 'ดูสถิติการใช้งาน' },
 ]
@@ -69,162 +84,191 @@ export default function AdminPage() {
   })
 
   return (
-    <div>
-      {/* Page Header */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>
-          Admin Panel
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-          ภาพรวมระบบและการจัดการ — ข้อมูลจาก Database แบบ real-time
-        </p>
-      </div>
-
-      {/* Error message */}
-      {error && (
-        <div
-          className="p-4 rounded-lg mb-6 text-sm"
-          style={{
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            border: '1px solid rgba(231, 76, 60, 0.3)',
-            color: '#e74c3c',
-          }}
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+      {/* 1. PAGE HEADER — High Contrast */}
+      <header className="mb-12 pt-4">
+        <h1
+          className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"
+          style={{ color: 'var(--color-primary)' }}
         >
+          Command Center
+        </h1>
+        <p className="text-base font-medium max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
+          System-wide overview, health metrics, and administrative control tools.
+        </p>
+      </header>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 rounded-xl mb-8 bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-sm font-medium flex items-center gap-3">
+          <span className="material-symbols-outlined text-base">error</span>
           {error.message}
         </div>
       )}
 
-      {/* Stats Grid — skeleton + real data */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      {/* 2. SYSTEM STATS — Primary Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {STAT_CONFIG.map((stat) => (
           <div
             key={stat.key}
-            className="p-6 rounded-lg"
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-            }}
+            className="editorial-card-elevated p-8 flex flex-col justify-between min-h-[140px] shadow-sm"
           >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between">
               <span
-                className="material-symbols-outlined text-xl"
-                style={{ color: 'var(--color-primary)' }}
+                className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: 'var(--color-text-subtle)' }}
               >
-                {stat.icon}
+                {stat.label}
               </span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-surface-low)] text-[var(--color-primary)]">
+                <span className="material-symbols-outlined text-lg">{stat.icon}</span>
+              </div>
             </div>
-            {isLoading ? (
-              <Skeleton width="60%" height="1.75rem" />
-            ) : (
-              <p className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
-                {data?.stats?.[stat.key]?.toLocaleString() ?? '—'}
-              </p>
-            )}
-            <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
-              {stat.label}
-            </p>
+            <div className="mt-4">
+              {isLoading ? (
+                <Skeleton width="60%" height="2.5rem" />
+              ) : (
+                <p
+                  className="text-4xl font-black tracking-tighter"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {data?.stats?.[stat.key]?.toLocaleString() ?? '—'}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent System Events — จาก Audit Log จริง */}
-        <div>
-          <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--color-text)' }}>
-            เหตุการณ์ล่าสุด
-          </h2>
-          <div
-            className="rounded-lg overflow-hidden"
-            style={{ border: '1px solid var(--color-border)' }}
-          >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* 3. ACTIVITY FEED — Recent Events Timeline */}
+        <div className="lg:col-span-7">
+          <div className="flex items-center justify-between mb-8">
+            <h2
+              className="text-sm font-black uppercase tracking-widest"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              Recent System Events
+            </h2>
+            <span
+              className="text-[10px] font-bold py-1 px-2 rounded-full bg-[var(--color-surface-low)]"
+              style={{ color: 'var(--color-text-faint)' }}
+            >
+              Live Feed
+            </span>
+          </div>
+
+          <div className="relative pl-8 space-y-8 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-px before:bg-[var(--color-border)] before:border-dashed before:border-l">
             {isLoading ? (
-              /* Skeleton loading */
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-3 p-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <Skeleton is_circle width={24} height={24} />
-                  <div className="flex-1">
-                    <Skeleton width="70%" height="0.875rem" className="mb-2" />
-                    <Skeleton width="50%" height="0.625rem" />
-                  </div>
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="relative">
+                  <Skeleton width="100%" height="60px" border_radius="var(--radius-lg)" />
                 </div>
               ))
             ) : data?.recent_events && data.recent_events.length > 0 ? (
-              data.recent_events.map((event, idx) => (
-                <div
-                  key={event.id}
-                  className="flex items-start gap-3 p-4"
-                  style={{
-                    borderBottom:
-                      idx < data.recent_events.length - 1
-                        ? '1px solid var(--color-border)'
-                        : 'none',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined text-base mt-0.5"
-                    style={{ color: 'var(--color-primary)' }}
-                  >
-                    schedule
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>
-                      {event.action}
+              data.recent_events.map((event) => (
+                <div key={event.id} className="relative group">
+                  {/* Timeline Dot */}
+                  <div className="absolute -left-8 top-1.5 w-3 h-3 rounded-full border-2 border-[var(--color-border)] bg-[var(--color-surface)] group-hover:border-[var(--color-primary)] transition-colors z-10" />
+
+                  <div className="editorial-card-elevated p-5 shadow-sm transition-all group-hover:translate-x-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <p
+                        className="text-sm font-black tracking-tight"
+                        style={{ color: 'var(--color-primary)' }}
+                      >
+                        {event.action}
+                      </p>
+                      <span
+                        className="text-[10px] font-bold"
+                        style={{ color: 'var(--color-text-faint)' }}
+                      >
+                        {timeAgo(event.created_at)}
+                      </span>
+                    </div>
+                    <p
+                      className="text-xs font-medium mb-2"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
+                      {event.detail}
                     </p>
-                    <p className="text-xs truncate" style={{ color: 'var(--color-text-muted)' }}>
-                      {event.detail} • {event.user_name}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-[var(--color-surface-dim)] flex items-center justify-center overflow-hidden">
+                        <span className="material-symbols-outlined text-[10px]">person</span>
+                      </div>
+                      <span
+                        className="text-[10px] font-black"
+                        style={{ color: 'var(--color-text-subtle)' }}
+                      >
+                        {event.user_name}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs shrink-0" style={{ color: 'var(--color-text-faint)' }}>
-                    {timeAgo(event.created_at)}
-                  </span>
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-sm" style={{ color: 'var(--color-text-faint)' }}>
-                ยังไม่มีเหตุการณ์
+              <div className="py-20 text-center editorial-card-elevated shadow-sm">
+                <span
+                  className="material-symbols-outlined text-4xl mb-4"
+                  style={{ color: 'var(--color-text-faint)' }}
+                >
+                  event_busy
+                </span>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-text-faint)' }}>
+                  No recent activity detected
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--color-text)' }}>
-            Quick Actions
+        {/* 4. CONTROL PANEL — Quick Actions Grid */}
+        <div className="lg:col-span-5">
+          <h2
+            className="text-sm font-black uppercase tracking-widest mb-8"
+            style={{ color: 'var(--color-primary)' }}
+          >
+            Control Panel
           </h2>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-4">
             {QUICK_ACTIONS.map((action) => (
               <a
                 key={action.label}
                 href={action.href}
-                className="flex items-center gap-4 p-4 rounded-lg transition-all hover:translate-x-1"
-                style={{
-                  backgroundColor: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
-                }}
+                className="editorial-card-elevated p-6 flex items-center gap-5 transition-all hover:scale-[1.02] hover:shadow-md border-transparent hover:border-[var(--color-primary)]/20"
               >
-                <span
-                  className="material-symbols-outlined text-xl"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  {action.icon}
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-low)] flex items-center justify-center text-[var(--color-primary)] shadow-sm">
+                  <span className="material-symbols-outlined">{action.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-sm font-black tracking-tight mb-0.5"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
                     {action.label}
                   </p>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <p
+                    className="text-xs font-medium truncate"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
                     {action.desc}
                   </p>
                 </div>
-                <span
-                  className="material-symbols-outlined text-base"
-                  style={{ color: 'var(--color-text-faint)' }}
-                >
-                  arrow_forward
+                <span className="material-symbols-outlined text-lg opacity-30 group-hover:opacity-100 transition-opacity">
+                  chevron_right
                 </span>
               </a>
             ))}
+          </div>
+
+          <div className="mt-10 p-6 rounded-[var(--radius-lg)] bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-xl shadow-black/10 flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-black uppercase tracking-widest mb-1 opacity-70">
+                Support Status
+              </p>
+              <p className="text-sm font-bold">Systems operational</p>
+            </div>
+            <span className="w-3 h-3 rounded-full bg-white animate-pulse" />
           </div>
         </div>
       </div>
