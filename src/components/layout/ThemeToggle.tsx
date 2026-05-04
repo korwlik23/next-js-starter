@@ -15,8 +15,8 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <button 
-        className="transition-colors w-8 h-8 flex items-center justify-center opacity-50" 
+      <button
+        className="transition-colors w-10 h-10 flex items-center justify-center opacity-50"
         style={{ color: 'var(--color-text-subtle)' }}
         aria-label="Toggle Theme"
       >
@@ -31,12 +31,12 @@ export function ThemeToggle() {
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       className={clsx(
-        "transition-colors hover:opacity-70 flex items-center justify-center w-8 h-8 rounded-sm",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        'transition-colors hover:bg-[var(--color-surface-mid)] flex items-center justify-center w-10 h-10 rounded-[var(--radius-md)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]'
       )}
       style={{ color: 'var(--color-text-subtle)' }}
       aria-label="Toggle Theme"
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       <span className="material-symbols-outlined text-[1.2rem]">
         {isDark ? 'light_mode' : 'dark_mode'}

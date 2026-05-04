@@ -4,22 +4,25 @@ import { forwardRef } from 'react'
 
 const buttonVariants = cva(
   // base
-  'inline-flex items-center justify-center gap-2 font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-black disabled:opacity-40 disabled:pointer-events-none select-none',
+  'inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:opacity-45 disabled:pointer-events-none select-none whitespace-nowrap',
   {
     variants: {
       variant: {
-        primary: 'bg-white text-black hover:bg-neutral-200 active:bg-neutral-300',
+        primary:
+          'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:opacity-90 active:opacity-80',
         secondary:
-          'bg-neutral-900 text-white border border-neutral-700 hover:border-white active:bg-neutral-800',
-        ghost: 'bg-transparent text-white hover:bg-neutral-900 active:bg-neutral-800',
-        danger: 'bg-red-600 text-white hover:bg-red-500',
-        outline: 'border border-neutral-700 text-white bg-transparent hover:border-white',
+          'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border-strong)] hover:border-[var(--color-primary)]',
+        ghost:
+          'bg-transparent text-[var(--color-text)] hover:bg-[var(--color-surface-low)] active:bg-[var(--color-surface-mid)]',
+        danger: 'bg-[var(--color-error)] text-white hover:opacity-90',
+        outline:
+          'border border-[var(--color-border-strong)] text-[var(--color-text)] bg-transparent hover:border-[var(--color-primary)]',
       },
       size: {
-        sm: 'h-8 px-3 text-xs tracking-wider',
-        md: 'h-10 px-5 text-xs tracking-widest uppercase',
-        lg: 'h-12 px-6 text-xs tracking-widest uppercase',
-        icon: 'h-9 w-9',
+        sm: 'h-9 px-3 text-xs',
+        md: 'h-10 px-4 text-xs uppercase',
+        lg: 'h-11 px-5 text-sm uppercase',
+        icon: 'h-10 w-10',
       },
     },
     defaultVariants: {

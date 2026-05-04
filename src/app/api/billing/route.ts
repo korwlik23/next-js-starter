@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       return serverError('User must belong to a tenant to manage billing')
     }
 
-    const return_url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/settings/billing`
+    const return_url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing`
 
     // ── สร้าง Customer Portal Session
     if (action === 'portal') {

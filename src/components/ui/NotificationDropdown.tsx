@@ -70,7 +70,7 @@ export function NotificationDropdown() {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full transition-colors hover:bg-[var(--color-surface-mid)] focus:outline-none"
+        className="relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors hover:bg-[var(--color-surface-mid)] focus:outline-none"
         aria-label="การแจ้งเตือน"
       >
         <span className="material-symbols-outlined" style={{ color: 'var(--color-text)' }}>
@@ -86,7 +86,7 @@ export function NotificationDropdown() {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl shadow-lg border z-50 overflow-hidden flex flex-col"
+          className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm sm:w-96 rounded-[var(--radius-md)] shadow-lg border z-50 overflow-hidden flex flex-col"
           style={{
             backgroundColor: 'var(--color-surface)',
             borderColor: 'var(--color-border)',

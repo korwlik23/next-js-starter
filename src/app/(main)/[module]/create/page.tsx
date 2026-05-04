@@ -40,35 +40,32 @@ export default function ModuleCreatePage() {
   }
 
   return (
-    <div>
+    <div className="max-w-3xl">
       {/* Header */}
-      <header className="mb-10">
+      <header className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <Link
             href={`/${moduleName}`}
-            className="text-neutral-600 hover:text-white transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-low)] hover:text-[var(--color-primary)]"
+            aria-label={`Back to ${moduleLabel}`}
           >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            <span className="material-symbols-outlined text-lg">arrow_back</span>
           </Link>
-          <p className="text-[0.6rem] uppercase tracking-[0.2em] text-neutral-500 font-bold">
+          <p className="text-[0.7rem] uppercase font-bold text-[var(--color-text-faint)]">
             {moduleLabel} / New
           </p>
         </div>
-        <h1 className="text-4xl font-extrabold tracking-tighter text-white">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-primary)]">
           Create {moduleLabel}
         </h1>
       </header>
 
       {/* Form */}
       <div className="max-w-xl">
-        <form
-          onSubmit={handleSubmit}
-          className="border p-8 space-y-8"
-          style={{ backgroundColor: '#111111', borderColor: '#1a1a1a' }}
-        >
+        <form onSubmit={handleSubmit} className="editorial-card-elevated p-4 sm:p-6 space-y-5">
           {Object.entries(fields).map(([key, val]) => (
             <div key={key}>
-              <label className="block text-[10px] tracking-widest uppercase text-neutral-500 mb-2">
+              <label className="block text-[10px] font-bold uppercase text-[var(--color-text-subtle)] mb-2">
                 {key.charAt(0).toUpperCase() + key.slice(1)}
               </label>
               <input
@@ -83,17 +80,13 @@ export default function ModuleCreatePage() {
           ))}
 
           {error && (
-            <div className="text-sm text-red-400 bg-red-950/30 border border-red-900/50 px-4 py-3">
+            <div className="rounded-[var(--radius-md)] text-sm text-[var(--color-error)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 px-4 py-3">
               {error}
             </div>
           )}
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-white text-black px-6 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200 disabled:opacity-50 transition-colors flex items-center gap-2"
-            >
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button type="submit" disabled={isSubmitting} className="btn-primary text-xs">
               {isSubmitting && (
                 <span className="material-symbols-outlined text-sm animate-spin">
                   progress_activity
@@ -101,10 +94,7 @@ export default function ModuleCreatePage() {
               )}
               Create {moduleLabel}
             </button>
-            <Link
-              href={`/${moduleName}`}
-              className="border border-neutral-700 text-white px-6 py-2.5 text-xs font-bold uppercase tracking-widest hover:border-white transition-colors"
-            >
+            <Link href={`/${moduleName}`} className="btn-secondary text-xs">
               Cancel
             </Link>
           </div>

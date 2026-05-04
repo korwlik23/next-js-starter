@@ -26,7 +26,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-neutral-500 text-base pointer-events-none" aria-hidden="true">
+            <span
+              className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-base pointer-events-none"
+              aria-hidden="true"
+            >
               {leftIcon}
             </span>
           )}
@@ -37,21 +40,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={describedBy}
             className={clsx(
               'editorial-input',
-              leftIcon && 'pl-6',
-              rightIcon && 'pr-6',
+              leftIcon && 'pl-10',
+              rightIcon && 'pr-10',
               error && 'border-b-red-500',
               className
             )}
             {...props}
           />
           {rightIcon && (
-            <span className="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 text-base" aria-hidden="true">
+            <span
+              className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-base"
+              aria-hidden="true"
+            >
               {rightIcon}
             </span>
           )}
         </div>
-        {error && <p id={errorId} className="mt-1 text-xs text-red-400" role="alert">{error}</p>}
-        {hint && !error && <p id={hintId} className="mt-1 text-xs text-neutral-500">{hint}</p>}
+        {error && (
+          <p id={errorId} className="mt-1 text-xs text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p id={hintId} className="mt-1 text-xs text-neutral-500">
+            {hint}
+          </p>
+        )}
       </div>
     )
   }

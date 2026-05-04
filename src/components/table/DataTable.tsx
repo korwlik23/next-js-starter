@@ -233,7 +233,7 @@ export function DataTable<T extends Record<string, unknown>>({
     <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* ── Toolbar: Search + Filter Toggle */}
       {(searchable || has_filterable_columns) && (
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* ช่องค้นหา */}
           {searchable && (
             <div className="relative flex-1 max-w-md group">
@@ -251,7 +251,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   onSearch?.(e.target.value)
                 }}
                 placeholder="Search records..."
-                className="editorial-input w-full pl-10 py-2.5 text-sm shadow-sm focus:shadow-md transition-all"
+                className="editorial-input w-full pl-10 text-sm shadow-sm focus:shadow-md transition-all"
               />
             </div>
           )}
@@ -260,7 +260,7 @@ export function DataTable<T extends Record<string, unknown>>({
           {has_filterable_columns && (
             <button
               onClick={() => setShowFilters((prev) => !prev)}
-              className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md transition-all"
+              className="btn-secondary flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase shadow-sm hover:shadow-md transition-all"
               style={{
                 borderColor:
                   active_filter_count > 0 ? 'var(--color-primary)' : 'var(--color-border)',
@@ -283,7 +283,7 @@ export function DataTable<T extends Record<string, unknown>>({
       {/* ── Filter Panel — แสดงเมื่อเปิด */}
       {show_filters && has_filterable_columns && (
         <div
-          className="mb-6 p-6 rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-in slide-in-from-top-2 duration-300 shadow-inner"
+          className="mb-4 p-4 rounded-[var(--radius-md)] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2 duration-300 shadow-inner"
           style={{
             backgroundColor: 'var(--color-surface-low)',
             border: '1px solid var(--color-border)',
@@ -294,7 +294,7 @@ export function DataTable<T extends Record<string, unknown>>({
             .map((col) => (
               <div key={String(col.key)} className="flex flex-col gap-2">
                 <label
-                  className="text-[10px] font-black uppercase tracking-widest"
+                  className="text-[10px] font-black uppercase"
                   style={{ color: 'var(--color-text-faint)' }}
                 >
                   {col.label}
@@ -332,7 +332,7 @@ export function DataTable<T extends Record<string, unknown>>({
                   setActiveFilters({})
                   onFilter?.([])
                 }}
-                className="text-[10px] font-black uppercase tracking-widest px-4 py-2 hover:underline transition-all"
+                className="text-[10px] font-black uppercase px-4 py-2 hover:underline transition-all"
                 style={{ color: 'var(--color-error)' }}
               >
                 Clear All Filters
@@ -343,16 +343,16 @@ export function DataTable<T extends Record<string, unknown>>({
       )}
 
       {/* ── Table Container */}
-      <div className="editorial-card-elevated overflow-hidden shadow-sm">
+      <div className="-mx-4 overflow-hidden border-y border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm sm:mx-0 sm:rounded-[var(--radius-md)] sm:border">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full min-w-[720px] border-collapse">
             {/* ── Table Header */}
             <thead>
               <tr className="bg-[var(--color-surface-low)] border-b border-[var(--color-border)]">
                 {columns.map((col) => (
                   <th
                     key={String(col.key)}
-                    className={`text-left px-8 py-5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                    className={`text-left px-4 py-3 text-[10px] font-black uppercase transition-colors sm:px-5 ${
                       col.sortable
                         ? 'cursor-pointer select-none hover:text-[var(--color-primary)]'
                         : ''
@@ -368,7 +368,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 ))}
                 {actions && (
                   <th
-                    className="text-right px-8 py-5 text-[10px] font-black uppercase tracking-widest"
+                    className="text-right px-4 py-3 text-[10px] font-black uppercase sm:px-5"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
                     Actions
@@ -383,12 +383,12 @@ export function DataTable<T extends Record<string, unknown>>({
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {columns.map((col) => (
-                      <td key={String(col.key)} className="px-8 py-6">
+                      <td key={String(col.key)} className="px-4 py-4 sm:px-5">
                         <div className="h-4 bg-[var(--color-surface-mid)] animate-pulse rounded-md w-3/4 shadow-inner" />
                       </td>
                     ))}
                     {actions && (
-                      <td className="px-8 py-6">
+                      <td className="px-4 py-4 sm:px-5">
                         <div className="h-4 bg-[var(--color-surface-mid)] animate-pulse rounded-md w-12 ml-auto shadow-inner" />
                       </td>
                     )}
@@ -398,7 +398,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 <tr>
                   <td
                     colSpan={columns.length + (actions ? 1 : 0)}
-                    className="px-8 py-24 text-center"
+                    className="px-4 py-16 text-center sm:px-5"
                   >
                     <div className="flex flex-col items-center gap-4">
                       <div className="w-16 h-16 rounded-full bg-[var(--color-surface-low)] flex items-center justify-center text-[var(--color-text-faint)]">
@@ -430,7 +430,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     {columns.map((col) => (
                       <td
                         key={String(col.key)}
-                        className="px-8 py-5 text-sm font-medium"
+                        className="px-4 py-4 text-sm font-medium sm:px-5"
                         style={{ color: 'var(--color-text-muted)' }}
                       >
                         {col.render ? (
@@ -445,7 +445,7 @@ export function DataTable<T extends Record<string, unknown>>({
                       </td>
                     ))}
                     {actions && (
-                      <td className="px-8 py-5 text-right">
+                      <td className="px-4 py-4 text-right sm:px-5">
                         <div className="flex items-center justify-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                           {actions(row)}
                         </div>
@@ -461,9 +461,9 @@ export function DataTable<T extends Record<string, unknown>>({
 
       {/* ── Pagination */}
       {total > 0 && (
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="mt-5 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p
-            className="text-[10px] font-black uppercase tracking-widest"
+            className="text-[10px] font-black uppercase"
             style={{ color: 'var(--color-text-faint)' }}
           >
             Showing {Math.min((page - 1) * limit + 1, total)}–{Math.min(page * limit, total)} of{' '}
@@ -473,7 +473,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <button
               onClick={() => onPageChange?.(page - 1)}
               disabled={page <= 1}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-all disabled:opacity-20 hover:bg-[var(--color-surface-low)] shadow-sm"
+              className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-md)] border transition-all disabled:opacity-20 hover:bg-[var(--color-surface-low)] shadow-sm"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
             >
               <span className="material-symbols-outlined text-lg">chevron_left</span>
@@ -486,7 +486,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 <button
                   key={p}
                   onClick={() => onPageChange?.(p)}
-                  className="w-8 h-8 text-xs font-bold border transition-colors"
+                  className="w-10 h-10 rounded-[var(--radius-md)] text-xs font-bold border transition-colors"
                   style={{
                     backgroundColor: p === page ? 'var(--color-primary, white)' : 'transparent',
                     color:
@@ -506,7 +506,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <button
               onClick={() => onPageChange?.(page + 1)}
               disabled={page >= total_pages}
-              className="w-8 h-8 flex items-center justify-center border transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-10 h-10 flex items-center justify-center rounded-[var(--radius-md)] border transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
                 borderColor: 'var(--color-border, #1a1a1a)',
                 color: 'var(--color-text-muted, #777)',

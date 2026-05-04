@@ -10,7 +10,7 @@ describe('Button Component', () => {
   it('handles onClick event', () => {
     const handleClick = jest.fn()
     render(<Button onClick={handleClick}>Click Me</Button>)
-    
+
     fireEvent.click(screen.getByRole('button', { name: /click me/i }))
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
@@ -18,7 +18,7 @@ describe('Button Component', () => {
   it('is disabled when disabled prop is true', () => {
     render(<Button disabled>Click Me</Button>)
     const button = screen.getByRole('button', { name: /click me/i })
-    
+
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-disabled', 'true')
   })
@@ -26,10 +26,10 @@ describe('Button Component', () => {
   it('shows loading state and is disabled', () => {
     render(<Button isLoading>Click Me</Button>)
     const button = screen.getByRole('button', { name: /click me/i })
-    
+
     // Check if the spinner is rendered
     expect(screen.getByText('progress_activity')).toBeInTheDocument()
-    
+
     expect(button).toBeDisabled()
     expect(button).toHaveAttribute('aria-busy', 'true')
   })
@@ -37,7 +37,7 @@ describe('Button Component', () => {
   it('applies variant classes correctly', () => {
     render(<Button variant="danger">Danger</Button>)
     const button = screen.getByRole('button', { name: /danger/i })
-    
-    expect(button).toHaveClass('bg-red-600', 'text-white') // Basic variant checks
+
+    expect(button).toHaveClass('bg-[var(--color-error)]', 'text-white')
   })
 })

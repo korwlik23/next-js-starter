@@ -30,6 +30,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
   const user = useAuthStore((s) => s.user)
   const clearUser = useAuthStore((s) => s.clearUser)
+  const initials =
+    user?.name
+      ?.split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ?? 'U'
 
   return (
     <>
@@ -43,35 +50,37 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={clsx(
-          'h-screen flex flex-col py-8 transition-transform duration-300 ease-in-out',
+          'h-screen flex flex-col py-4 transition-transform duration-300 ease-in-out',
           'fixed inset-y-0 left-0 z-[var(--z-drawer)] lg:sticky lg:top-0 lg:translate-x-0 lg:z-10',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
         style={{
-          width: 'var(--sidebar-width)',
+          width: 'min(86vw, var(--sidebar-width))',
           backgroundColor: 'var(--color-surface-low)',
           borderRight: '1px solid var(--color-border)',
         }}
       >
-        <div className="flex justify-between items-center px-8 mb-12">
+        <div className="flex justify-between items-center px-4 sm:px-5 mb-6">
           <div>
-            <h1
-              className="text-xl font-bold tracking-tighter"
-              style={{ color: 'var(--color-primary)' }}
-            >
+            <h1 className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>
               Editorial
             </h1>
             <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
               CMS Admin
             </p>
           </div>
-          <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-gray-700 p-1">
+          <button
+            onClick={onClose}
+            className="lg:hidden h-10 w-10 rounded-[var(--radius-md)] text-gray-500 hover:bg-[var(--color-surface-mid)] hover:text-gray-700"
+            aria-label="Close navigation"
+            type="button"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         {/* Navigation — รายการเมนู */}
-        <nav className="flex-1 flex flex-col gap-1">
+        <nav className="flex-1 flex flex-col gap-1 px-3" aria-label="Main navigation">
           {NAV_ITEMS.map((item) => {
             const is_active = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
@@ -80,17 +89,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 href={item.href}
                 onClick={() => onClose()}
                 className={clsx(
-                  'flex items-center gap-3 px-4 py-3 text-sm transition-colors duration-200',
-                  is_active
-                    ? 'font-bold border-l-4'
-                    : 'border-l-4 border-transparent hover:opacity-80'
+                  'flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
+                  is_active ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
                 )}
                 style={
                   is_active
                     ? {
                         backgroundColor: 'var(--color-surface)',
                         color: 'var(--color-primary)',
-                        borderLeftColor: 'var(--color-primary)',
+                        boxShadow: 'inset 3px 0 0 var(--color-primary)',
                       }
                     : {
                         color: 'var(--color-text-subtle)',
@@ -105,18 +112,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* User Profile — แสดงข้อมูลผู้ใช้ด้านล่าง */}
-        <div className="px-6 pt-8" style={{ borderTop: '1px solid var(--color-border)' }}>
+        <div className="px-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-3">
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-xs font-bold shrink-0"
               style={{
-                backgroundColor: 'var(--color-surface-high)',
-                color: 'var(--color-text)',
+                backgroundColor: 'var(--color-primary)',
+                color: 'var(--color-on-primary)',
               }}
             >
-              <span className="material-symbols-outlined text-sm">person</span>
+              {initials}
             </div>
-            <div className="overflow-hidden">
+            <div className="min-w-0 flex-1 overflow-hidden">
               <p className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>
                 {user?.name ?? 'Admin User'}
               </p>

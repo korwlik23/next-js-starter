@@ -27,8 +27,8 @@ export default function MainLayoutClient({ children }: { children: React.ReactNo
         <TopNav onOpenSidebar={() => setSidebarOpen(true)} />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-x-hidden">
-          <div className="mx-auto max-w-7xl w-full">
+        <main className="flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+          <div className="mx-auto w-full max-w-[1180px]">
             <ErrorBoundary>{children}</ErrorBoundary>
           </div>
         </main>

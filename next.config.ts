@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // @ts-expect-error - allowedDevOrigins is required by the dev server but may not be in the experimental types
   allowedDevOrigins: ['localhost:3000', '127.0.0.1:3000', '192.168.1.155:3000'],
 }
 

@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown'
 import { SearchInput } from '@/components/ui/SearchInput'
+import { useAuthStore } from '@/store/authStore'
 
 // ────────────────────────────────────────
 // TopNav — แถบนำทางด้านบน
@@ -17,22 +19,49 @@ interface TopNavProps {
 }
 
 export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
+  const pathname = usePathname()
+  const user = useAuthStore((s) => s.user)
+  const title =
+    _title ||
+    pathname
+      .split('/')
+      .filter(Boolean)
+      .at(-1)
+      ?.replace(/-/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase()) ||
+    'Dashboard'
+  const initials =
+    user?.name
+      ?.split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() ?? 'U'
+
   return (
     <header
-      className="sticky top-0 h-16 flex justify-between items-center px-4 lg:px-8 glass-overlay w-full"
+      className="sticky top-0 flex min-h-16 w-full items-center justify-between gap-3 px-4 glass-overlay sm:px-6 lg:px-8"
       style={{
         zIndex: 'var(--z-nav)',
         borderBottom: '1px solid var(--color-border)',
       }}
     >
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {/* Hamburger Menu (Mobile Only) */}
         <button
           onClick={onOpenSidebar}
-          className="lg:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+          className="lg:hidden -ml-2 flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] text-gray-600 hover:bg-[var(--color-surface-mid)] hover:text-gray-900 focus:outline-none"
+          aria-label="Open navigation"
+          type="button"
         >
           <span className="material-symbols-outlined">menu</span>
         </button>
+
+        <div className="min-w-0 sm:hidden">
+          <p className="truncate text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+            {title}
+          </p>
+        </div>
 
         {/* Search — ช่องค้นหาด้านซ้าย */}
         <div className="flex-1 max-w-md hidden sm:block">
@@ -41,7 +70,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
       </div>
 
       {/* Actions — icons ด้านขวา */}
-      <div className="flex items-center gap-4 lg:gap-6">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {/* สลับหน้าจอ ThemeToggle */}
         <ThemeToggle />
 
@@ -51,7 +80,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
         {/* Settings gear */}
         <Link
           href="/settings"
-          className="transition-colors hover:opacity-70"
+          className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors hover:bg-[var(--color-surface-mid)]"
           style={{ color: 'var(--color-text-subtle)' }}
           aria-label="Settings"
         >
@@ -60,13 +89,13 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
 
         {/* User avatar badge — ตัวอักษรย่อ */}
         <div
-          className="h-8 w-8 rounded-sm flex items-center justify-center text-[10px] font-bold"
+          className="h-9 w-9 rounded-[var(--radius-md)] flex items-center justify-center text-[10px] font-bold"
           style={{
             backgroundColor: 'var(--color-primary)',
             color: 'var(--color-on-primary)',
           }}
         >
-          ED
+          {initials}
         </div>
       </div>
     </header>

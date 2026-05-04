@@ -8,7 +8,7 @@
   /* ─────────────────────────────────────────
      DIMENSIONS & Z-INDEX STACK
      ───────────────────────────────────────── */
-  --sidebar-width: 280px;
+  --sidebar-width: 264px;
   --sidebar-collapsed-width: 80px;
   --topnav-height: 64px;
 
@@ -35,7 +35,7 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-xl: 24px;
+  --radius-xl: 12px;
   --radius-full: 9999px;
 
   /* Transitions */
@@ -48,6 +48,7 @@
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
+  --color-glass-blur: 12px;
 }
 
 /* ─────────────────────────────────────────
@@ -60,6 +61,7 @@
   --color-surface-low: #f8f9fa;
   --color-surface-mid: #f1f3f5;
   --color-surface-high: #e9ecef;
+  --color-surface-highest: #dee2e6;
   --color-surface-dim: #dee2e6;
 
   --color-primary: #000000;
@@ -71,6 +73,8 @@
   --color-text-muted: #495057;
   --color-text-subtle: #868e96;
   --color-text-faint: #adb5bd;
+  --color-glass: rgba(255, 255, 255, 0.88);
+  --color-error-container: rgba(239, 68, 68, 0.1);
 }
 
 /* ─────────────────────────────────────────
@@ -83,6 +87,7 @@
   --color-surface-low: #1a1a1a;
   --color-surface-mid: #242424;
   --color-surface-high: #2c2c2c;
+  --color-surface-highest: #343434;
   --color-surface-dim: #161616;
 
   --color-primary: #ffffff;
@@ -96,6 +101,8 @@
   --color-text-faint: #495057;
 
   --color-error: #ffb4ab;
+  --color-glass: rgba(18, 18, 18, 0.88);
+  --color-error-container: rgba(255, 180, 171, 0.12);
 }
 
 /* ─────────────────────────────────────────
@@ -120,6 +127,7 @@ body {
   color: var(--color-text);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* ─────────────────────────────────────────
@@ -163,7 +171,7 @@ body {
 .label-xs {
   font-size: 0.625rem; /* 10px */
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -171,7 +179,7 @@ body {
 .label-sm {
   font-size: 0.6875rem; /* 11px */
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -179,7 +187,7 @@ body {
 .display-lg {
   font-size: 3rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   line-height: 1.1;
 }
 
@@ -189,18 +197,22 @@ body {
    ───────────────────────────────────────── */
 .editorial-input {
   width: 100%;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--color-border-strong);
-  border-radius: 0;
-  padding: 0.75rem 0;
+  min-height: 2.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.75rem;
   color: var(--color-text);
   font-size: 0.875rem;
-  transition: border-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 .editorial-input:focus {
   outline: none;
-  border-bottom: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
 }
 .editorial-input::placeholder {
   color: var(--color-text-faint);
@@ -238,13 +250,13 @@ body {
 .editorial-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .editorial-card-elevated {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-md);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -275,11 +287,12 @@ body {
   color: var(--color-on-primary);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  padding: 0.75rem 1.5rem;
+  min-height: 2.5rem;
+  padding: 0.625rem 1rem;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: opacity var(--transition-fast);
 }
@@ -301,11 +314,12 @@ body {
   color: var(--color-text);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  padding: 0.75rem 1.5rem;
+  min-height: 2.5rem;
+  padding: 0.625rem 1rem;
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     border-color var(--transition-fast),
@@ -325,10 +339,27 @@ body {
   gap: 0.25rem;
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0;
   text-transform: uppercase;
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
+}
+
+@media (max-width: 640px) {
+  .display-lg {
+    font-size: 2rem;
+  }
+
+  .editorial-card,
+  .editorial-card-elevated {
+    border-radius: var(--radius-md);
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .editorial-input {
+    min-height: 2.75rem;
+  }
 }
 .badge-active {
   background: var(--color-primary);
