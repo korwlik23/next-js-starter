@@ -40,7 +40,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
 
   return (
     <header
-      className="sticky top-0 flex min-h-16 w-full items-center justify-between gap-3 px-4 glass-overlay sm:px-6 lg:px-8"
+      className="sticky top-0 flex min-h-16 w-full items-center justify-between gap-3 px-4 glass-overlay sm:px-6 lg:px-8 2xl:px-10"
       style={{
         zIndex: 'var(--z-nav)',
         borderBottom: '1px solid var(--color-border)',
@@ -64,8 +64,8 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
         </div>
 
         {/* Search — ช่องค้นหาด้านซ้าย */}
-        <div className="flex-1 max-w-md hidden sm:block">
-          <SearchInput placeholder="Search..." query_param="q" size="sm" className="border-0" />
+        <div className="hidden w-full max-w-lg sm:block">
+          <SearchInput placeholder="Search..." query_param="q" size="sm" />
         </div>
       </div>
 

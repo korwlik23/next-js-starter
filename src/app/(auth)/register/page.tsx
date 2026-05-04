@@ -75,9 +75,9 @@ export default function RegisterPage() {
   return (
     <div className="w-full">
       {/* 1. FORM HEADER */}
-      <header className="mb-10">
+      <header className="mb-6">
         <h1
-          className="text-3xl font-black tracking-tighter mb-2"
+          className="text-2xl sm:text-3xl font-black mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
           Create account
@@ -90,13 +90,13 @@ export default function RegisterPage() {
       {/* 2. REGISTER FORM */}
       <form
         onSubmit={handleSubmit(HandleSubmit)}
-        className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
         noValidate
       >
         {FORM_FIELDS.map(({ id, label, type, placeholder, field }) => (
           <div key={id} className={field === 'name' || field === 'email' ? 'sm:col-span-2' : ''}>
             <label
-              className="text-[10px] font-black uppercase tracking-widest mb-2 block"
+              className="text-[10px] font-black uppercase mb-2 block"
               style={{ color: 'var(--color-text-subtle)' }}
               htmlFor={id}
             >
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               id={id}
               type={type}
               placeholder={placeholder}
-              className="editorial-input w-full py-3 px-4 shadow-sm"
+              className="editorial-input w-full shadow-sm"
               {...register(field)}
             />
             {errors[field] && (
@@ -119,7 +119,7 @@ export default function RegisterPage() {
 
         {/* Server error */}
         {server_error && (
-          <div className="sm:col-span-2 p-4 rounded-xl bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+          <div className="sm:col-span-2 p-4 rounded-[var(--radius-md)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-[10px] font-black uppercase flex items-center gap-3">
             <span className="material-symbols-outlined text-sm">error</span>
             {server_error}
           </div>
@@ -130,7 +130,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--color-primary)]/10 flex items-center justify-center gap-2 group disabled:opacity-50"
+            className="btn-primary w-full text-[10px] font-black uppercase shadow-sm flex items-center justify-center gap-2 group disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -157,7 +157,7 @@ export default function RegisterPage() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-[var(--color-border)] opacity-50" />
           </div>
-          <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+          <div className="relative flex justify-center text-[10px] font-black uppercase">
             <span
               className="bg-[var(--color-surface)] px-4"
               style={{ color: 'var(--color-text-faint)' }}
@@ -170,7 +170,7 @@ export default function RegisterPage() {
         <div className="grid grid-cols-2 gap-4">
           <a
             href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/google/login`}
-            className="flex items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
+            className="flex min-h-11 items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -178,11 +178,11 @@ export default function RegisterPage() {
               alt="Google"
               className="w-4 h-4 group-hover:scale-110 transition-transform"
             />
-            <span className="text-[10px] font-black uppercase tracking-widest">Google</span>
+            <span className="text-[10px] font-black uppercase">Google</span>
           </a>
           <a
             href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/github/login`}
-            className="flex items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
+            className="flex min-h-11 items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -190,7 +190,7 @@ export default function RegisterPage() {
               alt="GitHub"
               className="w-4 h-4 group-hover:scale-110 transition-transform"
             />
-            <span className="text-[10px] font-black uppercase tracking-widest">GitHub</span>
+            <span className="text-[10px] font-black uppercase">GitHub</span>
           </a>
         </div>
       </div>

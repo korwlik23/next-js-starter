@@ -71,16 +71,16 @@ function ResetPasswordForm() {
   return (
     <>
       <h1
-        className="text-3xl font-extrabold text-center mb-6"
+        className="text-2xl sm:text-3xl font-extrabold text-center mb-4"
         style={{ color: 'var(--color-text)' }}
       >
         ตั้งรหัสผ่านใหม่
       </h1>
-      <p className="text-center mb-8 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+      <p className="text-center mb-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
         กรุณากรอกรหัสผ่านใหม่ที่คุณต้องการใช้งาน
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <input type="hidden" {...register('token')} />
 
         <Input
@@ -101,7 +101,7 @@ function ResetPasswordForm() {
           disabled={isLoading}
         />
 
-        <Button type="submit" variant="primary" className="w-full h-12 mt-4" isLoading={isLoading}>
+        <Button type="submit" variant="primary" className="w-full mt-2" isLoading={isLoading}>
           เปลี่ยนรหัสผ่าน
         </Button>
 

@@ -46,8 +46,8 @@ export default function AuditLogPage() {
   }, [])
 
   return (
-    <div>
-      <div className="mb-10">
+    <div className="pb-12">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>
           Audit Log
         </h1>
@@ -58,110 +58,109 @@ export default function AuditLogPage() {
 
       {error && (
         <div
-          className="mb-6 p-4 border"
+          className="mb-5 p-4 rounded-[var(--radius-md)] border"
           style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
         >
           {error}
         </div>
       )}
 
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{ border: '1px solid var(--color-border)' }}
-      >
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ backgroundColor: 'var(--color-surface-mid)' }}>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                เวลา
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                Action
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                ผู้ใช้
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                Entity
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                IP Address
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <tr key={index}>
-                  <td className="p-4" colSpan={5}>
-                    <Skeleton height="1.5rem" width="100%" />
-                  </td>
-                </tr>
-              ))
-            ) : logs.length > 0 ? (
-              logs.map((log) => (
-                <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td className="p-4" style={{ color: 'var(--color-text-muted)' }}>
-                    {new Date(log.createdAt).toLocaleString('th-TH')}
-                  </td>
-                  <td className="p-4">
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
-                      style={{
-                        backgroundColor: `${getActionColor(log.action)}20`,
-                        color: getActionColor(log.action),
-                      }}
-                    >
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="p-4" style={{ color: 'var(--color-text)' }}>
-                    {log.user?.name ?? 'System'}
-                  </td>
-                  <td className="p-4" style={{ color: 'var(--color-text-muted)' }}>
-                    {log.entity ?? '-'}
-                    {log.entityId ? (
-                      <span className="text-xs ml-1" style={{ color: 'var(--color-text-faint)' }}>
-                        ({log.entityId})
+      <div className="editorial-card-elevated overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[780px] text-sm">
+            <thead>
+              <tr style={{ backgroundColor: 'var(--color-surface-low)' }}>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  เวลา
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  Action
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  ผู้ใช้
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  Entity
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  IP Address
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => (
+                  <tr key={index}>
+                    <td className="p-4" colSpan={5}>
+                      <Skeleton height="1.5rem" width="100%" />
+                    </td>
+                  </tr>
+                ))
+              ) : logs.length > 0 ? (
+                logs.map((log) => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td className="p-4" style={{ color: 'var(--color-text-muted)' }}>
+                      {new Date(log.createdAt).toLocaleString('th-TH')}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+                        style={{
+                          backgroundColor: `${getActionColor(log.action)}20`,
+                          color: getActionColor(log.action),
+                        }}
+                      >
+                        {log.action}
                       </span>
-                    ) : null}
-                  </td>
+                    </td>
+                    <td className="p-4" style={{ color: 'var(--color-text)' }}>
+                      {log.user?.name ?? 'System'}
+                    </td>
+                    <td className="p-4" style={{ color: 'var(--color-text-muted)' }}>
+                      {log.entity ?? '-'}
+                      {log.entityId ? (
+                        <span className="text-xs ml-1" style={{ color: 'var(--color-text-faint)' }}>
+                          ({log.entityId})
+                        </span>
+                      ) : null}
+                    </td>
+                    <td
+                      className="p-4 font-mono text-xs"
+                      style={{ color: 'var(--color-text-faint)' }}
+                    >
+                      {log.ipAddress ?? '-'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
                   <td
-                    className="p-4 font-mono text-xs"
+                    colSpan={5}
+                    className="p-8 text-center"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
-                    {log.ipAddress ?? '-'}
+                    ยังไม่มี audit log
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="p-8 text-center"
-                  style={{ color: 'var(--color-text-faint)' }}
-                >
-                  ยังไม่มี audit log
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

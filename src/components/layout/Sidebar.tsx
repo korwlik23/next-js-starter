@@ -50,7 +50,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={clsx(
-          'h-screen flex flex-col py-4 transition-transform duration-300 ease-in-out',
+          'h-screen flex flex-col py-4 shadow-[12px_0_40px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-in-out',
           'fixed inset-y-0 left-0 z-[var(--z-drawer)] lg:sticky lg:top-0 lg:translate-x-0 lg:z-10',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
@@ -61,13 +61,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         }}
       >
         <div className="flex justify-between items-center px-4 sm:px-5 mb-6">
-          <div>
-            <h1 className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>
-              Editorial
-            </h1>
-            <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
-              CMS Admin
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-sm">
+              <span className="material-symbols-outlined text-[1.25rem]">article</span>
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-black" style={{ color: 'var(--color-text)' }}>
+                Editorial
+              </h1>
+              <p
+                className="truncate text-xs font-medium"
+                style={{ color: 'var(--color-text-subtle)' }}
+              >
+                CMS Admin
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -89,22 +97,27 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 href={item.href}
                 onClick={() => onClose()}
                 className={clsx(
-                  'flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
+                  'group relative flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
                   is_active ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
                 )}
                 style={
                   is_active
                     ? {
                         backgroundColor: 'var(--color-surface)',
-                        color: 'var(--color-primary)',
-                        boxShadow: 'inset 3px 0 0 var(--color-primary)',
+                        color: 'var(--color-text)',
+                        boxShadow: 'inset 3px 0 0 var(--color-success)',
                       }
                     : {
                         color: 'var(--color-text-subtle)',
                       }
                 }
               >
-                <span className="material-symbols-outlined text-[1.1rem]">{item.icon}</span>
+                <span
+                  className="material-symbols-outlined text-[1.1rem]"
+                  style={{ color: is_active ? 'var(--color-success)' : 'inherit' }}
+                >
+                  {item.icon}
+                </span>
                 <span>{item.label}</span>
               </Link>
             )

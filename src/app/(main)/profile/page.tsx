@@ -64,10 +64,10 @@ export default function ProfilePage() {
   return (
     <div>
       {/* Cover + Avatar Section */}
-      <div className="relative mb-8">
+      <div className="relative mb-6">
         {/* Cover image area */}
         <div
-          className="w-full h-48 rounded-xl"
+          className="w-full h-36 sm:h-48 rounded-[var(--radius-md)]"
           style={{ backgroundColor: 'var(--color-surface-high)' }}
         >
           <div className="w-full h-full flex items-center justify-center">
@@ -82,7 +82,7 @@ export default function ProfilePage() {
 
         {/* Avatar overlay — ใช้ตัวอักษรย่อจากชื่อจริง */}
         <div
-          className="absolute bottom-0 left-8 translate-y-1/2 w-24 h-24 rounded-xl border-4 flex items-center justify-center text-2xl font-bold"
+          className="absolute bottom-0 left-4 sm:left-8 translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-[var(--radius-md)] border-4 flex items-center justify-center text-xl sm:text-2xl font-bold"
           style={{
             backgroundColor: 'var(--color-surface-high)',
             borderColor: 'var(--color-bg)',
@@ -101,9 +101,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Name + Role — ข้อมูลจริงจาก auth store */}
-      <div className="ml-36 mb-10">
+      <div className="mt-14 sm:mt-0 sm:ml-36 mb-6 sm:mb-8">
         <h1
-          className="text-3xl font-extrabold tracking-tighter uppercase"
+          className="text-2xl sm:text-3xl font-extrabold uppercase"
           style={{ color: 'var(--color-primary)' }}
         >
           {user.name}
@@ -114,9 +114,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
         {/* Left Column — Information */}
-        <div className="space-y-8">
+        <div className="space-y-5 sm:space-y-6">
           {/* Information */}
           <section>
             <h3 className="label-xs mb-4" style={{ color: 'var(--color-text-subtle)' }}>
@@ -130,7 +130,7 @@ export default function ProfilePage() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="flex justify-between py-2"
+                  className="flex flex-col gap-1 sm:flex-row sm:justify-between py-2"
                   style={{ borderBottom: '1px solid var(--color-border)' }}
                 >
                   <span className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>
@@ -175,8 +175,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Right Column — Security */}
-        <div className="lg:col-span-2 space-y-8">
-          <section className="editorial-card-elevated p-6">
+        <div className="lg:col-span-2 space-y-5 sm:space-y-6">
+          <section className="editorial-card-elevated p-4 sm:p-5">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>

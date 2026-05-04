@@ -99,11 +99,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-700">
       {/* 1. PAGE HEADER — High Contrast & Clear Description */}
-      <header className="mb-10 pt-4">
+      <header className="mb-6 pt-2">
         <h1
-          className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"
+          className="text-2xl sm:text-3xl font-extrabold mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
           General Settings
@@ -113,12 +113,12 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         {/* LEFT COLUMN: Main Form Area (70%) */}
-        <div className="lg:col-span-8 space-y-10">
+        <div className="lg:col-span-8 space-y-5 sm:space-y-6">
           {/* PROFILE SECTION — The most used part */}
           <section className="editorial-card-elevated overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
+            <div className="p-4 sm:p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
               <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
                 Profile Information
               </h2>
@@ -126,19 +126,19 @@ export default function SettingsPage() {
                 This is how other members of your team will see you.
               </p>
             </div>
-            <div className="p-8 space-y-8">
-              <div className="grid grid-cols-1 gap-8 max-w-md">
+            <div className="p-4 sm:p-5 space-y-5">
+              <div className="grid grid-cols-1 gap-5 max-w-md">
                 <div className="group">
                   <label
                     htmlFor="settings-name"
-                    className="text-[10px] font-black uppercase tracking-widest block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
+                    className="text-[10px] font-black uppercase block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
                     Display Name
                   </label>
                   <input
                     id="settings-name"
-                    className="editorial-input w-full py-3 text-base"
+                    className="editorial-input w-full text-base"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
@@ -154,14 +154,14 @@ export default function SettingsPage() {
                 <div className="group">
                   <label
                     htmlFor="settings-email"
-                    className="text-[10px] font-black uppercase tracking-widest block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
+                    className="text-[10px] font-black uppercase block mb-2 transition-colors group-focus-within:text-[var(--color-primary)]"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
                     Email Address
                   </label>
                   <input
                     id="settings-email"
-                    className="editorial-input w-full py-3 text-base"
+                    className="editorial-input w-full text-base"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
@@ -170,7 +170,7 @@ export default function SettingsPage() {
               </div>
             </div>
             {/* Action Bar for Profile */}
-            <div className="px-8 py-6 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex items-center justify-end gap-4">
+            <div className="px-4 py-4 sm:px-5 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 className="text-xs font-bold px-4 py-2 hover:underline transition-all"
                 style={{ color: 'var(--color-text-muted)' }}
@@ -184,7 +184,7 @@ export default function SettingsPage() {
               <button
                 onClick={HandleSaveProfile}
                 disabled={is_saving_profile}
-                className="btn-primary px-6 py-2.5 rounded-md text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/5 disabled:opacity-50"
+                className="btn-primary text-[10px] font-black uppercase shadow-sm disabled:opacity-50"
               >
                 {is_saving_profile ? 'Saving...' : 'Save Changes'}
               </button>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
 
           {/* SECURITY SECTION — Password management */}
           <section className="editorial-card-elevated overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
+            <div className="p-4 sm:p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30">
               <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
                 Security & Authentication
               </h2>
@@ -201,12 +201,12 @@ export default function SettingsPage() {
                 Keep your account secure by using a strong, unique password.
               </p>
             </div>
-            <div className="p-8 space-y-10">
-              <div className="max-w-md space-y-8">
+            <div className="p-4 sm:p-5 space-y-6">
+              <div className="max-w-md space-y-5">
                 <div className="group">
                   <label
                     htmlFor="current-pw"
-                    className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                    className="text-[10px] font-black uppercase block mb-2"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
                     Current Password
@@ -214,18 +214,18 @@ export default function SettingsPage() {
                   <input
                     id="current-pw"
                     type="password"
-                    className="editorial-input w-full py-3"
+                    className="editorial-input w-full"
                     value={current_password}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 pt-4 border-t border-[var(--color-border)] border-dashed">
+                <div className="grid grid-cols-1 gap-5 pt-4 border-t border-[var(--color-border)] border-dashed">
                   <div className="group">
                     <label
                       htmlFor="new-pw"
-                      className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                      className="text-[10px] font-black uppercase block mb-2"
                       style={{ color: 'var(--color-text-faint)' }}
                     >
                       New Password
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                     <input
                       id="new-pw"
                       type="password"
-                      className="editorial-input w-full py-3"
+                      className="editorial-input w-full"
                       value={new_password}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Min 8 characters"
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                   <div className="group">
                     <label
                       htmlFor="confirm-pw"
-                      className="text-[10px] font-black uppercase tracking-widest block mb-2"
+                      className="text-[10px] font-black uppercase block mb-2"
                       style={{ color: 'var(--color-text-faint)' }}
                     >
                       Confirm New Password
@@ -254,7 +254,7 @@ export default function SettingsPage() {
                     <input
                       id="confirm-pw"
                       type="password"
-                      className="editorial-input w-full py-3"
+                      className="editorial-input w-full"
                       value={confirm_password}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
@@ -263,11 +263,11 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <div className="px-8 py-6 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex items-center justify-end">
+            <div className="px-4 py-4 sm:px-5 bg-[var(--color-surface-low)] border-t border-[var(--color-border)] flex items-center justify-end">
               <button
                 onClick={HandleChangePassword}
                 disabled={is_saving_password || !current_password || !new_password}
-                className="btn-secondary px-6 py-2.5 rounded-md text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+                className="btn-secondary text-[10px] font-black uppercase disabled:opacity-40"
               >
                 {is_saving_password ? 'Updating...' : 'Update Password'}
               </button>
@@ -275,22 +275,22 @@ export default function SettingsPage() {
           </section>
 
           {/* DANGER ZONE (Optional but professional) */}
-          <section className="p-8 border border-[var(--color-error)]/20 rounded-[var(--radius-lg)] bg-[var(--color-error)]/5">
+          <section className="p-4 sm:p-5 border border-[var(--color-error)]/20 rounded-[var(--radius-md)] bg-[var(--color-error)]/5">
             <h2 className="text-sm font-bold mb-1 text-[var(--color-error)]">Danger Zone</h2>
             <p className="text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
               Permanently delete your account and all associated data. This action cannot be undone.
             </p>
-            <button className="text-[10px] font-black uppercase tracking-widest px-4 py-2 border border-[var(--color-error)] text-[var(--color-error)] rounded-sm hover:bg-[var(--color-error)] hover:text-white transition-all">
+            <button className="text-[10px] font-black uppercase px-4 py-2 border border-[var(--color-error)] text-[var(--color-error)] rounded-[var(--radius-md)] hover:bg-[var(--color-error)] hover:text-white transition-all">
               Delete Account
             </button>
           </section>
         </div>
 
         {/* RIGHT COLUMN: Account Context (30%) */}
-        <div className="lg:col-span-4 space-y-8">
-          <section className="editorial-card-elevated p-8 shadow-sm">
+        <div className="lg:col-span-4 space-y-5 sm:space-y-6">
+          <section className="editorial-card-elevated p-4 sm:p-5 shadow-sm">
             <h3
-              className="text-[10px] font-black uppercase tracking-widest mb-6"
+              className="text-[10px] font-black uppercase mb-5"
               style={{ color: 'var(--color-text-faint)' }}
             >
               Account Details
@@ -327,9 +327,9 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="p-8 bg-[var(--color-surface-dim)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+          <section className="p-4 sm:p-5 bg-[var(--color-surface-dim)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
             <h3
-              className="text-[10px] font-black uppercase tracking-widest mb-4"
+              className="text-[10px] font-black uppercase mb-4"
               style={{ color: 'var(--color-text-faint)' }}
             >
               Quick Links
@@ -343,7 +343,7 @@ export default function SettingsPage() {
                 <span className="material-symbols-outlined text-base">payments</span> Billing Portal
               </Link>
               <Link
-                href="/team"
+                href="/settings/team"
                 className="text-sm font-bold flex items-center gap-2 hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--color-text-muted)' }}
               >

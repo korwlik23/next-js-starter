@@ -41,31 +41,28 @@ export default function ForgotPasswordPage() {
   return (
     <div className="w-full max-w-[420px] flex flex-col items-center">
       {/* Brand */}
-      <div className="mb-16 text-center">
+      <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center mb-4">
           <span
-            className="material-symbols-outlined text-4xl"
+            className="material-symbols-outlined text-3xl"
             style={{ color: 'var(--color-primary)' }}
           >
             lock_reset
           </span>
         </div>
         <h1
-          className="font-extrabold text-2xl tracking-tighter uppercase mb-1"
+          className="font-extrabold text-2xl uppercase mb-1"
           style={{ color: 'var(--color-primary)' }}
         >
           Forgot Password
         </h1>
-        <p
-          className="text-[10px] tracking-[0.15em] uppercase"
-          style={{ color: 'var(--color-text-subtle)' }}
-        >
+        <p className="text-[10px] uppercase" style={{ color: 'var(--color-text-subtle)' }}>
           Account Recovery
         </p>
       </div>
 
       {/* Card */}
-      <div className="w-full p-8 sm:p-12 editorial-card-elevated">
+      <div className="w-full p-4 sm:p-6 editorial-card-elevated">
         {is_sent ? (
           /* สถานะส่งสำเร็จ */
           <div className="text-center py-4">
@@ -92,7 +89,7 @@ export default function ForgotPasswordPage() {
         ) : (
           /* ฟอร์มกรอก email */
           <>
-            <header className="mb-10">
+            <header className="mb-6">
               <h2
                 className="font-bold text-xl tracking-tight mb-2"
                 style={{ color: 'var(--color-primary)' }}
@@ -104,7 +101,7 @@ export default function ForgotPasswordPage() {
               </p>
             </header>
 
-            <form onSubmit={handleSubmit(HandleSubmit)} className="space-y-8" noValidate>
+            <form onSubmit={handleSubmit(HandleSubmit)} className="space-y-5" noValidate>
               <div>
                 <label
                   className="label-xs block mb-1"
@@ -128,16 +125,11 @@ export default function ForgotPasswordPage() {
                 )}
               </div>
 
-              <div className="pt-4">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 text-xs tracking-widest uppercase font-bold transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-50"
-                  style={{
-                    backgroundColor: 'var(--color-primary)',
-                    color: 'var(--color-on-primary)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}
+                  className="btn-primary w-full text-xs group disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>

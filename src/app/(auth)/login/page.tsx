@@ -58,9 +58,9 @@ export default function LoginPage() {
   return (
     <div className="w-full">
       {/* 1. FORM HEADER */}
-      <header className="mb-10">
+      <header className="mb-6">
         <h1
-          className="text-3xl font-black tracking-tighter mb-2"
+          className="text-2xl sm:text-3xl font-black mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
           Welcome back
@@ -84,7 +84,7 @@ export default function LoginPage() {
         {/* Email field */}
         <div className="space-y-2">
           <label
-            className="text-[10px] font-black uppercase tracking-widest"
+            className="text-[10px] font-black uppercase"
             style={{ color: 'var(--color-text-subtle)' }}
             htmlFor="email"
           >
@@ -95,7 +95,7 @@ export default function LoginPage() {
             type="email"
             autoComplete="email"
             placeholder="name@company.com"
-            className="editorial-input w-full py-3 px-4 shadow-sm"
+            className="editorial-input w-full shadow-sm"
             {...register('email')}
           />
           {errors.email && (
@@ -109,7 +109,7 @@ export default function LoginPage() {
         <div className="space-y-2">
           <div className="flex justify-between items-end">
             <label
-              className="text-[10px] font-black uppercase tracking-widest"
+              className="text-[10px] font-black uppercase"
               style={{ color: 'var(--color-text-subtle)' }}
               htmlFor="password"
             >
@@ -117,7 +117,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-[10px] font-black uppercase tracking-widest hover:text-[var(--color-primary)] transition-colors"
+              className="text-[10px] font-black uppercase hover:text-[var(--color-primary)] transition-colors"
               style={{ color: 'var(--color-text-faint)' }}
             >
               Forgot?
@@ -128,7 +128,7 @@ export default function LoginPage() {
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
-            className="editorial-input w-full py-3 px-4 shadow-sm"
+            className="editorial-input w-full shadow-sm"
             {...register('password')}
           />
           {errors.password && (
@@ -140,7 +140,7 @@ export default function LoginPage() {
 
         {/* Server error message */}
         {server_error && (
-          <div className="p-4 rounded-xl bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+          <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-[10px] font-black uppercase flex items-center gap-3">
             <span className="material-symbols-outlined text-sm">error</span>
             {server_error}
           </div>
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--color-primary)]/10 flex items-center justify-center gap-2 group disabled:opacity-50"
+            className="btn-primary w-full text-[10px] font-black uppercase shadow-sm flex items-center justify-center gap-2 group disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
@@ -178,7 +178,7 @@ export default function LoginPage() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-[var(--color-border)] opacity-50" />
           </div>
-          <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
+          <div className="relative flex justify-center text-[10px] font-black uppercase">
             <span
               className="bg-[var(--color-surface)] px-4"
               style={{ color: 'var(--color-text-faint)' }}
@@ -191,7 +191,7 @@ export default function LoginPage() {
         <div className="grid grid-cols-2 gap-4">
           <a
             href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/google/login`}
-            className="flex items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
+            className="flex min-h-11 items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -199,11 +199,11 @@ export default function LoginPage() {
               alt="Google"
               className="w-4 h-4 group-hover:scale-110 transition-transform"
             />
-            <span className="text-[10px] font-black uppercase tracking-widest">Google</span>
+            <span className="text-[10px] font-black uppercase">Google</span>
           </a>
           <a
             href={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/github/login`}
-            className="flex items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
+            className="flex min-h-11 items-center justify-center gap-3 py-3 border border-[var(--color-border)] rounded-[var(--radius-md)] hover:bg-[var(--color-surface-low)] transition-all shadow-sm group"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -211,7 +211,7 @@ export default function LoginPage() {
               alt="GitHub"
               className="w-4 h-4 group-hover:scale-110 transition-transform"
             />
-            <span className="text-[10px] font-black uppercase tracking-widest">GitHub</span>
+            <span className="text-[10px] font-black uppercase">GitHub</span>
           </a>
         </div>
       </div>

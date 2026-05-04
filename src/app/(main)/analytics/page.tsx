@@ -75,11 +75,11 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-700">
       {/* 1. PAGE HEADER — Focal Point */}
-      <header className="mb-10 pt-4">
+      <header className="mb-6 pt-2">
         <h1
-          className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"
+          className="text-2xl sm:text-3xl font-extrabold mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
           Platform Analytics
@@ -92,22 +92,22 @@ export default function AnalyticsPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 rounded-xl mb-8 bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-sm font-medium flex items-center gap-3">
+        <div className="p-4 rounded-[var(--radius-md)] mb-5 bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-sm font-medium flex items-center gap-3">
           <span className="material-symbols-outlined text-base">error</span>
           {error.message}
         </div>
       )}
 
       {/* 2. OVERVIEW STATS — Primary Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {overview_stats.map((stat) => (
           <div
             key={stat.label}
-            className="editorial-card-elevated p-8 flex flex-col justify-between min-h-[140px] shadow-sm hover:shadow-md transition-shadow"
+            className="editorial-card-elevated p-4 sm:p-5 flex flex-col justify-between min-h-[124px] shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between">
               <p
-                className="text-[10px] font-black uppercase tracking-widest"
+                className="text-[10px] font-black uppercase"
                 style={{ color: 'var(--color-text-subtle)' }}
               >
                 {stat.label}
@@ -122,10 +122,7 @@ export default function AnalyticsPage() {
               {isLoading ? (
                 <Skeleton width="60%" height="2.5rem" />
               ) : (
-                <p
-                  className="text-4xl font-black tracking-tighter"
-                  style={{ color: 'var(--color-primary)' }}
-                >
+                <p className="text-3xl font-black" style={{ color: 'var(--color-primary)' }}>
                   {stat.value}
                 </p>
               )}
@@ -142,12 +139,12 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 3. VISUALIZATION GRID — Secondary Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         {/* Daily Activity — Custom Bar Chart */}
-        <div className="lg:col-span-7 editorial-card-elevated p-8 shadow-sm h-full">
-          <div className="flex items-center justify-between mb-10">
+        <div className="lg:col-span-7 editorial-card-elevated p-4 sm:p-5 shadow-sm h-full">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
             <h2
-              className="text-sm font-black uppercase tracking-widest"
+              className="text-sm font-black uppercase"
               style={{ color: 'var(--color-text-subtle)' }}
             >
               Daily Activity (Last 7 Days)
@@ -160,7 +157,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="h-[240px] flex items-end justify-between gap-4 pt-4">
+          <div className="h-[220px] flex items-end justify-between gap-2 sm:gap-4 pt-4">
             {isLoading ? (
               Array.from({ length: 7 }).map((_, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-4">
@@ -189,7 +186,7 @@ export default function AnalyticsPage() {
                     />
                   </div>
                   <span
-                    className="text-[10px] font-black uppercase tracking-tighter"
+                    className="text-[10px] font-black uppercase"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
                     {day.day.slice(0, 3)}
@@ -206,16 +203,16 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Module Distribution — Progress Bars */}
-        <div className="lg:col-span-5 editorial-card-elevated p-8 shadow-sm h-full">
+        <div className="lg:col-span-5 editorial-card-elevated p-4 sm:p-5 shadow-sm h-full">
           <h2
-            className="text-sm font-black uppercase tracking-widest mb-10"
+            className="text-sm font-black uppercase mb-6"
             style={{ color: 'var(--color-text-subtle)' }}
           >
             Module Distribution
           </h2>
 
           {isLoading ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i}>
                   <div className="flex justify-between mb-3">
@@ -227,12 +224,12 @@ export default function AnalyticsPage() {
               ))}
             </div>
           ) : data?.module_usage && data.module_usage.length > 0 ? (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {data.module_usage.map((item) => (
                 <div key={item.module} className="group">
                   <div className="flex items-center justify-between mb-3">
                     <span
-                      className="text-[11px] font-black uppercase tracking-widest"
+                      className="text-[11px] font-black uppercase"
                       style={{ color: 'var(--color-primary)' }}
                     >
                       {item.module}

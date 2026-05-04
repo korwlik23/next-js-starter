@@ -111,9 +111,9 @@ export default function TeamPage() {
   }
 
   return (
-    <div>
+    <div className="pb-12">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>
             Team Management
@@ -122,7 +122,10 @@ export default function TeamPage() {
             จัดการสมาชิกในทีมของคุณ เชิญสมาชิกใหม่ และกำหนดสิทธิ์การใช้งาน
           </p>
         </div>
-        <Button className="flex items-center gap-2" onClick={() => setIsInviteModalOpen(true)}>
+        <Button
+          className="flex w-full items-center gap-2 sm:w-auto"
+          onClick={() => setIsInviteModalOpen(true)}
+        >
           <span className="material-symbols-outlined text-base">person_add</span>
           เชิญสมาชิก (Invite)
         </Button>
@@ -130,7 +133,7 @@ export default function TeamPage() {
 
       {!currentUser?.tenantId && (
         <div
-          className="mb-8 p-4 border"
+          className="mb-5 p-4 rounded-[var(--radius-md)] border"
           style={{
             color: 'var(--color-warning, #e67e22)',
             borderColor: 'var(--color-warning, #e67e22)',
@@ -142,7 +145,7 @@ export default function TeamPage() {
 
       {error && (
         <div
-          className="mb-8 p-4 border"
+          className="mb-5 p-4 rounded-[var(--radius-md)] border"
           style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
         >
           {error}
@@ -150,163 +153,168 @@ export default function TeamPage() {
       )}
 
       {/* Team Members Table */}
-      <div
-        className="rounded-lg overflow-hidden mb-8"
-        style={{ border: '1px solid var(--color-border)' }}
-      >
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ backgroundColor: 'var(--color-surface-mid)' }}>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                ชื่อ / อีเมล
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                บทบาท (Role)
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                สถานะ
-              </th>
-              <th
-                className="text-left p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                เข้าร่วมเมื่อ
-              </th>
-              <th
-                className="text-right p-4 font-semibold"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Members List */}
-            {data?.members.map((member) => (
-              <tr key={member.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{
-                        backgroundColor: 'var(--color-primary)',
-                        color: 'var(--color-on-primary)',
-                      }}
-                    >
-                      {member.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium" style={{ color: 'var(--color-text)' }}>
-                        {member.name} {member.id === currentUser?.id && '(คุณ)'}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        {member.email}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <Badge
-                    variant={
-                      member.role === 'owner' || member.role === 'admin' ? 'default' : 'outline'
-                    }
-                  >
-                    {member.role}
-                  </Badge>
-                </td>
-                <td className="p-4">
-                  <Badge variant={member.isActive ? 'success' : 'error'}>
-                    {member.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </td>
-                <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  {formatDistanceToNow(new Date(member.createdAt), { addSuffix: true, locale: th })}
-                </td>
-                <td className="p-4 text-right">
-                  <button
-                    disabled={member.id === currentUser?.id}
-                    className="text-xs font-medium px-3 py-1 rounded transition-opacity hover:opacity-70 disabled:opacity-30"
-                    style={{ color: 'var(--color-error, #e74c3c)' }}
-                  >
-                    ลบออก
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {/* Invitations List */}
-            {data?.invitations.map((invite) => (
-              <tr key={invite.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-8 h-8 rounded-full border border-dashed flex items-center justify-center text-xs font-bold"
-                      style={{
-                        borderColor: 'var(--color-border)',
-                        color: 'var(--color-text-faint)',
-                      }}
-                    >
-                      ?
-                    </div>
-                    <div>
-                      <p
-                        className="font-medium italic"
-                        style={{ color: 'var(--color-text-muted)' }}
-                      >
-                        รอการตอบรับ...
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        {invite.email}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <Badge variant="outline">Member</Badge>
-                </td>
-                <td className="p-4">
-                  <Badge variant="warning">Pending</Badge>
-                </td>
-                <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  ส่งเมื่อ{' '}
-                  {formatDistanceToNow(new Date(invite.createdAt), { addSuffix: true, locale: th })}
-                </td>
-                <td className="p-4 text-right">
-                  <button
-                    className="text-xs font-medium px-3 py-1 rounded transition-opacity hover:opacity-70"
-                    style={{
-                      color: 'var(--color-text-muted)',
-                      backgroundColor: 'var(--color-surface-mid)',
-                    }}
-                  >
-                    ยกเลิกคำเชิญ
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {data?.members.length === 0 && data?.invitations.length === 0 && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="p-8 text-center text-sm"
-                  style={{ color: 'var(--color-text-faint)' }}
+      <div className="editorial-card-elevated overflow-hidden mb-6">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead>
+              <tr style={{ backgroundColor: 'var(--color-surface-low)' }}>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
-                  ไม่พบสมาชิกทีม
-                </td>
+                  ชื่อ / อีเมล
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  บทบาท (Role)
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  สถานะ
+                </th>
+                <th
+                  className="text-left p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  เข้าร่วมเมื่อ
+                </th>
+                <th
+                  className="text-right p-4 font-semibold"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  Actions
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {/* Members List */}
+              {data?.members.map((member) => (
+                <tr key={member.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{
+                          backgroundColor: 'var(--color-primary)',
+                          color: 'var(--color-on-primary)',
+                        }}
+                      >
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: 'var(--color-text)' }}>
+                          {member.name} {member.id === currentUser?.id && '(คุณ)'}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                          {member.email}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <Badge
+                      variant={
+                        member.role === 'owner' || member.role === 'admin' ? 'default' : 'outline'
+                      }
+                    >
+                      {member.role}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant={member.isActive ? 'success' : 'error'}>
+                      {member.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </td>
+                  <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    {formatDistanceToNow(new Date(member.createdAt), {
+                      addSuffix: true,
+                      locale: th,
+                    })}
+                  </td>
+                  <td className="p-4 text-right">
+                    <button
+                      disabled={member.id === currentUser?.id}
+                      className="text-xs font-medium px-3 py-1 rounded transition-opacity hover:opacity-70 disabled:opacity-30"
+                      style={{ color: 'var(--color-error, #e74c3c)' }}
+                    >
+                      ลบออก
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {/* Invitations List */}
+              {data?.invitations.map((invite) => (
+                <tr key={invite.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-full border border-dashed flex items-center justify-center text-xs font-bold"
+                        style={{
+                          borderColor: 'var(--color-border)',
+                          color: 'var(--color-text-faint)',
+                        }}
+                      >
+                        ?
+                      </div>
+                      <div>
+                        <p
+                          className="font-medium italic"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
+                          รอการตอบรับ...
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                          {invite.email}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant="outline">Member</Badge>
+                  </td>
+                  <td className="p-4">
+                    <Badge variant="warning">Pending</Badge>
+                  </td>
+                  <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    ส่งเมื่อ{' '}
+                    {formatDistanceToNow(new Date(invite.createdAt), {
+                      addSuffix: true,
+                      locale: th,
+                    })}
+                  </td>
+                  <td className="p-4 text-right">
+                    <button
+                      className="text-xs font-medium px-3 py-1 rounded transition-opacity hover:opacity-70"
+                      style={{
+                        color: 'var(--color-text-muted)',
+                        backgroundColor: 'var(--color-surface-mid)',
+                      }}
+                    >
+                      ยกเลิกคำเชิญ
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {data?.members.length === 0 && data?.invitations.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="p-8 text-center text-sm"
+                    style={{ color: 'var(--color-text-faint)' }}
+                  >
+                    ไม่พบสมาชิกทีม
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Invite Modal */}
@@ -330,7 +338,7 @@ export default function TeamPage() {
           >
             คำเชิญจะมีอายุ 7 วัน ผู้รับจะได้รับอีเมลพร้อมลิงก์เพื่อเข้าสู่ระบบและร่วมทีมโดยอัตโนมัติ
           </div>
-          <div className="flex justify-end gap-3 mt-8">
+          <div className="flex flex-col-reverse gap-3 mt-6 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => setIsInviteModalOpen(false)} type="button">
               ยกเลิก
             </Button>

@@ -26,13 +26,11 @@ export const metadata: Metadata = {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[var(--color-surface)]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[var(--color-bg)]">
       {/* 1. VISUAL SIDEBAR — Only visible on LG+ */}
-      <aside className="hidden lg:flex lg:w-[45%] xl:w-[40%] bg-[var(--color-surface-low)] border-r border-[var(--color-border)] flex-col justify-between p-16 relative overflow-hidden">
+      <aside className="hidden lg:flex lg:w-[38%] xl:w-[34%] bg-[var(--color-surface-low)] border-r border-[var(--color-border)] flex-col justify-between p-10 relative overflow-hidden">
         {/* Abstract Background Decoration */}
-        <div className="absolute top-0 right-0 w-full h-full pointer-events-none opacity-[0.03]">
-          <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] rounded-full bg-[var(--color-primary)] blur-[120px]" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[var(--color-primary)] blur-[100px]" />
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
           <div
             className="h-full w-full"
             style={{
@@ -45,11 +43,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Brand Header */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-on-primary)] shadow-lg shadow-[var(--color-primary)]/20">
+          <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-on-primary)] shadow-sm">
             <span className="material-symbols-outlined">auto_awesome</span>
           </div>
           <span
-            className="text-xl font-black tracking-tighter uppercase"
+            className="text-base font-black uppercase"
             style={{ color: 'var(--color-primary)' }}
           >
             Digital Gallery
@@ -59,7 +57,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Focal Point Message */}
         <div className="relative z-10 max-w-md">
           <h2
-            className="text-5xl font-black tracking-tighter mb-6 leading-[0.95]"
+            className="text-3xl font-black mb-4 leading-tight"
             style={{ color: 'var(--color-primary)' }}
           >
             Empower your editorial workflow.
@@ -71,7 +69,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             The production-grade platform for modern content creators and digital agencies.
           </p>
 
-          <div className="mt-12 space-y-6">
+          <div className="mt-8 space-y-4">
             {[
               { icon: 'bolt', text: 'Real-time analytics and insights' },
               { icon: 'shield_lock', text: 'Enterprise-grade security and audit logs' },
@@ -94,7 +92,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Footer info */}
         <div className="relative z-10 flex items-center justify-between">
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-30">
+          <p className="text-[10px] font-black uppercase opacity-40">
             © 2026 Digital Gallery Suite
           </p>
           <div className="flex gap-4">
@@ -106,18 +104,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* 2. FORM AREA — Main Content */}
-      <main className="flex-1 flex flex-col justify-center items-center p-8 sm:p-12 md:p-20 relative bg-[var(--color-surface)]">
+      <main className="flex-1 flex flex-col justify-center items-center px-4 py-8 sm:px-6 sm:py-10 lg:px-10 relative bg-[var(--color-surface)]">
         {/* Mobile Header (Hidden on LG) */}
-        <div className="lg:hidden absolute top-8 left-8 flex items-center gap-2">
+        <div className="lg:hidden mb-8 flex w-full max-w-[420px] items-center gap-2">
           <span className="material-symbols-outlined text-[var(--color-primary)] text-2xl">
             auto_awesome
           </span>
-          <span className="text-sm font-black tracking-tighter uppercase">Digital Gallery</span>
+          <span className="text-sm font-black uppercase">Digital Gallery</span>
         </div>
 
-        <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-right-4 duration-700">
-          {children}
-        </div>
+        <div className="w-full max-w-[420px] animate-in fade-in duration-500">{children}</div>
       </main>
     </div>
   )

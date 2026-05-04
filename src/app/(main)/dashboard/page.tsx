@@ -1,23 +1,19 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/store/authStore'
-import { api } from '@/services/apiClient'
-import { Skeleton } from '@/components/ui'
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts'
-import Link from 'next/link'
-
-// ────────────────────────────────────────
-// Dashboard Page — ดึงข้อมูลจาก API จริง
-// ────────────────────────────────────────
+import { Skeleton } from '@/components/ui'
+import { api } from '@/services/apiClient'
+import { useAuthStore } from '@/store/authStore'
 
 interface DashboardStats {
   total_actions_7d: number
@@ -33,11 +29,14 @@ interface HealthData {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Create User', icon: 'person_add', href: '/user/create' },
-  { label: 'Full Report', icon: 'analytics', href: '/analytics' },
-  { label: 'Settings', icon: 'settings', href: '/settings' },
-  { label: 'Audit Logs', icon: 'history', href: '/settings/audit' },
+  { label: 'Create user', icon: 'person_add', href: '/user/create' },
+  { label: 'Analytics', icon: 'analytics', href: '/analytics' },
+  { label: 'Team', icon: 'groups', href: '/settings/team' },
+  { label: 'Audit logs', icon: 'history', href: '/settings/audit' },
 ]
+
+const formatMetric = (value: number | undefined) =>
+  typeof value === 'number' ? value.toLocaleString() : 'Unavailable'
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
@@ -50,8 +49,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsMounted(true)
+
     async function FetchDashboardData() {
       setIsLoading(true)
+
       try {
         const [analyticsResult, healthResult] = await Promise.all([
           api.get<{
@@ -69,7 +70,7 @@ export default function DashboardPage() {
           setDailyActivity([])
         }
 
-        if (healthResult.data) setHealth(healthResult.data)
+        setHealth(healthResult.data ?? null)
         setLoadError(analyticsResult.error ?? healthResult.error ?? '')
       } catch {
         setStats(null)
@@ -80,6 +81,7 @@ export default function DashboardPage() {
         setIsLoading(false)
       }
     }
+
     FetchDashboardData()
   }, [])
 
@@ -92,319 +94,248 @@ export default function DashboardPage() {
       : null
   const platform_status =
     health_score === null ? 'Unknown' : health_score === 100 ? 'Operational' : 'Needs Attention'
+  const user_name = user?.name?.split(' ')[0] ?? 'Guest'
 
-  const STATS = [
+  const stat_cards = [
     {
-      label: 'Actions (7 วัน)',
-      value: stats?.total_actions_7d?.toLocaleString() ?? 'Unavailable',
+      label: 'Actions this week',
+      value: formatMetric(stats?.total_actions_7d),
       icon: 'trending_up',
+      helper: 'Recorded in audit activity',
+      color: 'var(--color-info)',
     },
     {
-      label: 'ผู้ใช้ทั้งหมด',
-      value: stats?.total_users?.toLocaleString() ?? 'Unavailable',
+      label: 'Total users',
+      value: formatMetric(stats?.total_users),
       icon: 'group',
+      helper: 'All members in this tenant',
+      color: 'var(--color-success)',
     },
     {
-      label: 'Active Users',
-      value: stats?.active_users?.toLocaleString() ?? 'Unavailable',
+      label: 'Active users',
+      value: formatMetric(stats?.active_users),
       icon: 'person',
+      helper: 'Users currently active',
+      color: 'var(--color-warning)',
     },
     {
-      label: 'System Health',
+      label: 'System health',
       value: health_score === null ? 'Unknown' : `${health_score}%`,
       icon: 'monitor_heart',
+      helper: health_score === 100 ? 'All checks passing' : 'Review health checks',
+      color: health_score === 100 ? 'var(--color-success)' : 'var(--color-warning)',
       progress: health_score ?? 0,
     },
   ]
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-full pb-12 animate-in fade-in duration-700">
-      {/* 1. HERO SECTION (Primary Focus) */}
-      <header className="relative z-10 w-full pt-2">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-[var(--color-success)] shadow-[0_0_8px_var(--color-success)]" />
-              <p
-                className="label-xs tracking-[0.2em]"
-                style={{ color: 'var(--color-text-subtle)' }}
-              >
-                Platform Status: {platform_status}
+    <div className="flex w-full max-w-full flex-col gap-5 pb-12 animate-in fade-in duration-500 sm:gap-6">
+      <header className="editorial-card-elevated overflow-hidden">
+        <div className="flex flex-col gap-6 p-5 sm:p-6 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-bold text-[var(--color-text-muted)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-success)] shadow-[0_0_12px_var(--color-success)]" />
+                Platform {platform_status}
+              </span>
+              <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-semibold text-[var(--color-text-subtle)]">
+                Tenant overview
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-black leading-tight text-[var(--color-text)] sm:text-3xl lg:text-4xl">
+                ยินดีต้อนรับ, {user_name}
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-muted)] sm:text-base">
+                ภาพรวมผู้ใช้ กิจกรรม และสถานะระบบล่าสุดของ tenant นี้
               </p>
             </div>
-            <h1
-              className="text-2xl sm:text-3xl font-extrabold"
-              style={{ color: 'var(--color-primary)' }}
-            >
-              ยินดีต้อนรับ, {user?.name?.split(' ')[0] ?? 'Guest'}
-            </h1>
-            <p
-              className="text-sm md:text-base font-medium"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              นี่คือภาพรวมของระบบและกิจกรรมล่าสุดใน Tenant ของคุณวันนี้
-            </p>
           </div>
-          <Link
-            href="/user/create"
-            className="btn-primary w-full lg:w-auto shadow-sm flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-lg">add_circle</span>
-            <span className="text-sm font-black uppercase tracking-widest">Create User</span>
-          </Link>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:w-[380px]">
+            <Link
+              href="/user/create"
+              className="btn-primary min-h-12 w-full justify-center shadow-sm"
+            >
+              <span className="material-symbols-outlined text-lg">add_circle</span>
+              Create user
+            </Link>
+            <Link href="/analytics" className="btn-secondary min-h-12 w-full justify-center">
+              <span className="material-symbols-outlined text-lg">analytics</span>
+              View report
+            </Link>
+          </div>
         </div>
       </header>
 
       {load_error && (
-        <div className="rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-4 text-sm font-medium text-[var(--color-error)]">
+        <div className="rounded-[var(--radius-md)] border border-[var(--color-error)]/25 bg-[var(--color-error-container)] p-4 text-sm font-medium text-[var(--color-error)]">
           {load_error}
         </div>
       )}
 
-      {/* 2. STAT CARDS (Primary & Secondary Metrics) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+      <section className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {is_loading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-6 editorial-card-elevated h-32" />
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="editorial-card-elevated min-h-[148px] p-5">
+                <Skeleton width="64%" height={16} />
+                <div className="mt-6">
+                  <Skeleton width="44%" height={36} />
+                </div>
+                <div className="mt-6">
+                  <Skeleton width="82%" height={10} />
+                </div>
+              </div>
             ))
-          : STATS.map((stat, idx) => {
-              // ทำให้ Active Users (index 2) เป็น Primary Highlight
-              const is_primary = idx === 2
-              return (
-                <div
-                  key={stat.label}
-                  className={`p-4 sm:p-5 editorial-card-elevated shadow-sm flex flex-col justify-between min-h-[128px] transition-all duration-300 hover:shadow-md group cursor-default`}
-                  style={{
-                    backgroundColor: is_primary ? 'var(--color-primary)' : 'var(--color-surface)',
-                    borderColor: is_primary ? 'var(--color-primary)' : 'var(--color-border)',
-                  }}
-                >
-                  <div>
-                    <div className="flex justify-between items-start mb-4">
-                      <p
-                        className="label-xs"
-                        style={{
-                          color: is_primary
-                            ? 'var(--color-on-primary)'
-                            : 'var(--color-text-subtle)',
-                        }}
-                      >
-                        {stat.label}
-                      </p>
-                      <span
-                        className={`material-symbols-outlined text-xl transition-transform group-hover:rotate-12`}
-                        style={{
-                          color: is_primary ? 'var(--color-on-primary)' : 'var(--color-text-faint)',
-                        }}
-                      >
-                        {stat.icon}
-                      </span>
-                    </div>
-                    <span
-                      className={`${stat.value === 'Unavailable' ? 'text-xl' : 'text-3xl'} font-extrabold`}
-                      style={{
-                        color: is_primary ? 'var(--color-on-primary)' : 'var(--color-primary)',
-                      }}
-                    >
+          : stat_cards.map((stat) => (
+              <article
+                key={stat.label}
+                className="editorial-card-elevated group flex min-h-[148px] flex-col justify-between overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-0.5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                      {stat.label}
+                    </p>
+                    <p className="mt-3 break-words text-3xl font-black leading-none text-[var(--color-text)]">
                       {stat.value}
-                    </span>
+                    </p>
                   </div>
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-surface-low)]"
+                    style={{ color: stat.color }}
+                  >
+                    <span className="material-symbols-outlined text-[1.35rem]">{stat.icon}</span>
+                  </div>
+                </div>
+
+                <div className="mt-5">
                   {'progress' in stat && (
-                    <div className="mt-4 w-full h-1.5 rounded-full bg-[var(--color-surface-dim)] overflow-hidden">
+                    <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-dim)]">
                       <div
-                        className="h-full bg-[var(--color-primary)] transition-all duration-1000"
-                        style={{ width: `${stat.progress}%` }}
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${stat.progress}%`, backgroundColor: stat.color }}
                       />
                     </div>
                   )}
-                  {is_primary && (
-                    <div
-                      className="text-[10px] font-bold mt-2 flex items-center gap-1"
-                      style={{ color: 'var(--color-on-primary)' }}
-                    >
-                      <span className="material-symbols-outlined text-[10px]">arrow_upward</span>
-                      Live tracking active
-                    </div>
-                  )}
+                  <p className="text-xs font-medium text-[var(--color-text-subtle)]">
+                    {stat.helper}
+                  </p>
                 </div>
-              )
-            })}
+              </article>
+            ))}
       </section>
 
-      {/* 3. MAIN CONTENT (Left: Analysis | Right: Controls) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start w-full">
-        {/* Left Column (Insight Area) */}
-        <div className="lg:col-span-8 flex flex-col gap-5 sm:gap-6 min-w-0 w-full">
-          {/* Activity Analytics Chart */}
-          <div className="editorial-card-elevated p-4 sm:p-5 shadow-sm w-full">
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6">
-              <div>
-                <h2
-                  className="text-xl font-bold tracking-tight mb-1"
-                  style={{ color: 'var(--color-primary)' }}
-                >
-                  การเข้าถึงระบบ
-                </h2>
-                <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                  จำนวนครั้งที่มีกิจกรรมในช่วง 7 วันล่าสุด
-                </p>
-              </div>
-              <div className="flex bg-[var(--color-surface-mid)] p-1 rounded-[var(--radius-sm)]">
-                <button className="px-3 py-1 text-[10px] font-bold bg-[var(--color-surface)] shadow-sm rounded-sm">
-                  7 วัน
-                </button>
-                <button className="px-3 py-1 text-[10px] font-bold text-[var(--color-text-faint)]">
-                  30 วัน
-                </button>
-              </div>
+      <div className="grid w-full grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+        <section className="editorial-card-elevated min-w-0 p-5 sm:p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                Activity trend
+              </p>
+              <h2 className="mt-1 text-xl font-black text-[var(--color-text)] sm:text-2xl">
+                การใช้งาน 7 วันล่าสุด
+              </h2>
             </div>
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-bold text-[var(--color-text-muted)]">
+              <span className="material-symbols-outlined text-sm">calendar_month</span>7 days
+            </span>
+          </div>
 
-            <div className="h-[220px] w-full flex items-center justify-center">
-              {is_loading ? (
-                <Skeleton width="100%" height="100%" />
+          <div className="h-[260px] w-full sm:h-[320px]">
+            {is_loading ? (
+              <Skeleton width="100%" height="100%" />
+            ) : (
+              is_mounted &&
+              (daily_activity.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={daily_activity}
+                    margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-success)" stopOpacity={0.24} />
+                        <stop offset="95%" stopColor="var(--color-success)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      stroke="var(--color-border)"
+                      strokeDasharray="4 6"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="day"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: 'var(--color-text-subtle)', fontSize: 12, fontWeight: 600 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: 'var(--color-text-subtle)', fontSize: 12, fontWeight: 600 }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: '0 18px 44px rgba(0,0,0,0.2)',
+                        color: 'var(--color-text)',
+                        padding: '12px',
+                      }}
+                    />
+                    <Area
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                      dataKey="count"
+                      dot={{ r: 4, fill: 'var(--color-success)', strokeWidth: 0 }}
+                      fill="url(#activityFill)"
+                      fillOpacity={1}
+                      stroke="var(--color-success)"
+                      strokeWidth={3}
+                      type="monotone"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               ) : (
-                is_mounted &&
-                (daily_activity.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={daily_activity}
-                      margin={{ top: 0, right: 0, left: -25, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="6 6"
-                        vertical={false}
-                        stroke="var(--color-border)"
-                      />
-                      <XAxis
-                        dataKey="day"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: 'var(--color-text-faint)', fontSize: 10, fontWeight: 600 }}
-                        dy={10}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: 'var(--color-text-faint)', fontSize: 10, fontWeight: 600 }}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'var(--color-surface)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
-                          padding: '12px',
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="count"
-                        stroke="var(--color-primary)"
-                        strokeWidth={3}
-                        fillOpacity={1}
-                        fill="url(#colorActive)"
-                        dot={{ r: 4, fill: 'var(--color-primary)' }}
-                        activeDot={{ r: 6, strokeWidth: 0 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex flex-col items-center gap-4 py-12">
-                    <span className="material-symbols-outlined text-4xl text-[var(--color-text-faint)]">
-                      bar_chart
-                    </span>
-                    <p className="text-sm font-bold text-[var(--color-text-subtle)]">
-                      No activity data yet
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* User Profile — Tertiary Content */}
-          <div className="editorial-card-elevated p-4 sm:p-5 shadow-sm w-full bg-[var(--color-surface-low)] border-dashed">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold shrink-0 bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-lg shadow-black/10">
-                {user?.name?.[0]?.toUpperCase() ?? 'G'}
-              </div>
-              <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
-                  <h3 className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>
-                    {user?.name ?? 'Admin User'}
-                  </h3>
-                  <span className="label-xs px-2 py-0.5 bg-[var(--color-surface-high)] rounded-sm text-[var(--color-primary)] border border-[var(--color-border-strong)]">
-                    {user?.roles?.[0] ?? 'Staff'}
+                <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-low)] p-6 text-center">
+                  <span className="material-symbols-outlined text-4xl text-[var(--color-text-faint)]">
+                    bar_chart
                   </span>
+                  <p className="text-sm font-bold text-[var(--color-text-muted)]">
+                    No activity data yet
+                  </p>
                 </div>
-                <p
-                  className="text-sm font-medium mb-6"
-                  style={{ color: 'var(--color-text-subtle)' }}
-                >
-                  {user?.email ?? '-'}
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-faint)]">
-                      Actions Last 7 Days
-                    </span>
-                    <p
-                      className="mt-1 text-2xl font-black"
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      {stats?.total_actions_7d?.toLocaleString() ?? 'Unavailable'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-faint)]">
-                      Health Checks Passing
-                    </span>
-                    <p
-                      className="mt-1 text-2xl font-black"
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      {health_score === null
-                        ? 'Unknown'
-                        : `${health_checks.filter(Boolean).length}/${health_checks.length}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
           </div>
-        </div>
+        </section>
 
-        {/* Right Column (Control Panel) */}
-        <div className="lg:col-span-4 flex flex-col gap-5 w-full">
-          <section className="editorial-card-elevated p-1 shadow-md bg-[var(--color-primary)] overflow-hidden">
-            <div className="p-5 text-[var(--color-on-primary)]">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] mb-1">Quick Actions</h3>
-              <p className="text-[10px] opacity-70">เข้าถึงเมนูที่คุณใช้บ่อยที่สุด</p>
+        <aside className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
+          <section className="editorial-card-elevated overflow-hidden">
+            <div className="border-b border-[var(--color-border)] p-5">
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                Quick actions
+              </p>
+              <h2 className="mt-1 text-lg font-black text-[var(--color-text)]">ทำงานต่อได้ทันที</h2>
             </div>
-            <div className="grid grid-cols-2 gap-[1px] bg-[var(--color-border-strong)]">
-              {QUICK_ACTIONS.map((action) => (
+            <div className="grid grid-cols-2">
+              {QUICK_ACTIONS.map((action, index) => (
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="flex min-h-28 flex-col items-center justify-center py-5 gap-3 bg-[var(--color-surface)] transition-all hover:bg-[var(--color-surface-low)] active:bg-[var(--color-surface-mid)] group"
+                  className="group flex min-h-28 flex-col justify-between border-[var(--color-border)] p-4 transition-colors hover:bg-[var(--color-surface-low)]"
+                  style={{
+                    borderRight: index % 2 === 0 ? '1px solid var(--color-border)' : undefined,
+                    borderBottom: index < 2 ? '1px solid var(--color-border)' : undefined,
+                  }}
                 >
-                  <span
-                    className="material-symbols-outlined text-2xl transition-transform group-hover:scale-125"
-                    style={{ color: 'var(--color-primary)' }}
-                  >
+                  <span className="material-symbols-outlined text-2xl text-[var(--color-text)] transition-transform group-hover:translate-x-1">
                     {action.icon}
                   </span>
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-widest"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
+                  <span className="text-xs font-black uppercase text-[var(--color-text-muted)]">
                     {action.label}
                   </span>
                 </Link>
@@ -412,30 +343,68 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <div className="p-4 sm:p-5 rounded-[var(--radius-md)] border border-[var(--color-border)] flex flex-col gap-4 shadow-sm bg-[var(--color-surface)]">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--color-surface-mid)]">
-              <span className="material-symbols-outlined text-[var(--color-primary)]">
-                support_agent
-              </span>
+          <section className="editorial-card-elevated p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-surface-low)] text-[var(--color-success)]">
+                <span className="material-symbols-outlined">verified</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                  Health checks
+                </p>
+                <p className="mt-1 text-2xl font-black text-[var(--color-text)]">
+                  {health_score === null
+                    ? 'Unknown'
+                    : `${health_checks.filter(Boolean).length}/${health_checks.length}`}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                  {health_score === 100
+                    ? 'Core services are passing.'
+                    : 'Some checks need attention before production use.'}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
-                ต้องการความช่วยเหลือ?
-              </p>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-subtle)' }}>
-                หากคุณมีปัญหาในการตั้งค่าระบบ สามารถติดต่อทีม Support
-                หรืออ่านคู่มือการใช้งานได้ตลอดเวลา
+          </section>
+        </aside>
+      </div>
+
+      <section className="editorial-card-elevated p-5 sm:p-6">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] text-lg font-black text-[var(--color-on-primary)]">
+              {user?.name?.[0]?.toUpperCase() ?? 'G'}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="truncate text-lg font-black text-[var(--color-text)]">
+                  {user?.name ?? 'Admin User'}
+                </h2>
+                <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-2.5 py-1 text-[10px] font-black uppercase text-[var(--color-text-muted)]">
+                  {user?.roles?.[0] ?? 'Staff'}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-sm font-medium text-[var(--color-text-subtle)]">
+                {user?.email ?? '-'}
               </p>
             </div>
-            <Link
-              href="/docs"
-              className="mt-2 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[var(--color-surface-low)] border border-[var(--color-border)] rounded-sm hover:bg-[var(--color-surface-mid)] transition-colors"
-            >
-              ดูคู่มือ <span className="material-symbols-outlined text-sm">menu_book</span>
-            </Link>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-low)] px-4 py-3">
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">Actions</p>
+              <p className="mt-1 text-xl font-black text-[var(--color-text)]">
+                {formatMetric(stats?.total_actions_7d)}
+              </p>
+            </div>
+            <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-low)] px-4 py-3">
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">Health</p>
+              <p className="mt-1 text-xl font-black text-[var(--color-text)]">
+                {health_score === null ? 'Unknown' : `${health_score}%`}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

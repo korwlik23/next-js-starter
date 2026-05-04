@@ -82,8 +82,8 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-10">
+    <div className="pb-12">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>
             API Keys
@@ -92,7 +92,7 @@ export default function ApiKeysPage() {
             จัดการ API keys สำหรับเรียกใช้งานระบบจากภายนอก
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
+        <Button onClick={() => setIsCreateOpen(true)} className="w-full sm:w-auto">
           <span className="material-symbols-outlined text-base">add</span>
           สร้าง API Key
         </Button>
@@ -100,7 +100,7 @@ export default function ApiKeysPage() {
 
       {error && (
         <div
-          className="mb-6 p-4 border"
+          className="mb-5 p-4 rounded-[var(--radius-md)] border"
           style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
         >
           {error}
@@ -108,7 +108,7 @@ export default function ApiKeysPage() {
       )}
 
       <div
-        className="flex items-start gap-3 p-4 rounded-lg mb-8"
+        className="flex items-start gap-3 p-4 rounded-[var(--radius-md)] mb-5"
         style={{
           backgroundColor: 'rgba(230, 126, 34, 0.08)',
           border: '1px solid rgba(230, 126, 34, 0.2)',
@@ -133,100 +133,99 @@ export default function ApiKeysPage() {
       {isLoading ? (
         <Skeleton height="12rem" width="100%" />
       ) : (
-        <div
-          className="rounded-lg overflow-hidden"
-          style={{ border: '1px solid var(--color-border)' }}
-        >
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: 'var(--color-surface-mid)' }}>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  ชื่อ
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Prefix
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  สถานะ
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  ใช้งานล่าสุด
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  สร้างเมื่อ
-                </th>
-                <th
-                  className="text-right p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((key) => (
-                <tr key={key.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td className="p-4 font-medium" style={{ color: 'var(--color-text)' }}>
-                    {key.name}
-                  </td>
-                  <td
-                    className="p-4 font-mono text-xs"
-                    style={{ color: 'var(--color-text-faint)' }}
+        <div className="editorial-card-elevated overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[780px] text-sm">
+              <thead>
+                <tr style={{ backgroundColor: 'var(--color-surface-low)' }}>
+                  <th
+                    className="text-left p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
                   >
-                    {key.prefix}...
-                  </td>
-                  <td className="p-4">
-                    <Badge variant={key.isActive ? 'success' : 'outline'}>
-                      {key.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '-'}
-                  </td>
-                  <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {new Date(key.createdAt).toLocaleString()}
-                  </td>
-                  <td className="p-4 text-right">
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={!key.isActive}
-                      onClick={() => revokeKey(key.id)}
+                    ชื่อ
+                  </th>
+                  <th
+                    className="text-left p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    Prefix
+                  </th>
+                  <th
+                    className="text-left p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    สถานะ
+                  </th>
+                  <th
+                    className="text-left p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    ใช้งานล่าสุด
+                  </th>
+                  <th
+                    className="text-left p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    สร้างเมื่อ
+                  </th>
+                  <th
+                    className="text-right p-4 font-semibold"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {keys.map((key) => (
+                  <tr key={key.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td className="p-4 font-medium" style={{ color: 'var(--color-text)' }}>
+                      {key.name}
+                    </td>
+                    <td
+                      className="p-4 font-mono text-xs"
+                      style={{ color: 'var(--color-text-faint)' }}
                     >
-                      Revoke
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                      {key.prefix}...
+                    </td>
+                    <td className="p-4">
+                      <Badge variant={key.isActive ? 'success' : 'outline'}>
+                        {key.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '-'}
+                    </td>
+                    <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      {new Date(key.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-4 text-right">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={!key.isActive}
+                        onClick={() => revokeKey(key.id)}
+                      >
+                        Revoke
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
 
-              {keys.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="text-center p-8"
-                    style={{ color: 'var(--color-text-faint)' }}
-                  >
-                    ยังไม่มี API key
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                {keys.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center p-8"
+                      style={{ color: 'var(--color-text-faint)' }}
+                    >
+                      ยังไม่มี API key
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -240,7 +239,7 @@ export default function ApiKeysPage() {
           />
 
           {createdKey && (
-            <div className="p-4 border border-green-500/30 bg-green-500/10">
+            <div className="p-4 rounded-[var(--radius-md)] border border-green-500/30 bg-green-500/10">
               <p className="text-xs mb-2 text-green-300">
                 คัดลอก key นี้ไว้ตอนนี้ ระบบจะแสดงเพียงครั้งเดียว
               </p>
@@ -251,7 +250,7 @@ export default function ApiKeysPage() {
             </div>
           )}
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
               ปิด
             </Button>
