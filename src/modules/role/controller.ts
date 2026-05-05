@@ -20,6 +20,8 @@ import {
   deleteRoleService,
 } from './service'
 import { createRoleSchema, updateRoleSchema } from './schema'
+import { AuditService } from '../audit/service'
+import { getRequestMetadata } from '@/utils/request'
 
 export class RoleController {
   // ─────────────────────────────────────────
@@ -61,6 +63,23 @@ export class RoleController {
       }
 
       const role = await createRoleService(parsed.data, auth_user.tenantId ?? null)
+
+      // Audit Log: Role Created
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        userId: auth_user.sub,
+        tenantId: auth_user.tenantId,
+        action: 'ROLE_CREATE',
+        entity: 'Role',
+        entityId: role.id,
+        ipAddress,
+        userAgent,
+        metadata: {
+          name: role.name,
+          permissionsCount: parsed.data.permission_ids?.length || 0,
+        },
+      })
+
       return createdResponse(role, `สร้าง Role "${role.name}" สำเร็จ`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
@@ -110,6 +129,23 @@ export class RoleController {
       }
 
       const role = await updateRoleService(role_id, parsed.data, auth_user.tenantId ?? null)
+
+      // Audit Log: Role Updated
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        userId: auth_user.sub,
+        tenantId: auth_user.tenantId,
+        action: 'ROLE_UPDATE',
+        entity: 'Role',
+        entityId: role_id,
+        ipAddress,
+        userAgent,
+        metadata: {
+          name: role.name,
+          updates: Object.keys(parsed.data),
+        },
+      })
+
       return successResponse(role, `อัปเดต Role "${role.name}" สำเร็จ`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
@@ -132,6 +168,20 @@ export class RoleController {
         return forbidden('คุณไม่มีสิทธิ์ลบ Role', ERROR_CODES.FORBIDDEN)
 
       await deleteRoleService(role_id, auth_user.tenantId ?? null)
+
+      // Audit Log: Role Deleted
+      const { ipAddress, userAgent } = getRequestMetadata(_req)
+      AuditService.record({
+        userId: auth_user.sub,
+        tenantId: auth_user.tenantId,
+        action: 'ROLE_DELETE',
+        entity: 'Role',
+        entityId: role_id,
+        ipAddress,
+        userAgent,
+        metadata: { roleId: role_id },
+      })
+
       return successResponse(null, 'ลบ Role สำเร็จ')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'

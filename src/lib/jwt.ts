@@ -1,9 +1,17 @@
 import { SignJWT, jwtVerify } from 'jose'
 import type { TokenPayload, AuthTokens } from '@/types'
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? 'fallback-secret-change-in-production'
-)
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET must be set and contain at least 32 characters')
+  }
+
+  return new TextEncoder().encode(secret)
+}
+
+const secret = getJwtSecret()
 
 // ─────────────────────────────────────────
 // SIGN ACCESS TOKEN (short-lived)

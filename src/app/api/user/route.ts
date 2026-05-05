@@ -4,6 +4,8 @@ import { createUserSchema } from '@/modules/user/schema'
 import { createdResponse, paginatedResponse, badRequest, serverError } from '@/utils/api'
 import { PERMISSIONS } from '@/constants'
 import { logger } from '@/lib/logger'
+import { AuditService } from '@/modules/audit/service'
+import { getRequestMetadata } from '@/utils/request'
 
 // GET /api/user — List users
 export const GET = withAuth(
@@ -48,6 +50,22 @@ export const POST = withAuth(
       const newUser = await createUserService({
         ...parsed.data,
         tenantId: user.tenantId,
+      })
+
+      // Audit Log: User Created
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        userId: user.userId,
+        tenantId: user.tenantId,
+        action: 'USER_CREATE',
+        entity: 'User',
+        entityId: newUser.id,
+        ipAddress,
+        userAgent,
+        metadata: {
+          email: newUser.email,
+          roleIds: parsed.data.roleIds,
+        },
       })
 
       return createdResponse(newUser, 'สร้างผู้ใช้งานสำเร็จ')

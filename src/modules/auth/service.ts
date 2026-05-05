@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger'
 import { GenerateId } from '@/lib/ulid'
 import type { LoginInput, RegisterInput } from './schema'
 import type { AuthTokens, TokenPayload } from '@/types'
+import { EmailService } from '@/services/email.service'
+import type { ForgotPasswordInput, ResetPasswordInput } from './schema'
+import { AuthRepository } from './repository'
 
 // ─────────────────────────────────────────
 // HELPERS
@@ -60,9 +63,7 @@ function buildTokenPayload(user: Awaited<ReturnType<typeof getUserWithPermission
 export async function loginService(
   input: LoginInput
 ): Promise<{ tokens: AuthTokens; user: TokenPayload }> {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-  })
+  const user = await AuthRepository.findUserByEmail(input.email)
 
   if (!user || !user.isActive || user.deletedAt) {
     throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
@@ -98,9 +99,7 @@ export async function loginService(
 export async function registerService(
   input: RegisterInput
 ): Promise<{ tokens: AuthTokens; user: TokenPayload }> {
-  const existing = await prisma.user.findUnique({
-    where: { email: input.email },
-  })
+  const existing = await AuthRepository.findUserByEmail(input.email)
   if (existing) throw new Error('อีเมลนี้ถูกใช้งานแล้ว')
 
   const hashed = await bcrypt.hash(input.password, 12)
@@ -142,14 +141,7 @@ export async function refreshTokenService(
   const userId = await verifyRefreshToken(refreshToken)
   if (!userId) throw new Error('Invalid refresh token')
 
-  const storedToken = await prisma.refreshToken.findFirst({
-    where: {
-      token: refreshToken,
-      userId,
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-  })
+  const storedToken = await AuthRepository.findRefreshToken(refreshToken, userId)
   if (!storedToken) throw new Error('Refresh token expired or revoked')
 
   const userWithPerms = await getUserWithPermissions(userId)
@@ -162,13 +154,8 @@ export async function refreshTokenService(
 // ─────────────────────────────────────────
 // FORGOT & RESET PASSWORD
 // ─────────────────────────────────────────
-import { EmailService } from '@/services/email.service'
-import type { ForgotPasswordInput, ResetPasswordInput } from './schema'
-
 export async function forgotPasswordService(input: ForgotPasswordInput) {
-  const user = await prisma.user.findUnique({
-    where: { email: input.email },
-  })
+  const user = await AuthRepository.findUserByEmail(input.email)
 
   // Security: อย่าแจ้งเตือนถ้าไม่มี email นี้ในระบบเพื่อป้องกัน User enumeration
   if (!user || !user.isActive || user.deletedAt) return { success: true }
@@ -204,9 +191,7 @@ export async function resetPasswordService(input: ResetPasswordInput) {
     throw new Error('Token ไม่ถูกต้องหรือหมดอายุแล้ว')
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: resetToken.email },
-  })
+  const user = await AuthRepository.findUserByEmail(resetToken.email)
   if (!user) {
     throw new Error('ไม่พบข้อมูลผู้ใช้')
   }

@@ -39,19 +39,21 @@ export function paginatedResponse<T>(
 export function errorResponse(
   message: string,
   status: number,
-  code?: string,
+  codeOrErrors?: string | Record<string, string[]>,
   errors?: Record<string, string[]>
 ) {
-  const body: ApiResponse = { success: false, message, code, errors }
+  const code = typeof codeOrErrors === 'string' ? codeOrErrors : undefined
+  const responseErrors = typeof codeOrErrors === 'string' ? errors : codeOrErrors
+  const body: ApiResponse = { success: false, message, code, errors: responseErrors }
   return NextResponse.json(body, { status })
 }
 
 export function badRequest(
   message = 'Bad Request',
-  code?: string,
+  codeOrErrors?: string | Record<string, string[]>,
   errors?: Record<string, string[]>
 ) {
-  return errorResponse(message, HTTP_STATUS.BAD_REQUEST, code, errors)
+  return errorResponse(message, HTTP_STATUS.BAD_REQUEST, codeOrErrors, errors)
 }
 
 export function unauthorized(message = 'Unauthorized', code?: string) {

@@ -4,6 +4,7 @@ import React from 'react'
 import { useAuthStore } from '@/store/authStore'
 
 interface CanProps {
+  I?: string
   permission?: string
   role?: string
   children: React.ReactNode
@@ -17,20 +18,21 @@ interface CanProps {
  *   <Button>Create User</Button>
  * </Can>
  */
-export function Can({ permission, role, children, fallback = null }: CanProps) {
+export function Can({ I, permission, role, children, fallback = null }: CanProps) {
   const { hasPermission, hasRole, user } = useAuthStore()
+  const requiredPermission = permission ?? I
 
   // ถ้าไม่มี user ถือว่าไม่มีสิทธิ์ใดๆ
   if (!user) return <>{fallback}</>
 
   let granted = false
 
-  if (permission && role) {
+  if (requiredPermission && role) {
     // ต้องมีทั้ง permission และ role
-    granted = hasPermission(permission) && hasRole(role)
-  } else if (permission) {
+    granted = hasPermission(requiredPermission) && hasRole(role)
+  } else if (requiredPermission) {
     // ตรวจสอบ permission อย่างเดียว
-    granted = hasPermission(permission)
+    granted = hasPermission(requiredPermission)
   } else if (role) {
     // ตรวจสอบ role อย่างเดียว
     granted = hasRole(role)

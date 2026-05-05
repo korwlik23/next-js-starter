@@ -1,59 +1,81 @@
-import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
+import prisma from '@/lib/prisma'
+import { GenerateId } from '@/lib/ulid'
+import { SendProviderEmail, type SendEmailInput } from '@/lib/email'
+import { QueueService } from '@/lib/queue'
 import {
-  GetWelcomeEmailTemplate,
   GetPasswordResetTemplate,
   GetTeamInviteTemplate,
+  GetWelcomeEmailTemplate,
 } from './templates/email.templates'
 
-// ─────────────────────────────────────────
-// EMAIL SERVICE (Resend)
-// ─────────────────────────────────────────
+export class EmailService {
+  static async QueueEmail(input: SendEmailInput) {
+    const jobId = await QueueService.Enqueue('send_email', input)
+    if (jobId) {
+      return { success: true, queued: true, jobId }
+    }
 
-const DEFAULT_FROM_EMAIL = process.env.NEXT_PUBLIC_FROM_EMAIL || 'noreply@yourdomain.com'
-
-function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    return null
+    return this.SendEmail(input)
   }
 
-  return new Resend(apiKey)
-}
+  static async SendEmail({ to, subject, html, text, template }: SendEmailInput) {
+    const recipients = Array.isArray(to) ? to.join(',') : to
+    const emailLog = await prisma.emailLog
+      .create({
+        data: {
+          id: GenerateId(),
+          to: recipients,
+          subject,
+          template,
+          status: 'queued',
+          provider: process.env.EMAIL_PROVIDER || 'auto',
+        },
+      })
+      .catch(() => null)
 
-export class EmailService {
-  /**
-   * ส่งอีเมลพื้นฐาน (General Purpose)
-   */
-  static async SendEmail({
-    to,
-    subject,
-    html,
-    text,
-  }: {
-    to: string | string[]
-    subject: string
-    html?: string
-    text?: string
-  }) {
     try {
-      const resend = getResendClient()
-      if (!resend) {
-        logger.warn('RESEND_API_KEY is not set. Simulating email sending:', { to, subject })
+      const result = await SendProviderEmail({ to, subject, html, text, template })
+
+      if (result.simulated) {
+        logger.warn('Email provider is not configured. Simulating email sending:', { to, subject })
+        if (emailLog) {
+          await prisma.emailLog.update({
+            where: { id: emailLog.id },
+            data: {
+              status: 'simulated',
+              provider: result.provider,
+              sentAt: new Date(),
+            },
+          })
+        }
         return { success: true, simulated: true }
       }
 
-      const data = await resend.emails.send({
-        from: DEFAULT_FROM_EMAIL,
-        to,
-        subject,
-        html: html || '',
-        text: text || '',
-      })
-      logger.info('Email sent successfully', { to, subject, id: data.data?.id })
-      return { success: true, data }
+      logger.info('Email sent successfully', { to, subject, id: result.messageId })
+      if (emailLog) {
+        await prisma.emailLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: 'sent',
+            provider: result.provider,
+            messageId: result.messageId,
+            sentAt: new Date(),
+          },
+        })
+      }
+      return { success: true, data: result.raw }
     } catch (error: any) {
       logger.error('Failed to send email', { error, to, subject })
+      if (emailLog) {
+        await prisma.emailLog.update({
+          where: { id: emailLog.id },
+          data: {
+            status: 'failed',
+            error: error instanceof Error ? error.message : String(error),
+          },
+        })
+      }
       return { success: false, error }
     }
   }
@@ -61,7 +83,7 @@ export class EmailService {
   static async SendWelcomeEmail(to: string, name: string) {
     const subject = `ยินดีต้อนรับสู่โปรเจคของเราคุณ ${name}!`
     const html = GetWelcomeEmailTemplate(name)
-    return this.SendEmail({ to, subject, html })
+    return this.QueueEmail({ to, subject, html, template: 'welcome' })
   }
 
   static async SendPasswordResetEmail(to: string, resetToken: string) {
@@ -70,7 +92,7 @@ export class EmailService {
 
     const subject = 'รีเซ็ตรหัสผ่านของคุณ'
     const html = GetPasswordResetTemplate(resetUrl)
-    return this.SendEmail({ to, subject, html })
+    return this.QueueEmail({ to, subject, html, template: 'password_reset' })
   }
 
   static async SendTeamInviteEmail(
@@ -84,6 +106,6 @@ export class EmailService {
 
     const subject = `คุณ ${inviterName} ได้เชิญคุณเข้าร่วมทีม ${tenantName}`
     const html = GetTeamInviteTemplate(inviterName, tenantName, inviteUrl)
-    return this.SendEmail({ to, subject, html })
+    return this.QueueEmail({ to, subject, html, template: 'team_invite' })
   }
 }

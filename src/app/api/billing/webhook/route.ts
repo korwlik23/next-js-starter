@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import Stripe from 'stripe'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { BeginWebhookEvent, CompleteWebhookEvent, FailWebhookEvent } from '@/lib/webhook-events'
 
 function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY
@@ -16,6 +17,8 @@ function getStripeClient() {
 }
 
 export async function POST(req: Request) {
+  let event: Stripe.Event | null = null
+
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
     if (!webhookSecret) {
@@ -28,13 +31,22 @@ export async function POST(req: Request) {
     const headersList = await headers()
     const signature = headersList.get('stripe-signature')!
 
-    let event: Stripe.Event
-
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
     } catch (err: any) {
       logger.error(`Webhook signature verification failed: ${err.message}`)
       return NextResponse.json({ error: 'Webhook Error' }, { status: 400 })
+    }
+
+    const webhookEvent = await BeginWebhookEvent({
+      provider: 'stripe',
+      eventId: event.id,
+      eventType: event.type,
+      payload: event,
+    })
+
+    if (!webhookEvent.shouldProcess) {
+      return NextResponse.json({ received: true, duplicate: true })
     }
 
     // Handle the event
@@ -82,6 +94,7 @@ export async function POST(req: Request) {
         break
       }
 
+      case 'invoice.paid':
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as any
         if (invoice.subscription) {
@@ -111,6 +124,38 @@ export async function POST(req: Request) {
           })
           logger.warn(`Invoice payment failed for subscription: ${invoice.subscription}`)
           // TODO: Send email notification to user
+        }
+        break
+      }
+
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as any
+        const tenantId = subscription.metadata?.tenantId
+
+        if (tenantId) {
+          await prisma.subscription.upsert({
+            where: { stripeSubscriptionId: subscription.id },
+            create: {
+              id: `sub_${tenantId}`,
+              tenantId,
+              stripeCustomerId: subscription.customer as string,
+              stripeSubscriptionId: subscription.id,
+              plan: subscription.metadata?.plan || subscription.plan?.id || 'pro',
+              status: subscription.status,
+              currentPeriodStart: new Date(subscription.current_period_start * 1000),
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            },
+            update: {
+              stripeCustomerId: subscription.customer as string,
+              plan: subscription.metadata?.plan || subscription.plan?.id || 'pro',
+              status: subscription.status,
+              currentPeriodStart: new Date(subscription.current_period_start * 1000),
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
+            },
+          })
+          logger.info(`Subscription created: ${subscription.id}`)
         }
         break
       }
@@ -160,8 +205,12 @@ export async function POST(req: Request) {
         logger.info(`Unhandled Stripe event type: ${event.type}`)
     }
 
+    await CompleteWebhookEvent('stripe', event.id)
     return NextResponse.json({ received: true })
   } catch (error: any) {
+    if (event) {
+      await FailWebhookEvent('stripe', event.id).catch(() => undefined)
+    }
     logger.error(`Webhook Error: ${error.message}`)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

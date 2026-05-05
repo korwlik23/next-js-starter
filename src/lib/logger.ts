@@ -17,8 +17,8 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 /** กำหนด minimum log level ตาม environment */
 const ENV_LOG_LEVELS: Record<string, LogLevel> = {
   development: 'debug', // แสดงทุก level
-  test: 'warn',         // แสดงเฉพาะ warn + error
-  production: 'info',   // แสดง info, warn, error (ไม่แสดง debug)
+  test: 'warn', // แสดงเฉพาะ warn + error
+  production: 'info', // แสดง info, warn, error (ไม่แสดง debug)
 }
 
 /** โครงสร้าง Structured Log Entry */
@@ -117,9 +117,15 @@ function CreateLogEntry(level: LogLevel, message: string, data?: unknown): LogEn
 function EmitLog(entry: LogEntry) {
   // ── Enterprise Error Monitoring Integration
   if (entry.level === 'error' && process.env.SENTRY_DSN && typeof window === 'undefined') {
-    // TODO: Sentry.captureException(entry.data || new Error(entry.message), { extra: entry.context })
-    // ตัวอย่างการแสดงว่า ส่ง Log ไปยัง External service แล้ว
-    console.debug(`[Enterprise Logger] Dispatched to Sentry: ${entry.message}`)
+    import('@/lib/error-monitoring')
+      .then(({ CaptureError }) =>
+        CaptureError({
+          error: entry.data ?? new Error(entry.message),
+          message: entry.message,
+          context: entry.context,
+        })
+      )
+      .catch(() => undefined)
   }
 
   if (USE_JSON_FORMAT && !IS_DEV) {

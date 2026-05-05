@@ -5,14 +5,18 @@ import { setAuthCookies } from '@/lib/auth'
 import { successResponse, badRequest, errorResponse } from '@/utils/api'
 import { logger } from '@/lib/logger'
 import { HTTP_STATUS } from '@/constants'
+import { AuditService } from '@/modules/audit/service'
+import { getRequestMetadata } from '@/utils/request'
 
 export async function POST(req: NextRequest) {
   const isFormPost = req.headers.get('content-type')?.includes('application/x-www-form-urlencoded')
+  let attemptedEmail: string | undefined
 
   try {
     const body = isFormPost
       ? Object.fromEntries((await req.formData()).entries())
       : await req.json()
+    attemptedEmail = typeof body.email === 'string' ? body.email : undefined
     const parsed = loginSchema.safeParse(body)
 
     if (!parsed.success) {
@@ -24,6 +28,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { tokens, user } = await loginService(parsed.data)
+
+    // Audit Log: Login Success
+    const { ipAddress, userAgent } = getRequestMetadata(req)
+    AuditService.record({
+      userId: user.sub,
+      tenantId: user.tenantId,
+      action: 'AUTH_LOGIN_SUCCESS',
+      ipAddress,
+      userAgent,
+      metadata: { email: user.email },
+    })
 
     // Set httpOnly cookies
     await setAuthCookies(tokens.accessToken, tokens.refreshToken)
@@ -50,6 +65,18 @@ export async function POST(req: NextRequest) {
     logger.error('Login error', error)
 
     if (message.includes('ไม่ถูกต้อง')) {
+      // Audit Log: Login Failed (Invalid Credentials)
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        action: 'AUTH_LOGIN_FAILED',
+        ipAddress,
+        userAgent,
+        metadata: {
+          email: attemptedEmail,
+          reason: 'Invalid credentials',
+        },
+      })
+
       if (isFormPost) {
         return NextResponse.redirect(new URL('/login?error=invalid', req.url), 303)
       }

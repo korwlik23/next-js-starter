@@ -4,7 +4,7 @@ import { authConfig } from '@/config'
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { HTTP_STATUS } from '@/constants'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 1. ตรวจสอบว่าเป็น Public Route หรือไม่

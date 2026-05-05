@@ -140,7 +140,7 @@ export default function UserManagementPage() {
       label: 'User',
       render: (row: User) => (
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 font-bold overflow-hidden border border-neutral-200">
+          <div className="h-9 w-9 rounded-full bg-[var(--color-surface-mid)] flex items-center justify-center text-[var(--color-text-muted)] font-bold overflow-hidden border border-[var(--color-border)]">
             {row.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={row.avatar} alt={row.name} className="h-full w-full object-cover" />
@@ -213,7 +213,7 @@ export default function UserManagementPage() {
         </Can>
       </header>
 
-      <div className="relative">
+      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] overflow-hidden shadow-sm">
         <DataTable
           columns={columns}
           data={users}
@@ -229,7 +229,7 @@ export default function UserManagementPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleOpenModal(row as User)}
+                  onClick={() => handleOpenModal(row)}
                   className="h-8 w-8 p-0"
                 >
                   <span className="material-symbols-outlined text-[1.1rem]">edit</span>
@@ -240,7 +240,7 @@ export default function UserManagementPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleDelete(row.id)}
-                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
                 >
                   <span className="material-symbols-outlined text-[1.1rem]">delete</span>
                 </Button>

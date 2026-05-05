@@ -1,107 +1,95 @@
 import { NextRequest } from 'next/server'
-import { successResponse, badRequest, unauthorized, serverError } from '@/utils/api'
+import { badRequest, serverError, successResponse, unauthorized } from '@/utils/api'
 import { getAuthUserFromRequest } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
-import { ulid } from 'ulid'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import prisma from '@/lib/prisma'
+import { GenerateId } from '@/lib/ulid'
+import { logger } from '@/lib/logger'
+import {
+  CreateSignedStorageUrl,
+  CreateStorageKey,
+  PutStorageObject,
+  type StorageVisibility,
+} from '@/lib/storage'
 
-// ────────────────────────────────────────
-// Upload API — POST /api/upload
-// รับ FormData พร้อม file → validate → บันทึก → return URL
-// ────────────────────────────────────────
-
-/** ประเภทไฟล์ที่อนุญาต */
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-
-/** ขนาดสูงสุด 5MB */
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf']
 const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+function getFileExtension(fileName: string) {
+  return fileName.split('.').pop()?.toLowerCase() || 'bin'
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // ตรวจสอบ auth
     const user = await getAuthUserFromRequest(request)
     if (!user) {
       return unauthorized()
     }
 
-    // อ่าน FormData
-    const form_data = await request.formData()
-    const file = form_data.get('file') as File | null
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
 
     if (!file) {
       return badRequest('No file provided')
     }
 
-    // ตรวจสอบประเภทไฟล์
+    const extension = getFileExtension(file.name)
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      return badRequest(`File extension not allowed: ${extension}`)
+    }
+
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       return badRequest(`File type not allowed: ${file.type}`)
     }
 
-    // ตรวจสอบขนาดไฟล์
     if (file.size > MAX_FILE_SIZE) {
       return badRequest(`File too large. Max size: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
     }
 
-    // สร้างชื่อไฟล์ที่ unique ด้วย ULID
-    const file_extension = file.name.split('.').pop() ?? 'bin'
-    const file_name = `${ulid()}.${file_extension}`
-
+    const visibility: StorageVisibility =
+      formData.get('visibility') === 'private' ? 'private' : 'public'
+    const fileId = GenerateId()
     const buffer = Buffer.from(await file.arrayBuffer())
-    let file_url = ''
+    const storedFile = await PutStorageObject({
+      key: CreateStorageKey(file.name, fileId),
+      body: buffer,
+      contentType: file.type,
+      visibility,
+    })
 
-    // ตรวจสอบว่ามีการตั้งค่า AWS S3 หรือ R2 หรือไม่
-    const { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET } = process.env
-
-    if (AWS_REGION && AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY && AWS_S3_BUCKET) {
-      // ─── อัปโหลดไป S3 หรือ Cloudflare R2 ───
-      // หากใช้ R2 ต้องใส่ S3_ENDPOINT เพิ่ม
-      const endpoint = process.env.S3_ENDPOINT
-
-      const s3Client = new S3Client({
-        region: AWS_REGION,
-        ...(endpoint && { endpoint }),
-        credentials: {
-          accessKeyId: AWS_ACCESS_KEY_ID,
-          secretAccessKey: AWS_SECRET_ACCESS_KEY,
-        },
-      })
-
-      const uploadParams = {
-        Bucket: AWS_S3_BUCKET,
-        Key: `uploads/${file_name}`,
-        Body: buffer,
-        ContentType: file.type,
-      }
-
-      await s3Client.send(new PutObjectCommand(uploadParams))
-
-      const storage_domain =
-        process.env.NEXT_PUBLIC_STORAGE_URL ||
-        `https://${AWS_S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com`
-      file_url = `${storage_domain}/uploads/${file_name}`
-    } else {
-      // ─── อัปโหลดลง Local (Fallback) ───
-      const upload_dir = path.join(process.cwd(), 'public', 'uploads')
-      await mkdir(upload_dir, { recursive: true })
-
-      const file_path = path.join(upload_dir, file_name)
-      await writeFile(file_path, buffer)
-
-      file_url = `/uploads/${file_name}`
-    }
+    const uploadedFile = await prisma.uploadedFile.create({
+      data: {
+        id: fileId,
+        tenantId: user.tenantId,
+        userId: user.sub,
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        disk: storedFile.disk,
+        visibility: storedFile.visibility,
+        storageKey: storedFile.key,
+        url: storedFile.url,
+        checksum: storedFile.checksum,
+      },
+    })
 
     return successResponse(
       {
-        url: file_url,
+        id: uploadedFile.id,
+        url: storedFile.url,
+        signedUrl:
+          storedFile.visibility === 'private' ? CreateSignedStorageUrl(storedFile.key) : undefined,
         name: file.name,
         size: file.size,
         type: file.type,
+        disk: storedFile.disk,
+        visibility: storedFile.visibility,
+        storageKey: storedFile.key,
       },
       'File uploaded successfully'
     )
   } catch (error) {
-    console.error('Upload error:', error)
+    logger.error('Upload error', { error })
     return serverError('Failed to upload file')
   }
 }

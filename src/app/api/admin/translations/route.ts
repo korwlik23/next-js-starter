@@ -1,45 +1,64 @@
-import { successResponse, serverError, badRequest } from '@/utils/api'
-import { GetAllTranslations, UpsertTranslation } from '@/modules/translation/service'
-import { z } from 'zod'
+import { withAuth } from '@/lib/authorize'
+import { TranslationService } from '@/modules/i18n/service'
+import { successResponse, badRequest, serverError } from '@/utils/api'
+import { logger } from '@/lib/logger'
+import { revalidateTag } from 'next/cache'
+import { AuditService } from '@/modules/audit/service'
+import { getRequestMetadata } from '@/utils/request'
+import { getAuthUser } from '@/lib/auth'
 
-// ────────────────────────────────────────
-// /api/admin/translations — CRUD คำแปล
-// ────────────────────────────────────────
+// GET /api/admin/translations — รายการคำแปล
+export const GET = withAuth(
+  async (req: Request) => {
+    try {
+      const { searchParams } = new URL(req.url)
+      const locale = searchParams.get('locale') || 'th'
 
-const TranslationSchema = z.object({
-  locale: z.string().min(1),
-  namespace: z.string().min(1),
-  key: z.string().min(1),
-  value: z.string(),
-})
-
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const locale = searchParams.get('locale') || undefined
-
-    const translations = await GetAllTranslations(locale)
-    return successResponse(translations)
-  } catch (error) {
-    console.error('[Translations GET Error]', error)
-    // Fallback: ส่งคืน Array เปล่าเมื่อ Database ยังไม่พร้อม
-    return serverError('Database connection failed or not seeded.')
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json()
-    const parsed = TranslationSchema.safeParse(body)
-
-    if (!parsed.success) {
-      return badRequest('Missing required fields', parsed.error.flatten().fieldErrors as any)
+      const data = await TranslationService.getByLocale(locale)
+      return successResponse(data)
+    } catch (error) {
+      logger.error('GET /api/admin/translations error', error)
+      return serverError()
     }
+  },
+  { permission: ['translation.manage', 'settings.update'] }
+)
 
-    const result = await UpsertTranslation(parsed.data)
-    return successResponse(result)
-  } catch (error) {
-    console.error('[Translations POST Error]', error)
-    return serverError('Internal Server Error')
-  }
-}
+// POST /api/admin/translations — อัปเดต/เพิ่มคำแปล
+export const POST = withAuth(
+  async (req: Request) => {
+    try {
+      const body = await req.json()
+      const { locale, namespace, key, value } = body
+
+      if (!locale || !namespace || !key) {
+        return badRequest('กรุณาระบุข้อมูลให้ครบถ้วน (locale, namespace, key)')
+      }
+
+      const result = await TranslationService.upsert({ locale, namespace, key, value })
+
+      // Audit Log: Translation Updated
+      const authUser = await getAuthUser()
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      await AuditService.record({
+        userId: authUser?.sub,
+        tenantId: authUser?.tenantId,
+        action: 'TRANSLATION_UPSERT',
+        entity: 'Translation',
+        entityId: `${locale}:${namespace}:${key}`,
+        ipAddress,
+        userAgent,
+        metadata: { locale, namespace, key },
+      })
+
+      // ล้าง cache เพื่อให้คำแปลใหม่แสดงผลทันที
+      revalidateTag('translations', 'max')
+
+      return successResponse(result, 'บันทึกคำแปลสำเร็จ')
+    } catch (error) {
+      logger.error('POST /api/admin/translations error', error)
+      return serverError()
+    }
+  },
+  { permission: ['translation.manage', 'settings.update'] }
+)

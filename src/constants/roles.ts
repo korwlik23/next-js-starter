@@ -38,6 +38,9 @@ export const PERMISSIONS = {
 
   // Audit
   AUDIT_VIEW: 'audit.view',
+
+  // i18n
+  TRANSLATION_MANAGE: 'translation.manage',
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

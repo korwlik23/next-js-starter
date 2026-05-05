@@ -18,6 +18,8 @@ import {
 } from '@/utils/api'
 import { PERMISSIONS, ERROR_CODES } from '@/constants'
 import { logger } from '@/lib/logger'
+import { AuditService } from '@/modules/audit/service'
+import { getRequestMetadata } from '@/utils/request'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -69,6 +71,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
 
       await updatePasswordService(id, parsedPassword.data)
+
+      // Audit Log: Password Changed
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        userId: authUser.sub,
+        tenantId: authUser.tenantId,
+        action: 'USER_PASSWORD_CHANGE',
+        entity: 'User',
+        entityId: id,
+        ipAddress,
+        userAgent,
+        metadata: { targetUserId: id },
+      })
+
       return successResponse(null, 'เปลี่ยนรหัสผ่านสำเร็จ')
     }
 
@@ -85,6 +101,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!user) return notFound('ไม่พบผู้ใช้งาน', ERROR_CODES.USER_NOT_FOUND)
 
     const updated = await updateUserService(id, parsed.data)
+
+    // Audit Log: Profile Updated
+    const { ipAddress, userAgent } = getRequestMetadata(req)
+    AuditService.record({
+      userId: authUser.sub,
+      tenantId: authUser.tenantId,
+      action: 'USER_UPDATE',
+      entity: 'User',
+      entityId: id,
+      ipAddress,
+      userAgent,
+      metadata: {
+        updates: Object.keys(parsed.data),
+        targetUserId: id,
+      },
+    })
+
     return successResponse(updated, 'อัปเดตผู้ใช้งานสำเร็จ')
   } catch (error) {
     const message = error instanceof Error ? error.message : null
@@ -121,6 +154,21 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (!user) return notFound('ไม่พบผู้ใช้งาน', ERROR_CODES.USER_NOT_FOUND)
 
     await deleteUserService(id)
+
+    // Audit Log: User Deleted
+    // Note: Since _req wasn't used before, we use it now to get metadata
+    const { ipAddress, userAgent } = getRequestMetadata(_req)
+    AuditService.record({
+      userId: authUser.sub,
+      tenantId: authUser.tenantId,
+      action: 'USER_DELETE',
+      entity: 'User',
+      entityId: id,
+      ipAddress,
+      userAgent,
+      metadata: { targetUserId: id },
+    })
+
     return successResponse(null, 'ลบผู้ใช้งานสำเร็จ')
   } catch (error) {
     logger.error('DELETE /api/user/[id]', error)

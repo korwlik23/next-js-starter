@@ -30,6 +30,12 @@ async function main() {
     { name: 'billing.manage', module: 'billing', action: 'manage', description: 'Manage billing' },
     { name: 'team.invite', module: 'team', action: 'invite', description: 'Invite team members' },
     { name: 'audit.view', module: 'audit', action: 'view', description: 'View audit logs' },
+    {
+      name: 'translation.manage',
+      module: 'translation',
+      action: 'manage',
+      description: 'Manage translations',
+    },
   ]
 
   const createdPermissions: Record<string, { id: string }> = {}
@@ -82,6 +88,7 @@ async function main() {
     'billing.manage',
     'team.invite',
     'audit.view',
+    'translation.manage',
   ]
   for (const permName of adminPerms) {
     const perm = createdPermissions[permName]

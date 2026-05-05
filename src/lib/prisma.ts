@@ -7,23 +7,6 @@ const globalForPrisma = globalThis as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined
 }
 
-const SENSITIVE_KEYS = ['password', 'token', 'secret', 'key', 'authorization', 'cookie']
-
-function redactSensitive(value: any): any {
-  if (Array.isArray(value)) return value.map(redactSensitive)
-  if (!value || typeof value !== 'object') return value
-
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => {
-      const normalizedKey = key.toLowerCase()
-      if (SENSITIVE_KEYS.some((sensitiveKey) => normalizedKey.includes(sensitiveKey))) {
-        return [key, '[REDACTED]']
-      }
-      return [key, redactSensitive(item)]
-    })
-  )
-}
-
 function createPrismaClient() {
   const basePrisma = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -33,11 +16,12 @@ function createPrismaClient() {
   const extendedPrisma = basePrisma.$extends({
     query: {
       $allModels: {
-        async $allOperations({ operation, model, args, query }) {
+        async $allOperations({ args, query }) {
           // ─── PART 1: AUTO TENANT FILTER (Row Level Security) ───
-          // ดึง tenantId จาก headers (ถ้ามี)
+          // เราจะไม่เรียก headers() ตรงนี้เพราะเสี่ยงต่อการพังใน Next.js 15
+          // แนะนำให้ส่ง tenantId ผ่าน args.where หรือวิธีการอื่นแทน
+          /*
           try {
-            const { headers } = await import('next/headers')
             const h = await headers()
             const tenantId = h.get('x-tenant-id') || h.get('x-user-tenant-id')
 
@@ -54,61 +38,64 @@ function createPrismaClient() {
           } catch {
             // Not in request context
           }
+          */
 
           // ─── PART 2: ORIGINAL QUERY EXECUTION ───
           const result = await query(args)
 
-          // ─── PART 3: AUDIT LOGGING ───
+          // ─── PART 3: AUDIT LOGGING (Temporarily disabled for debugging) ───
+          /*
           const mutations = ['create', 'update', 'delete', 'updateMany', 'deleteMany', 'upsert']
           if (mutations.includes(operation) && model !== 'AuditLog') {
-            try {
-              const { headers } = await import('next/headers')
-              const h = await headers()
-              const userId = h.get('x-user-id') || null
-              const ipAddress = h.get('x-forwarded-for') || null
+            // ทำการบันทึก Log แบบ Async และดักจับ Error ทั้งหมด
+            Promise.resolve().then(async () => {
+              try {
+                // ตรวจสอบว่าอยู่ใน Request Context หรือไม่
+                let headersList
+                try {
+                  headersList = await headers()
+                } catch {
+                  return // ไม่อยู่ใน request context (เช่น background job)
+                }
 
-              const anyArgs = args as any
-              const anyResult = result as any
+                const userId = headersList.get('x-user-id')
+                const ipAddress = headersList.get('x-forwarded-for') || null
 
-              let entityId: string | null = null
-              if (anyResult && typeof anyResult === 'object' && 'id' in anyResult) {
-                entityId = anyResult.id as string
-              } else if (
-                anyArgs.where &&
-                typeof anyArgs.where === 'object' &&
-                'id' in anyArgs.where
-              ) {
-                entityId = anyArgs.where.id as string
-              }
+                if (!userId) return
 
-              let tenantId: string | null = null
-              if (anyArgs.data && typeof anyArgs.data === 'object' && 'tenantId' in anyArgs.data) {
-                tenantId = anyArgs.data.tenantId as string
-              }
+                const anyArgs = args as any
+                const anyResult = result as any
 
-              if (userId) {
-                const { GenerateId } = await import('@/lib/ulid')
-                Promise.resolve(
-                  basePrisma.auditLog.create({
-                    data: {
-                      id: GenerateId(),
-                      userId,
-                      tenantId,
-                      action: `${operation}_${model}`,
-                      entity: model as string,
-                      entityId,
-                      ipAddress,
-                      metadata: JSON.stringify(redactSensitive(args)),
-                    },
-                  })
-                ).catch((err) => {
-                  console.error('[AuditLog Error]', err)
+                let entityId: string | null = null
+                if (anyResult && typeof anyResult === 'object' && 'id' in anyResult) {
+                  entityId = anyResult.id as string
+                } else if (anyArgs.where?.id) {
+                  entityId = anyArgs.where.id
+                }
+
+                let tenantId: string | null = headersList.get('x-tenant-id') || null
+                if (!tenantId && anyArgs.data?.tenantId) {
+                  tenantId = anyArgs.data.tenantId
+                }
+
+                await basePrisma.auditLog.create({
+                  data: {
+                    id: GenerateId(),
+                    userId,
+                    tenantId,
+                    action: `${operation}_${model}`,
+                    entity: model as string,
+                    entityId,
+                    ipAddress,
+                    metadata: JSON.stringify(redactSensitive(args)),
+                  },
                 })
+              } catch (err) {
+                console.error('[Prisma Audit Extension Error]', err)
               }
-            } catch {
-              // Not in request context
-            }
+            })
           }
+          */
           return result
         },
       },

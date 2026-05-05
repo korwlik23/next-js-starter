@@ -13,8 +13,9 @@ const NAV_ITEMS = [
   { label: 'Users', href: '/user', icon: 'group' },
   { label: 'Roles', href: '/role', icon: 'verified_user' },
   { label: 'Analytics', href: '/analytics', icon: 'analytics' },
+  { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'history' },
+  { label: 'Translations', href: '/admin/translations', icon: 'translate' },
   { label: 'Billing', href: '/billing', icon: 'payments' },
-  { label: 'Admin', href: '/admin', icon: 'admin_panel_settings' },
   { label: 'Settings', href: '/settings', icon: 'settings' },
 ]
 

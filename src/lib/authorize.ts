@@ -7,7 +7,7 @@ import { getAuthUser } from '@/lib/auth'
  * ฟังก์ชันสำหรับการตรวจสอบ Authorization ระดับ API หรือ Server Component
  * ใช้อ่าน Header ที่ถูกส่งต่อมาจาก proxy.ts (x-user-id)
  */
-export async function authorize(requiredPermission?: string, requiredRole?: string) {
+export async function authorize(requiredPermission?: string | string[], requiredRole?: string) {
   const headersList = await headers()
   let userId = headersList.get('x-user-id')
   const userRolesStr = headersList.get('x-user-roles')
@@ -58,11 +58,13 @@ export async function authorize(requiredPermission?: string, requiredRole?: stri
     if (allPermissions.includes(`${module}.*`)) return true
     return allPermissions.includes(perm)
   }
+  const hasAnyPermission = (permissions: string | string[]) =>
+    Array.isArray(permissions) ? permissions.some(hasPermission) : hasPermission(permissions)
 
   if (requiredPermission && requiredRole) {
-    granted = hasPermission(requiredPermission) && roles.includes(requiredRole)
+    granted = hasAnyPermission(requiredPermission) && roles.includes(requiredRole)
   } else if (requiredPermission) {
-    granted = hasPermission(requiredPermission)
+    granted = hasAnyPermission(requiredPermission)
   } else if (requiredRole) {
     granted = roles.includes(requiredRole)
   }
@@ -81,7 +83,7 @@ export async function authorize(requiredPermission?: string, requiredRole?: stri
  */
 export function withAuth(
   handler: (req: Request, ctx: any) => Promise<NextResponse>,
-  options?: { permission?: string; role?: string }
+  options?: { permission?: string | string[]; role?: string }
 ) {
   return async (req: Request, ctx: any = {}) => {
     try {

@@ -5,6 +5,8 @@ import { setAuthCookies } from '@/lib/auth'
 import { createdResponse, badRequest, conflict, serverError } from '@/utils/api'
 import { logger } from '@/lib/logger'
 import { features } from '@/config'
+import { AuditService } from '@/modules/audit/service'
+import { getRequestMetadata } from '@/utils/request'
 
 export async function POST(req: NextRequest) {
   if (!features.registration) {
@@ -23,6 +25,18 @@ export async function POST(req: NextRequest) {
     }
 
     const { tokens, user } = await registerService(parsed.data)
+
+    // Audit Log: User Registered
+    const { ipAddress, userAgent } = getRequestMetadata(req)
+    AuditService.record({
+      userId: user.sub,
+      tenantId: user.tenantId,
+      action: 'AUTH_REGISTER',
+      ipAddress,
+      userAgent,
+      metadata: { email: user.email },
+    })
+
     await setAuthCookies(tokens.accessToken, tokens.refreshToken)
 
     return createdResponse(

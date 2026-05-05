@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import type { CreateTenantInput, UpdateTenantInput } from './schema'
 import { ulid } from 'ulid'
 import { EmailService } from '@/services/email.service'
+import { TenantRepository } from './repository'
 
 // ────────────────────────────────────────
 // Tenant Service — CRUD Operations
@@ -15,7 +16,7 @@ import { EmailService } from '@/services/email.service'
  */
 export async function CreateTenantService(input: CreateTenantInput) {
   // ตรวจสอบ slug ซ้ำ
-  const existing = await prisma.tenant.findUnique({ where: { slug: input.slug } })
+  const existing = await TenantRepository.findBySlug(input.slug)
   if (existing) throw new Error('Slug นี้ถูกใช้งานแล้ว')
 
   const tenant = await prisma.tenant.create({
@@ -35,7 +36,7 @@ export async function CreateTenantService(input: CreateTenantInput) {
  * ดึง tenant ตาม ID
  */
 export async function GetTenantByIdService(id: string) {
-  const tenant = await prisma.tenant.findUnique({
+  const tenant = await prisma.tenant.findFirst({
     where: { id, deletedAt: null },
   })
   if (!tenant) throw new Error('ไม่พบ Tenant')

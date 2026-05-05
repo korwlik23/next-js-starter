@@ -1,222 +1,230 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { Button, Input, Modal, Badge, Select } from '@/components/ui'
+import { DataTable } from '@/components/table/DataTable'
+import toast from 'react-hot-toast'
 import { api } from '@/services/apiClient'
-import { Button, Input, Skeleton } from '@/components/ui'
-import { toast } from 'react-hot-toast'
-import { Translation } from '@prisma/client'
-import { SUPPORTED_LOCALES } from '@/i18n/config'
 
-// ────────────────────────────────────────
-// Admin: Translation Management
-// ────────────────────────────────────────
-
-const fetchTranslations = async (locale: string) => {
-  const result = await api.get<Translation[]>(`/api/admin/translations?locale=${locale}`)
-  if (result.error) throw new Error(result.error)
-  return result.data || []
-}
-
-const saveTranslation = async (data: any) => {
-  const result = await api.post('/api/admin/translations', data)
-  if (result.error) throw new Error(result.error)
-
-  // Revalidate Cache หลังจากแก้คำแปล สำคัญมาก!
-  await fetch('/api/admin/translations/revalidate', { method: 'POST' })
-  return result.data
+interface Translation {
+  id: string
+  locale: string
+  namespace: string
+  key: string
+  value: string
 }
 
 export default function TranslationsPage() {
-  const queryClient = useQueryClient()
-  const [active_locale, setActiveLocale] = useState<string>('th')
+  const [translations, setTranslations] = useState<Translation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentLocale, setCurrentLocale] = useState('th')
+  const [search, setSearch] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<Translation | null>(null)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['translations', active_locale],
-    queryFn: () => fetchTranslations(active_locale),
+  const [formData, setFormData] = useState({
+    locale: 'th',
+    namespace: 'common',
+    key: '',
+    value: '',
   })
 
-  // State สำหรับฟอร์มเพิ่มคำแแปลใหม่
-  const [new_namespace, setNewNamespace] = useState('')
-  const [new_key, setNewKey] = useState('')
-  const [new_value, setNewValue] = useState('')
-
-  const mutation = useMutation({
-    mutationFn: saveTranslation,
-    onSuccess: () => {
-      toast.success('บันทึกคำแปลสำเร็จ ระบบอัปเดตหน้าเว็บแล้ว')
-      queryClient.invalidateQueries({ queryKey: ['translations'] })
-      setNewNamespace('')
-      setNewKey('')
-      setNewValue('')
-    },
-    onError: (err) => toast.error(err.message || 'บันทึกล้มเหลว'),
-  })
-
-  const HandleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!new_namespace || !new_key || !new_value) {
-      toast.error('กรุณากรอกข้อมูลให้ครบถ้วน')
-      return
+  const fetchTranslations = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get<Translation[]>(`/api/admin/translations?locale=${currentLocale}`)
+      if (res.data) {
+        setTranslations(res.data)
+      }
+    } catch {
+      toast.error('ไม่สามารถโหลดข้อมูลคำแปลได้')
+    } finally {
+      setLoading(false)
     }
-    mutation.mutate({
-      locale: active_locale,
-      namespace: new_namespace,
-      key: new_key,
-      value: new_value,
-    })
   }
 
-  const HandleQuickEdit = (namespace: string, key: string, new_val: string) => {
-    mutation.mutate({
-      locale: active_locale,
-      namespace,
-      key,
-      value: new_val,
-    })
+  useEffect(() => {
+    fetchTranslations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLocale])
+
+  const handleOpenModal = (item?: Translation) => {
+    if (item) {
+      setEditingItem(item)
+      setFormData({
+        locale: item.locale,
+        namespace: item.namespace,
+        key: item.key,
+        value: item.value,
+      })
+    } else {
+      setEditingItem(null)
+      setFormData({
+        locale: currentLocale,
+        namespace: 'common',
+        key: '',
+        value: '',
+      })
+    }
+    setIsModalOpen(true)
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const res = await api.post('/api/admin/translations', formData)
+      if (res.error) return toast.error(res.error)
+
+      toast.success(editingItem ? 'อัปเดตคำแปลสำเร็จ' : 'เพิ่มคำแปลใหม่สำเร็จ')
+      setIsModalOpen(false)
+      fetchTranslations()
+    } catch {
+      toast.error('เกิดข้อผิดพลาดในการบันทึก')
+    }
+  }
+
+  const columns = [
+    {
+      label: 'Namespace',
+      key: 'namespace',
+      render: (row: Translation) => (
+        <Badge variant="neutral" className="text-[10px] uppercase tracking-widest">
+          {row.namespace}
+        </Badge>
+      ),
+    },
+    {
+      label: 'Key',
+      key: 'key',
+      render: (row: Translation) => (
+        <code className="text-xs font-mono text-[var(--color-info)] font-bold">{row.key}</code>
+      ),
+    },
+    {
+      label: 'Value',
+      key: 'value',
+      render: (row: Translation) => <span className="text-sm">{row.value}</span>,
+    },
+    {
+      label: 'Locale',
+      key: 'locale',
+      render: (row: Translation) => (
+        <Badge variant="primary" className="uppercase">
+          {row.locale}
+        </Badge>
+      ),
+    },
+  ]
+
+  const filteredData = translations.filter(
+    (item) =>
+      item.key.toLowerCase().includes(search.toLowerCase()) ||
+      item.value.toLowerCase().includes(search.toLowerCase()) ||
+      item.namespace.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
-    <div className="max-w-5xl mx-auto pb-12">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-[var(--color-primary)]">
-          ระบบจัดการภาษา (i18n)
-        </h1>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          แก้ไขคำแปลหรือเพิ่มคำใหม่ คำแปลที่เพิ่มที่นี่จะมีความสำคัญเหนือกว่าไฟล์ JSON
-        </p>
-      </div>
-
-      <div className="flex w-full sm:w-fit bg-[var(--color-surface-low)] border border-[var(--color-border)] p-1 rounded-[var(--radius-md)] mb-6 gap-1 overflow-x-auto">
-        {SUPPORTED_LOCALES.map((loc) => (
-          <button
-            key={loc}
-            onClick={() => setActiveLocale(loc)}
-            className={`min-h-10 flex-1 sm:flex-none px-4 py-2 rounded-[var(--radius-sm)] text-sm font-medium transition-all ${
-              active_locale === loc
-                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-sm'
-                : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]'
-            }`}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1
+            className="text-3xl font-black tracking-tight"
+            style={{ color: 'var(--color-primary)' }}
           >
-            ภาษา {loc.toUpperCase()}
-          </button>
-        ))}
-      </div>
+            Translations
+          </h1>
+          <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+            Manage multilingual content and add new languages dynamically.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-32">
+            <Select
+              value={currentLocale}
+              onChange={(e) => setCurrentLocale(e.target.value)}
+              options={[
+                { label: 'Thai (TH)', value: 'th' },
+                { label: 'English (EN)', value: 'en' },
+                { label: 'Japanese (JA)', value: 'ja' },
+                { label: 'Chinese (ZH)', value: 'zh' },
+              ]}
+            />
+          </div>
+          <Button variant="primary" onClick={() => handleOpenModal()}>
+            <span className="material-symbols-outlined mr-2">translate</span>
+            Add Key
+          </Button>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-        {/* เลนส์ขอบซ้าย: ฟอร์มเพิ่ม/แก้ไขด่วน */}
-        <div className="lg:col-span-1">
-          <form
-            onSubmit={HandleSubmit}
-            className="editorial-card-elevated p-4 sm:p-5 flex flex-col gap-4 lg:sticky lg:top-20"
-          >
-            <h2 className="text-lg font-semibold mb-2">เพิ่มคำแปลใหม่</h2>
-            <div>
-              <label className="text-xs text-[var(--color-text-subtle)] font-medium mb-1.5 block uppercase">
-                Namespace
-              </label>
-              <Input
-                placeholder="เช่น auth, common"
-                value={new_namespace}
-                onChange={(e) => setNewNamespace(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-[var(--color-text-subtle)] font-medium mb-1.5 block uppercase">
-                Key
-              </label>
-              <Input
-                placeholder="เช่น login, title"
-                value={new_key}
-                onChange={(e) => setNewKey(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-[var(--color-text-subtle)] font-medium mb-1.5 block uppercase">
-                Value (คำแปล)
-              </label>
-              <Input
-                placeholder="ใส่คำแปลที่นี่"
-                value={new_value}
-                onChange={(e) => setNewValue(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="mt-2" isLoading={mutation.isPending}>
-              บันทึกคำแปล
+      <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] overflow-hidden shadow-sm">
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          isLoading={loading}
+          onSearch={setSearch}
+          actions={(row) => (
+            <Button variant="ghost" size="sm" onClick={() => handleOpenModal(row)}>
+              <span className="material-symbols-outlined text-[1.1rem]">edit</span>
             </Button>
-          </form>
-        </div>
-
-        {/* เลนส์ขวา: ตารางคำแปลที่มีใน DB */}
-        <div className="lg:col-span-2">
-          {isLoading ? (
-            <div className="flex flex-col gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} height="4rem" />
-              ))}
-            </div>
-          ) : data && data.length > 0 ? (
-            <div className="editorial-card-elevated overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-sm text-[var(--color-text-muted)]">
-                  <thead className="text-xs uppercase bg-[var(--color-surface-low)] border-b border-[var(--color-border)] text-[var(--color-text-subtle)]">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Namespace</th>
-                      <th className="px-4 py-3 font-medium">Key</th>
-                      <th className="px-4 py-3 font-medium">Value</th>
-                      <th className="px-4 py-3 font-medium max-w-[80px]">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]">
-                    {data.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-[var(--color-surface-low)] transition-colors"
-                      >
-                        <td className="px-4 py-3 font-mono text-xs">{item.namespace}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-[var(--color-primary)]">
-                          {item.key}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Input
-                            defaultValue={item.value}
-                            onBlur={(e) => {
-                              if (e.target.value !== item.value) {
-                                HandleQuickEdit(item.namespace, item.key, e.target.value)
-                              }
-                            }}
-                            className="h-9 text-sm bg-transparent hover:border-[var(--color-border-strong)] px-2"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[10px] text-[var(--color-success)] bg-[var(--color-success)]/10 px-2 py-1 rounded-full uppercase font-bold">
-                            In DB
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="p-4 border-t border-[var(--color-border)] text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-low)]">
-                * พิมพ์แก้ไขในช่อง Value แล้วคลิกพื้นที่ว่าง (Blur) เพื่อเซฟอัตโนมัติ
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center p-8 sm:p-12 border border-[var(--color-border)] rounded-[var(--radius-md)] border-dashed">
-              <div className="h-12 w-12 rounded-full bg-[var(--color-surface-low)] flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-[var(--color-text-faint)]">
-                  translate
-                </span>
-              </div>
-              <p className="text-[var(--color-text-muted)] font-medium">ยังไม่มีคำแปลใน Database</p>
-              <p className="text-xs text-[var(--color-text-faint)] mt-2">
-                คำแปลทั้งหมดจะถูกดึงจากไฟล์ JSON พื้นฐาน
-              </p>
-            </div>
           )}
-        </div>
+        />
       </div>
+
+      <Modal
+        is_open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingItem ? 'Edit Translation' : 'Add New Translation'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Locale"
+              value={formData.locale}
+              onChange={(e) => setFormData({ ...formData, locale: e.target.value })}
+              placeholder="e.g. th, en, ja"
+              required
+              disabled={!!editingItem}
+            />
+            <Input
+              label="Namespace"
+              value={formData.namespace}
+              onChange={(e) => setFormData({ ...formData, namespace: e.target.value })}
+              placeholder="e.g. common, auth"
+              required
+              disabled={!!editingItem}
+            />
+          </div>
+          <Input
+            label="Key"
+            value={formData.key}
+            onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+            placeholder="e.g. welcome_message"
+            required
+            disabled={!!editingItem}
+          />
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-subtle)]">
+              Value
+            </label>
+            <textarea
+              className="w-full min-h-[100px] p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] outline-none text-sm transition-all"
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              placeholder="Enter translation text..."
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              Save Translation
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

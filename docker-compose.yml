@@ -12,8 +12,9 @@ services:
       - DATABASE_URL=mysql://nextjs_user:nextjs_password@db:3306/nextjs_starter
       - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
       - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
-      - JWT_SECRET=your-super-secret-jwt-key
-      - JWT_REFRESH_SECRET=your-super-secret-refresh-key
+      - JWT_SECRET=replace-with-a-random-secret-at-least-32-chars
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=7d
       - NEXT_PUBLIC_ROOT_DOMAIN=localhost:3000
     depends_on:
       db:

@@ -4,19 +4,39 @@ import { clsx } from 'clsx'
 // Badge — คอมโพเนนต์สำหรับแสดงสถานะ หรือแท็ก
 // ────────────────────────────────────────
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'outline'
+export type BadgeVariant =
+  | 'default'
+  | 'primary'
+  | 'secondary'
+  | 'neutral'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'danger'
+  | 'info'
+  | 'outline'
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant
   size?: 'sm' | 'md' | 'lg'
 }
 
-export function Badge({ variant = 'default', size = 'md', className, children, ...props }: BadgeProps) {
+export function Badge({
+  variant = 'default',
+  size = 'md',
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   const variants = {
     default: 'bg-neutral-800 text-neutral-200 border border-neutral-700',
+    primary: 'bg-blue-500/10 text-blue-500 border border-blue-500/20',
+    secondary: 'bg-neutral-500/10 text-neutral-500 border border-neutral-500/20',
+    neutral: 'bg-neutral-500/10 text-neutral-500 border border-neutral-500/20',
     success: 'bg-green-500/10 text-green-400 border border-green-500/20',
     warning: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
     error: 'bg-red-500/10 text-red-400 border border-red-500/20',
+    danger: 'bg-red-500/10 text-red-400 border border-red-500/20',
     info: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
     outline: 'bg-transparent text-neutral-400 border border-neutral-600',
   }
