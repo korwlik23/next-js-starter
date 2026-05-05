@@ -9,6 +9,13 @@ import { logger } from '@/lib/logger'
 // ────────────────────────────────────────
 
 export class BillingService {
+  static async GetTenantIdByUserId(userId: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true },
+    })
+    return user?.tenantId || null
+  }
   /**
    * สร้าง Stripe Checkout Session สำหรับอัปเกรดแพลน
    * @param tenant_id - ID ของ tenant ที่ต้องการอัปเกรด

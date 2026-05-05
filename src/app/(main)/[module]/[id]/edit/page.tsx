@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Spinner } from '@/components/ui'
+import { Spinner, Input, Button } from '@/components/ui'
 
 const skipKeys = ['id', 'password', 'deletedAt', 'createdAt', 'updatedAt', 'roles', 'permissions']
 
@@ -86,14 +86,11 @@ export default function ModuleEditPage() {
           <form onSubmit={handleSubmit} className="editorial-card-elevated p-4 sm:p-6 space-y-5">
             {Object.entries(fields).map(([key, val]) => (
               <div key={key}>
-                <label className="block text-[10px] font-bold uppercase text-[var(--color-text-subtle)] mb-2">
-                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                </label>
-                <input
+                <Input
+                  label={key.replace(/([A-Z])/g, ' $1').trim()}
                   type={key === 'email' ? 'email' : 'text'}
                   value={val}
                   onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
-                  className="editorial-input w-full"
                 />
               </div>
             ))}
@@ -105,16 +102,13 @@ export default function ModuleEditPage() {
             )}
 
             <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-              <button type="submit" disabled={isSubmitting} className="btn-primary text-xs">
-                {isSubmitting && (
-                  <span className="material-symbols-outlined text-sm animate-spin">
-                    progress_activity
-                  </span>
-                )}
+              <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
                 Save Changes
-              </button>
-              <Link href={`/${moduleName}/${id}`} className="btn-secondary text-xs">
-                Cancel
+              </Button>
+              <Link href={`/${moduleName}/${id}`}>
+                <Button type="button" variant="secondary">
+                  Cancel
+                </Button>
               </Link>
             </div>
           </form>

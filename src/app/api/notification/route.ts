@@ -1,60 +1,48 @@
-import { NextRequest } from 'next/server'
-import { successResponse, serverError, unauthorized, badRequest } from '@/utils/api'
-import { getAuthUserFromRequest } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { successResponse, serverError, badRequest } from '@/utils/api'
+import { NotificationService } from '@/modules/notification/service'
 import { logger } from '@/lib/logger'
+import { withAuth } from '@/lib/authorize'
+import { z } from 'zod'
+
+const patchNotificationSchema = z.object({
+  notificationId: z.string().optional(),
+  markAllRead: z.boolean().optional(),
+})
 
 // ─────────────────────────────────────────
 // GET /api/notification
 // ดึงรายการแจ้งเตือนสำหรับผู้ใช้งานปัจจุบัน
 // ─────────────────────────────────────────
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (req: Request, { user }: any) => {
   try {
-    const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
-
-    // รับ query limit
-    const url = new URL(request.url)
+    const url = new URL(req.url)
     const limit = parseInt(url.searchParams.get('limit') || '10')
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: user.sub },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    })
-
-    const unreadCount = await prisma.notification.count({
-      where: { userId: user.sub, isRead: false },
-    })
-
-    return successResponse({ items: notifications, unreadCount })
+    const data = await NotificationService.getNotifications(user.userId, limit)
+    return successResponse(data)
   } catch (error) {
     logger.error('Fetch notifications error', { error })
     return serverError('เกิดข้อผิดพลาดในการดึงหน้าการแจ้งเตือน')
   }
-}
+})
 
 // ─────────────────────────────────────────
 // PATCH /api/notification
 // อัปเดตสถานะการแจ้งเตือนเป็นอ่านแล้ว
 // ─────────────────────────────────────────
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (req: Request, { user }: any) => {
   try {
-    const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
+    const body = await req.json()
+    const parsed = patchNotificationSchema.safeParse(body)
 
-    const body = await request.json()
-    const { notificationId, markAllRead } = body as {
-      notificationId?: string
-      markAllRead?: boolean
+    if (!parsed.success) {
+      return badRequest('ข้อมูลไม่ถูกต้อง', parsed.error.flatten().fieldErrors as any)
     }
 
+    const { notificationId, markAllRead } = parsed.data
+
     if (markAllRead) {
-      // อ่านทั้งหมด
-      await prisma.notification.updateMany({
-        where: { userId: user.sub, isRead: false },
-        data: { isRead: true },
-      })
+      await NotificationService.markAllAsRead(user.userId)
       return successResponse(null, 'เคลียร์การแจ้งเตือนทั้งหมดแล้ว')
     }
 
@@ -62,15 +50,10 @@ export async function PATCH(request: NextRequest) {
       return badRequest('กรุณาระบุรหัสการแจ้งเตือน')
     }
 
-    // ทำเครื่องหมายอ่านแล้วให้เฉพาะบางรายการ
-    await prisma.notification.updateMany({
-      where: { id: notificationId, userId: user.sub },
-      data: { isRead: true },
-    })
-
+    await NotificationService.markAsRead(user.userId, notificationId)
     return successResponse(null, 'อัปเดตสถานะสำเร็จ')
   } catch (error) {
     logger.error('Update notification status error', { error })
     return serverError('เกิดข้อผิดพลาดในการอัปเดตการแจ้งเตือน')
   }
-}
+})

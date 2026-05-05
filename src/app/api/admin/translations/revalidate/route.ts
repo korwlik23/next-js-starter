@@ -1,11 +1,11 @@
 import { revalidateTag } from 'next/cache'
-import { NextResponse } from 'next/server'
+import { successResponse, serverError } from '@/utils/api'
 
 export async function POST() {
   try {
     revalidateTag('translations', 'max')
-    return NextResponse.json({ success: true, message: 'Cache revalidated' }, { status: 200 })
+    return successResponse(null, 'Cache revalidated')
   } catch {
-    return NextResponse.json({ error: 'Failed to revalidate' }, { status: 500 })
+    return serverError('Failed to revalidate')
   }
 }

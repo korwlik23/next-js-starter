@@ -52,6 +52,8 @@ export const metadata: Metadata = {
   },
 }
 
+import { Toaster } from 'react-hot-toast'
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // โหลด locale และ messages จาก server
   const locale = await getLocale()
@@ -72,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <Toaster position="top-right" reverseOrder={false} />
         {/* JSON-LD Structured Data สำหรับ SEO รูปแบบ Organization / WebSite */}
         <script
           type="application/ld+json"

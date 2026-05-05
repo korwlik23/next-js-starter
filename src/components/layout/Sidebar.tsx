@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore'
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
   { label: 'Users', href: '/user', icon: 'group' },
+  { label: 'Roles', href: '/role', icon: 'verified_user' },
   { label: 'Analytics', href: '/analytics', icon: 'analytics' },
   { label: 'Billing', href: '/billing', icon: 'payments' },
   { label: 'Admin', href: '/admin', icon: 'admin_panel_settings' },
@@ -125,34 +126,51 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* User Profile — แสดงข้อมูลผู้ใช้ด้านล่าง */}
-        <div className="px-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-xs font-bold shrink-0"
-              style={{
-                backgroundColor: 'var(--color-primary)',
-                color: 'var(--color-on-primary)',
-              }}
+        <div className="px-4 pt-4 pb-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <div className="flex items-center justify-between gap-2">
+            <Link
+              href="/profile"
+              onClick={() => onClose()}
+              className="flex items-center gap-3 min-w-0 flex-1 group transition-opacity hover:opacity-80"
             >
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="text-xs font-bold truncate" style={{ color: 'var(--color-text)' }}>
-                {user?.name ?? 'Admin User'}
-              </p>
-              <button
-                type="button"
-                className="text-[10px] transition-colors hover:opacity-70"
-                style={{ color: 'var(--color-text-faint)' }}
-                onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST' })
-                  clearUser()
-                  window.location.href = '/login'
+              <div
+                className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-xs font-bold shrink-0 shadow-sm"
+                style={{
+                  backgroundColor: 'var(--color-primary)',
+                  color: 'var(--color-on-primary)',
                 }}
               >
-                Sign out
-              </button>
-            </div>
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p
+                  className="text-xs font-bold truncate group-hover:underline"
+                  style={{ color: 'var(--color-text)' }}
+                >
+                  {user?.name ?? 'Admin User'}
+                </p>
+                <p
+                  className="text-[10px] truncate mt-0.5"
+                  style={{ color: 'var(--color-text-subtle)' }}
+                >
+                  View Profile
+                </p>
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              className="flex items-center justify-center w-8 h-8 shrink-0 rounded-[var(--radius-sm)] transition-colors hover:bg-[var(--color-surface-mid)]"
+              style={{ color: 'var(--color-text-faint)' }}
+              title="Sign out"
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' })
+                clearUser()
+                window.location.href = '/login'
+              }}
+            >
+              <span className="material-symbols-outlined text-[1.15rem]">logout</span>
+            </button>
           </div>
         </div>
       </aside>

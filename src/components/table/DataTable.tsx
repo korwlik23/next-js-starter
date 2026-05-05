@@ -66,7 +66,7 @@ interface DataTableProps<T> {
 }
 
 export function DataTable<T extends Record<string, unknown>>({
-  data,
+  data = [],
   columns,
   total = 0,
   page = 1,

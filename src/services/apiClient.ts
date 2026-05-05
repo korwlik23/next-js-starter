@@ -66,7 +66,11 @@ export async function apiClient<T = unknown>(
     return { data: null, error: json?.message ?? `HTTP ${status}`, status }
   }
 
-  return { data: json?.data ?? json, error: null, status }
+  // ถ้าเป็น Paginated Response (มี meta) ห้าม unwrap แค่ data ให้ส่งคืนทั้งก้อน
+  const resultData =
+    json?.data !== undefined && json?.meta !== undefined ? json : (json?.data ?? json)
+
+  return { data: resultData, error: null, status }
 }
 
 // ─────────────────────────────────────────────

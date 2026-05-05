@@ -949,7 +949,7 @@ user.id === post.ownerId
 
 ---
 
-# 🚀 Laravel Starter Template — Senior Version 2.0
+# 🚀 Next.js Starter Template — Senior Version 2.0
 
 ## 🔥 Overview
 

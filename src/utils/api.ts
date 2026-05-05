@@ -36,31 +36,40 @@ export function paginatedResponse<T>(
 // ─────────────────────────────────────────
 // ERROR RESPONSES
 // ─────────────────────────────────────────
-export function errorResponse(message: string, status: number, errors?: Record<string, string[]>) {
-  const body: ApiResponse = { success: false, message, errors }
+export function errorResponse(
+  message: string,
+  status: number,
+  code?: string,
+  errors?: Record<string, string[]>
+) {
+  const body: ApiResponse = { success: false, message, code, errors }
   return NextResponse.json(body, { status })
 }
 
-export function badRequest(message = 'Bad Request', errors?: Record<string, string[]>) {
-  return errorResponse(message, HTTP_STATUS.BAD_REQUEST, errors)
+export function badRequest(
+  message = 'Bad Request',
+  code?: string,
+  errors?: Record<string, string[]>
+) {
+  return errorResponse(message, HTTP_STATUS.BAD_REQUEST, code, errors)
 }
 
-export function unauthorized(message = 'Unauthorized') {
-  return errorResponse(message, HTTP_STATUS.UNAUTHORIZED)
+export function unauthorized(message = 'Unauthorized', code?: string) {
+  return errorResponse(message, HTTP_STATUS.UNAUTHORIZED, code)
 }
 
-export function forbidden(message = 'Forbidden') {
-  return errorResponse(message, HTTP_STATUS.FORBIDDEN)
+export function forbidden(message = 'Forbidden', code?: string) {
+  return errorResponse(message, HTTP_STATUS.FORBIDDEN, code)
 }
 
-export function notFound(message = 'Not Found') {
-  return errorResponse(message, HTTP_STATUS.NOT_FOUND)
+export function notFound(message = 'Not Found', code?: string) {
+  return errorResponse(message, HTTP_STATUS.NOT_FOUND, code)
 }
 
-export function conflict(message = 'Conflict') {
-  return errorResponse(message, HTTP_STATUS.CONFLICT)
+export function conflict(message = 'Conflict', code?: string) {
+  return errorResponse(message, HTTP_STATUS.CONFLICT, code)
 }
 
-export function serverError(message = 'Internal Server Error') {
-  return errorResponse(message, HTTP_STATUS.INTERNAL_ERROR)
+export function serverError(message = 'Internal Server Error', code?: string) {
+  return errorResponse(message, HTTP_STATUS.INTERNAL_ERROR, code)
 }

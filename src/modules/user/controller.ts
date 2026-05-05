@@ -49,6 +49,11 @@ export class UserController {
         )
       }
 
+      // บังคับให้ tenantId ตรงกับผู้สร้างเพื่อป้องกัน Data Leakage
+      if (authUser.tenantId) {
+        parsed.data.tenantId = authUser.tenantId
+      }
+
       const newUser = await createUserService(parsed.data)
       return createdResponse(newUser, 'สร้างผู้ใช้งานสำเร็จ')
     } catch (error) {

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Button } from '@/components/ui'
 
 // ────────────────────────────────────────
 // 500 Internal Server Error Page
@@ -38,9 +39,9 @@ export default function ServerErrorPage() {
             Return to Dashboard
             <span className="material-symbols-outlined text-base">arrow_forward</span>
           </Link>
-          <button onClick={() => window.location.reload()} className="btn-secondary">
+          <Button onClick={() => window.location.reload()} variant="secondary">
             Try Again
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Input, Button } from '@/components/ui'
 
 export default function ModuleCreatePage() {
   const params = useParams<{ module: string }>()
@@ -65,15 +66,12 @@ export default function ModuleCreatePage() {
         <form onSubmit={handleSubmit} className="editorial-card-elevated p-4 sm:p-6 space-y-5">
           {Object.entries(fields).map(([key, val]) => (
             <div key={key}>
-              <label className="block text-[10px] font-bold uppercase text-[var(--color-text-subtle)] mb-2">
-                {key.charAt(0).toUpperCase() + key.slice(1)}
-              </label>
-              <input
+              <Input
+                label={key.charAt(0).toUpperCase() + key.slice(1)}
                 type={key === 'email' ? 'email' : key === 'password' ? 'password' : 'text'}
                 value={val}
                 onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
                 placeholder={`Enter ${key}...`}
-                className="editorial-input w-full"
                 required
               />
             </div>
@@ -86,16 +84,13 @@ export default function ModuleCreatePage() {
           )}
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-            <button type="submit" disabled={isSubmitting} className="btn-primary text-xs">
-              {isSubmitting && (
-                <span className="material-symbols-outlined text-sm animate-spin">
-                  progress_activity
-                </span>
-              )}
+            <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
               Create {moduleLabel}
-            </button>
-            <Link href={`/${moduleName}`} className="btn-secondary text-xs">
-              Cancel
+            </Button>
+            <Link href={`/${moduleName}`}>
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
             </Link>
           </div>
         </form>

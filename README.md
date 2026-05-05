@@ -4,14 +4,15 @@ A production-ready Next.js Starter Template designed for scalability, SaaS appli
 
 ## 🌟 Features
 
-- **Framework:** Next.js (App Router) + React 19
+- **Framework:** Next.js 16 (App Router) + React 19
 - **Database:** Prisma ORM, XAMPP (MySQL) support
 - **Auth & Security:** JWT Auth (HTTP-only), Bcrypt, Jose, Edge-ready Route Protection
-- **Multi-tenant SaaS:** Workspace/Tenant data isolation built-in (via Prisma Schema)
+- **Multi-tenant SaaS:** Workspace/Tenant data isolation built-in (via Prisma Schema & Service Layer)
 - **Role-Based Access (RBAC/ABAC):** Fine-grained permission system baked directly into controllers/UI (`<Can>` component)
-- **Design System:** Tailwind CSS, Lucide Icons, Fully Reusable Components (`src/components/ui`)
+- **Design System:** Tailwind CSS v4, Lucide Icons, Fully Reusable Components (`src/components/ui`)
 - **Developer Tools:** Built-in UI Explorer (`/dev/ui`)
 - **External Integrations:** Stripe Billing, Resend Email, OAuth (Google/Github)
+- **Testing:** Unit Tests with Jest & E2E Tests with Playwright
 
 ---
 
@@ -23,82 +24,119 @@ A production-ready Next.js Starter Template designed for scalability, SaaS appli
 
 ---
 
-## 🚀 Getting Started
+## 🔧 Environment Configuration (.env)
 
-1. **Clone & Install Dependencies:**
+Before deploying or utilizing third-party features, make sure your `.env` file is properly configured.
 
-   Run the setup script which will automatically install packages and initialize your database (push DB schema and run seeds):
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Update `DATABASE_URL` if you are using a different MySQL setup.
+   ```env
+   DATABASE_URL="mysql://root:@localhost:3306/nextjs_starter"
+   ```
+3. Set your secret keys (`JWT_SECRET`, `API_KEY`).
+4. Set up third-party keys (Stripe, Resend, Google, Github) if required.
+
+---
+
+## 🚀 Getting Started (Setup & Run)
+
+1. **Install Dependencies:**
 
    ```bash
    npm run setup
    ```
 
-2. **Run the Development Server:**
+2. **Database Setup & Seeding:**
+   Run the following commands to push the Prisma schema to your MySQL database and generate the initial seed data (Admin user, basic roles, and tenant).
+
+   ```bash
+   npm run db:push
+   npm run db:generate
+   npm run db:seed
+   ```
+
+   _(Alternatively, you can run `npm run setup` to install dependencies and initialize the DB in one command)._
+
+3. **Run the Development Server:**
 
    ```bash
    npm run dev
    ```
 
-   - Open `http://localhost:3000` to view the app.
-   - Open `http://localhost:3000/dev/ui` to see the UI Component Library.
+   - Main App: `http://localhost:3000`
+   - Dashboard: `http://localhost:3000/dashboard`
+   - UI Component Library: `http://localhost:3000/dev/ui`
+
+   _Default Admin Login (from Seeder):_
+   - **Email:** `admin@acme.com`
+   - **Password:** `password123`
 
 ---
 
-## 🔧 Environment Configuration (.env)
+## 🧪 Testing
 
-Before deploying or utilizing third-party features, make sure your `.env` file is properly configured. Rename `.env.example` to `.env` if you haven't already.
+We use **Jest** for Unit/Service tests and **Playwright** for End-to-End (E2E) UI tests.
 
-### Core Database
+### Run Unit Tests (Jest)
 
-```env
-DATABASE_URL="mysql://root:@localhost:3306/nextjs_starter"
+Tests the Service Layer, utility functions, and hooks.
+
+```bash
+npm run test
+npm run test:watch      # Watch mode
+npm run test:coverage   # View coverage report
 ```
 
-### Authentication Services (OAuth)
+### Run E2E Tests (Playwright)
 
-To enable "Login with Google" or Github:
+Tests the complete user flows (Login, Register, etc.). Playwright will automatically start the dev server locally.
 
-1. Go to Google Cloud Console / GitHub Developer Settings.
-2. Create an OAuth App and set callback URL to `[your-domain]/api/auth/callback/[provider]`.
-
-```env
-GOOGLE_CLIENT_ID="your_google_id"
-GOOGLE_CLIENT_SECRET="your_google_secret"
-GITHUB_CLIENT_ID="your_github_id"
-GITHUB_CLIENT_SECRET="your_github_secret"
-```
-
-### Stripe Billing (SaaS Subscriptions)
-
-```env
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-STRIPE_PRICE_ID_PRO="price_..."
-STRIPE_PRICE_ID_ENT="price_..."
-```
-
-_Note: Make sure to map your `STRIPE_WEBHOOK_SECRET` correctly after setting up webhooks in your Stripe Dashboard pointing to `/api/billing/webhook`._
-
-### Resend Email Integration
-
-```env
-RESEND_API_KEY="re_..."
-NEXT_PUBLIC_FROM_EMAIL="noreply@yourdomain.com"
+```bash
+npm run test:e2e
 ```
 
 ---
 
-## 🏗 How to Create a New Module
+## 🏗 Architecture & Modules
 
-This starter strictly follows a **Modular Architecture** (`Controller-Service-Schema` pattern) instead of putting all business logic inside Next.js Routes.
+This starter strictly follows a **Layered/Modular Architecture** (`Route -> Controller -> Service -> Schema`). We decouple business logic from Next.js route handlers.
+
+### 📂 Project Structure
+
+```text
+/src
+ ├── app/              # Next.js App Router
+ │   ├── (auth)/       # Public auth pages (Login, Register)
+ │   ├── (main)/       # Protected pages (Dashboard, Admin, Settings)
+ │   ├── api/          # Route handlers (Standardized Responses & Zod Validation)
+ │   └── dev/          # Development tools
+ │
+ ├── components/       # Reusable UI & Layout Components
+ │   └── ui/           # Design System (Input, Button, Spinner, etc.)
+ │
+ ├── modules/          # Core Business Logic (Decoupled from Framework)
+ │   ├── user/         # Controller & Service for User Management
+ │   ├── tenant/       # Workspace Isolation Logic
+ │   ├── auth/         # JWT parsing, Permissions
+ │   ├── notification/ # Notification Service
+ │   └── analytics/    # Dashboard Analytics Service
+ │
+ ├── lib/              # Connectors (Prisma, Rate Limit, Auth Utils)
+ └── utils/            # Shared string formatting, Standard API Response helpers
+```
+
+### How to Create a New Module
 
 To add a new feature (e.g., `Product`):
 
-1. **Add to Database (`prisma/schema.prisma`)**
+1. **Update Database (`prisma/schema.prisma`)**
 
    ```prisma
    model Product {
-     id       String @id
+     id       String @id @default(uuid())
      tenantId String
      name     String
      price    Float
@@ -106,68 +144,23 @@ To add a new feature (e.g., `Product`):
    }
    ```
 
-   Then run `npx prisma db push` (and generate).
+   Then run `npm run db:push` and `npm run db:generate`.
 
 2. **Create the Module Folder:** `src/modules/product/`
-   Inside this folder, create 3 files:
    - **`schema.ts`**: Use Zod for input validation.
-   - **`service.ts`**: Direct interaction with Prisma DB.
-   - **`controller.ts`**: Extracts Request/Params, auth validation, calls service, returns JSON.
+   - **`service.ts`**: Handles logic and direct interaction with Prisma.
+   - **`controller.ts`**: Extracts Request/Params, validates with Zod, checks Permissions, and calls Service.
 
-   **Example `controller.ts` for Product:**
-
-   ```ts
-   import { NextRequest } from 'next/server'
-   import { getAuthUser } from '@/lib/auth'
-   import { ProductService } from './service'
-   import { success, unauthorized } from '@/utils/api'
-
-   export class ProductController {
-     static async CreateProduct(req: NextRequest) {
-       const user = await getAuthUser()
-       if (!user) return unauthorized()
-
-       const body = await req.json()
-       const product = await ProductService.create(body, user.tenantId)
-       return success(product, 'Product created')
-     }
-   }
-   ```
-
-3. **Wire it to standard Next.js Router (`src/app/api/product/route.ts`)**
+3. **Wire it to Next.js API Routes (`src/app/api/product/route.ts`)**
 
    ```ts
    import { ProductController } from '@/modules/product/controller'
+   import { withAuth } from '@/lib/authorize'
 
-   export const POST = ProductController.CreateProduct
+   export const POST = withAuth(ProductController.createProduct, 'product:create')
    ```
 
-_(By doing this, you keep Next.js router clean and easily unit-test the Controller and Service)._
-
----
-
-## 📂 Project Structure
-
-```text
-/src
- ├── app/              # Next.js App Router (Pages, API Routes, Layouts)
- │   ├── (auth)/       # Public auth pages (Login, Register)
- │   ├── (main)/       # Protected pages (Dashboard, Admin)
- │   ├── api/          # Web accessible endpoints linking to Controllers
- │   └── dev/          # Development visualization pages (e.g., /dev/ui)
- │
- ├── components/
- │   └── ui/           # Reusable UI Design System (Buttons, Modals, Forms)
- │
- ├── modules/          # Core Business Logic (Decoupled from Next.js routes)
- │   ├── auth/         # Login, JWT parsing, Permissions guard
- │   ├── billing/      # Stripe, Plan Limits
- │   ├── user/         # User management
- │   └── tenant/       # SaaS workspace management
- │
- ├── lib/              # Connectors (Prisma, Logger, Auth Utils)
- └── utils/            # Shared string/date formatting, API response helpers
-```
+_(By doing this, the Next.js router stays clean, and the Controller/Service are easily unit-testable)._
 
 ---
 
