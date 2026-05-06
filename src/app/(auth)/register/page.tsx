@@ -1,16 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { registerSchema, type RegisterInput } from '@/modules/auth/schema'
+import { createRegisterSchema, type RegisterInput } from '@/modules/auth/schema'
 import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const t = useTranslations('auth')
+  const tValidation = useTranslations('validation')
   const [server_error, setServerError] = useState('')
+  const registerSchema = useMemo(
+    () =>
+      createRegisterSchema({
+        invalidEmail: tValidation('invalidEmail'),
+        nameMin: tValidation('nameMin'),
+        passwordMin6: tValidation('passwordMin6'),
+        passwordMin8: tValidation('passwordMin8'),
+        passwordMismatch: tValidation('passwordMismatch'),
+        tokenRequired: tValidation('tokenRequired'),
+        refreshTokenRequired: tValidation('refreshTokenRequired'),
+      }),
+    [tValidation]
+  )
 
   const {
     register,
@@ -28,66 +44,64 @@ export default function RegisterPage() {
       })
       const json = await res.json()
       if (!res.ok) {
-        const error_msg = json.message ?? 'เกิดข้อผิดพลาด'
+        const error_msg = json.message ?? t('errors.server')
         setServerError(error_msg)
         toast.error(error_msg)
         return
       }
-      toast.success('สร้างบัญชีสำเร็จ! กำลังนำคุณไปยัง Dashboard...')
+      toast.success(t('successRegister'))
       router.push('/dashboard')
     } catch {
-      setServerError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
-      toast.error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
+      setServerError(t('errors.network'))
+      toast.error(t('errors.network'))
     }
   }
 
   const FORM_FIELDS = [
     {
       id: 'name',
-      label: 'Full Name',
+      label: t('fullName'),
       type: 'text',
-      placeholder: 'Your Name',
+      placeholder: t('fullNamePlaceholder'),
       field: 'name' as const,
     },
     {
       id: 'reg-email',
-      label: 'Email Address',
+      label: t('email'),
       type: 'email',
-      placeholder: 'name@example.com',
+      placeholder: t('emailPlaceholder'),
       field: 'email' as const,
     },
     {
       id: 'reg-password',
-      label: 'Password',
+      label: t('password'),
       type: 'password',
-      placeholder: '••••••••',
+      placeholder: '********',
       field: 'password' as const,
     },
     {
       id: 'reg-confirm',
-      label: 'Confirm Password',
+      label: t('confirmPassword'),
       type: 'password',
-      placeholder: '••••••••',
+      placeholder: '********',
       field: 'confirmPassword' as const,
     },
   ]
 
   return (
     <div className="w-full">
-      {/* 1. FORM HEADER */}
       <header className="mb-6">
         <h1
           className="text-2xl sm:text-3xl font-black mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
-          Create account
+          {t('createAccount')}
         </h1>
         <p className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
-          Join our professional platform and start managing your workspace.
+          {t('registerSubtitle')}
         </p>
       </header>
 
-      {/* 2. REGISTER FORM */}
       <form
         onSubmit={handleSubmit(HandleSubmit)}
         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
@@ -117,7 +131,6 @@ export default function RegisterPage() {
           </div>
         ))}
 
-        {/* Server error */}
         {server_error && (
           <div className="sm:col-span-2 p-4 rounded-[var(--radius-md)] bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-[10px] font-black uppercase flex items-center gap-3">
             <span className="material-symbols-outlined text-sm">error</span>
@@ -125,7 +138,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Submit button */}
         <div className="sm:col-span-2 pt-2">
           <button
             type="submit"
@@ -137,11 +149,11 @@ export default function RegisterPage() {
                 <span className="material-symbols-outlined text-sm animate-spin">
                   progress_activity
                 </span>
-                Creating account...
+                {t('creatingAccount')}
               </>
             ) : (
               <>
-                Initialize My Workspace
+                {t('initializeWorkspace')}
                 <span className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1">
                   rocket_launch
                 </span>
@@ -151,7 +163,6 @@ export default function RegisterPage() {
         </div>
       </form>
 
-      {/* 3. SSO OPTIONS */}
       <div className="mt-10">
         <div className="relative mb-8">
           <div className="absolute inset-0 flex items-center">
@@ -162,7 +173,7 @@ export default function RegisterPage() {
               className="bg-[var(--color-surface)] px-4"
               style={{ color: 'var(--color-text-faint)' }}
             >
-              Or register with
+              {t('orRegisterWith')}
             </span>
           </div>
         </div>
@@ -195,15 +206,14 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* 4. FOOTER */}
       <footer className="mt-12 pt-8 border-t border-[var(--color-border)]/50 text-center">
         <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
-          Already have an account?{' '}
+          {t('hasAccount')}{' '}
           <Link
             href="/login"
             className="font-black text-[var(--color-primary)] hover:underline underline-offset-4 transition-all"
           >
-            Sign In
+            {t('login')}
           </Link>
         </p>
       </footer>

@@ -1,46 +1,58 @@
 'use client'
 
 import { useCallback } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { clsx } from 'clsx'
-import { SUPPORTED_LOCALES, LOCALE_LABELS, type SupportedLocale } from '@/i18n/config'
-
-// ────────────────────────────────────────
-// LanguageSwitcher — คอมโพเนนต์สลับภาษา
-// ใช้ cookie เก็บ locale แล้ว reload เพื่อให้ next-intl อ่านค่าใหม่
-// ────────────────────────────────────────
+import { SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n/config'
 
 interface LanguageSwitcherProps {
-  /** locale ปัจจุบันจาก server */
-  current_locale?: string
-  /** CSS class เพิ่มเติม */
   className?: string
+  compact?: boolean
 }
 
-export function LanguageSwitcher({ current_locale, className }: LanguageSwitcherProps) {
-  // เปลี่ยนภาษาโดยตั้ง cookie แล้ว reload
-  const HandleChange = useCallback((locale: SupportedLocale) => {
-    document.cookie = `locale=${locale};path=/;max-age=${60 * 60 * 24 * 365}`
+export function LanguageSwitcher({ className, compact = false }: LanguageSwitcherProps) {
+  const currentLocale = useLocale()
+  const t = useTranslations('language')
+
+  const handleChange = useCallback((locale: SupportedLocale) => {
+    document.cookie = `locale=${locale};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`
     window.location.reload()
   }, [])
 
   return (
-    <div className={clsx('flex items-center gap-1', className)}>
-      {SUPPORTED_LOCALES.map((locale) => (
-        <button
-          key={locale}
-          onClick={() => HandleChange(locale)}
-          className={clsx(
-            'px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition-colors',
-            locale === current_locale
-              ? 'bg-white text-black'
-              : 'text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600'
-          )}
-          aria-label={`Switch to ${LOCALE_LABELS[locale]}`}
-          aria-current={locale === current_locale ? 'true' : undefined}
-        >
-          {locale.toUpperCase()}
-        </button>
-      ))}
+    <div
+      className={clsx(
+        'inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-low)] p-1',
+        className
+      )}
+      aria-label={t('label')}
+      role="group"
+    >
+      {!compact && (
+        <span className="hidden px-2 text-[10px] font-black uppercase text-[var(--color-text-faint)] sm:inline">
+          {t('label')}
+        </span>
+      )}
+      {SUPPORTED_LOCALES.map((locale) => {
+        const isActive = locale === currentLocale
+        return (
+          <button
+            key={locale}
+            onClick={() => handleChange(locale)}
+            className={clsx(
+              'min-h-8 min-w-9 rounded-[var(--radius-sm)] px-2 text-[10px] font-black uppercase transition-colors',
+              isActive
+                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+                : 'text-[var(--color-text-subtle)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]'
+            )}
+            aria-label={t('switchTo', { locale: t(locale) })}
+            aria-pressed={isActive}
+            type="button"
+          >
+            {locale}
+          </button>
+        )
+      })}
     </div>
   )
 }

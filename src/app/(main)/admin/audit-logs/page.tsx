@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button, Badge } from '@/components/ui'
 import { DataTable } from '@/components/table/DataTable'
 import toast from 'react-hot-toast'
@@ -29,6 +30,7 @@ interface AuditLogListResponse {
 }
 
 export default function AuditLogsPage() {
+  const t = useTranslations('auditLogsPage')
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -47,7 +49,7 @@ export default function AuditLogsPage() {
         setTotal(res.data.meta.total)
       }
     } catch {
-      toast.error('ไม่สามารถโหลดข้อมูล Audit Logs ได้')
+      toast.error(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -60,7 +62,7 @@ export default function AuditLogsPage() {
 
   const columns = [
     {
-      label: 'Timestamp',
+      label: t('timestamp'),
       key: 'createdAt',
       render: (row: AuditLog) => (
         <div className="flex flex-col">
@@ -72,7 +74,7 @@ export default function AuditLogsPage() {
       ),
     },
     {
-      label: 'User',
+      label: t('user'),
       key: 'user',
       render: (row: AuditLog) => (
         <div className="flex items-center gap-2">
@@ -80,7 +82,7 @@ export default function AuditLogsPage() {
             {row.user?.name?.charAt(0) || '?'}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-bold truncate">{row.user?.name || 'System'}</span>
+            <span className="text-sm font-bold truncate">{row.user?.name || t('system')}</span>
             <span className="text-[10px] text-[var(--color-text-faint)] truncate">
               {row.user?.email || '-'}
             </span>
@@ -89,7 +91,7 @@ export default function AuditLogsPage() {
       ),
     },
     {
-      label: 'Action',
+      label: t('action'),
       key: 'action',
       render: (row: AuditLog) => {
         let variant: 'neutral' | 'success' | 'danger' | 'warning' = 'neutral'
@@ -107,7 +109,7 @@ export default function AuditLogsPage() {
       },
     },
     {
-      label: 'Target',
+      label: t('target'),
       key: 'entity',
       render: (row: AuditLog) => (
         <div className="flex flex-col">
@@ -119,7 +121,7 @@ export default function AuditLogsPage() {
       ),
     },
     {
-      label: 'Details',
+      label: t('details'),
       key: 'metadata',
       render: (row: AuditLog) => {
         if (!row.metadata) return <span className="text-[var(--color-text-faint)]">-</span>
@@ -138,7 +140,7 @@ export default function AuditLogsPage() {
       },
     },
     {
-      label: 'Source',
+      label: t('source'),
       key: 'ipAddress',
       render: (row: AuditLog) => (
         <div className="flex flex-col">
@@ -162,17 +164,17 @@ export default function AuditLogsPage() {
             className="text-3xl font-black tracking-tight"
             style={{ color: 'var(--color-primary)' }}
           >
-            Audit Logs
+            {t('title')}
           </h1>
           <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-            Monitor all user activities and system changes in detail.
+            {t('description')}
           </p>
         </div>
         <Button variant="ghost" onClick={fetchLogs} disabled={loading}>
           <span className={`material-symbols-outlined mr-2 ${loading ? 'animate-spin' : ''}`}>
             refresh
           </span>
-          Refresh
+          {t('refresh')}
         </Button>
       </header>
 

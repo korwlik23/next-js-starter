@@ -1,49 +1,190 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { authConfig } from '@/config'
-import { getAuthUserFromRequest } from '@/lib/auth'
-import { HTTP_STATUS } from '@/constants'
+import { verifyAccessToken, verifyRefreshToken } from '@/lib/jwt'
+import { checkRateLimit } from '@/utils/rate-limit'
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type SupportedLocale } from '@/i18n/config'
+
+const OAUTH_PUBLIC_ROUTE = /^\/api\/auth\/[^/]+\/(login|callback)$/
+const ADMIN_PERMISSION = 'admin.access'
+const LOCALE_COOKIE_NAME = 'locale'
+
+function detectLocale(request: NextRequest): SupportedLocale {
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value
+  if (SUPPORTED_LOCALES.includes(cookieLocale as (typeof SUPPORTED_LOCALES)[number])) {
+    return cookieLocale as SupportedLocale
+  }
+
+  const acceptedLanguages = request.headers.get('accept-language') ?? ''
+  const preferredLocales = acceptedLanguages
+    .split(',')
+    .map((language) => {
+      const [locale, quality] = language.trim().split(';q=')
+      return {
+        locale: locale.split('-')[0].toLowerCase(),
+        quality: quality ? Number.parseFloat(quality) : 1,
+      }
+    })
+    .sort((a, b) => b.quality - a.quality)
+
+  return (
+    (preferredLocales.find(({ locale }) =>
+      SUPPORTED_LOCALES.includes(locale as (typeof SUPPORTED_LOCALES)[number])
+    )?.locale as SupportedLocale | undefined) ?? DEFAULT_LOCALE
+  )
+}
+
+function stripLocalePrefix(pathname: string) {
+  const [, maybeLocale, ...rest] = pathname.split('/')
+  if (!SUPPORTED_LOCALES.includes(maybeLocale as (typeof SUPPORTED_LOCALES)[number])) {
+    return pathname
+  }
+
+  return rest.length > 0 ? `/${rest.join('/')}` : '/'
+}
+
+function isApiRoute(pathname: string) {
+  return pathname.startsWith('/api/')
+}
+
+function isDevRoute(pathname: string) {
+  return pathname === '/dev' || pathname.startsWith('/dev/')
+}
+
+function isPublicRoute(pathname: string) {
+  return (
+    authConfig.publicRoutes.some((route) =>
+      route === '/' ? pathname === '/' : pathname === route || pathname.startsWith(`${route}/`)
+    ) ||
+    OAUTH_PUBLIC_ROUTE.test(pathname) ||
+    pathname === '/server-error' ||
+    pathname === '/forbidden'
+  )
+}
+
+function hasPermission(permissions: string[] | undefined, permission: string) {
+  if (!permissions) return false
+  if (permissions.includes('*')) return true
+  const [module] = permission.split('.')
+  return permissions.includes(permission) || permissions.includes(`${module}.*`)
+}
+
+function unauthorizedResponse(request: NextRequest, pathname: string) {
+  if (isApiRoute(pathname)) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+  }
+
+  const loginUrl = new URL('/login', request.url)
+  loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
+  return NextResponse.redirect(loginUrl)
+}
+
+async function applyRateLimit(request: NextRequest, type: 'api' | 'auth') {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+  const { success, limit, remaining, reset } = await checkRateLimit(ip, type)
+
+  if (success) return null
+
+  return NextResponse.json(
+    { success: false, message: 'Too Many Requests' },
+    {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': String(limit || 0),
+        'X-RateLimit-Remaining': String(remaining || 0),
+        'X-RateLimit-Reset': String(reset || 0),
+      },
+    }
+  )
+}
+
+function nextForRequest(request: NextRequest) {
+  const response = NextResponse.next()
+  const locale = detectLocale(request)
+
+  if (!request.cookies.get(LOCALE_COOKIE_NAME)?.value) {
+    response.cookies.set(LOCALE_COOKIE_NAME, locale, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    })
+  }
+
+  response.headers.set('x-locale', locale)
+  return response
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const normalizedPathname = stripLocalePrefix(pathname)
+  const apiRoute = isApiRoute(normalizedPathname)
 
-  // 1. ตรวจสอบว่าเป็น Public Route หรือไม่
-  const isPublic = authConfig.publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  )
-
-  if (isPublic) {
+  if (pathname.startsWith('/_next') || pathname === '/favicon.ico' || pathname.includes('.')) {
     return NextResponse.next()
   }
 
-  // 2. ถ้าไม่ใช่ Public Route ต้องตรวจสอบ Auth Token
-  const user = await getAuthUserFromRequest(request)
+  const publicRoute = isPublicRoute(normalizedPathname)
 
-  // 3. ถ้าไม่มี Token หรือ Token ไม่ถูกต้อง (หมดอายุ)
-  if (!user) {
-    // กรณีที่เป็น API ให้ส่ง 401 Unauthorized กลับไปเป็น JSON
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: HTTP_STATUS.UNAUTHORIZED }
-      )
-    }
-
-    // กรณีที่เป็น Web Page ปกติ ให้ Redirect กลับไปหน้า /login
-    const loginUrl = new URL('/login', request.url)
-    // แนบ callback URL เผื่อล็อกอินเสร็จแล้วให้กลับมาหน้าเดิม
-    loginUrl.searchParams.set('callbackUrl', encodeURIComponent(pathname))
-    return NextResponse.redirect(loginUrl)
+  if (normalizedPathname !== pathname) {
+    const url = request.nextUrl.clone()
+    url.pathname = normalizedPathname
+    return NextResponse.redirect(url)
   }
 
-  // 4. ถ้าผ่านการตรวจสอบ ให้ไปต่อ
-  return NextResponse.next()
+  if (apiRoute) {
+    const rateLimitResponse = await applyRateLimit(
+      request,
+      normalizedPathname.startsWith('/api/auth/') ? 'auth' : 'api'
+    )
+    if (rateLimitResponse) return rateLimitResponse
+  }
+
+  if (publicRoute || (process.env.NODE_ENV === 'development' && isDevRoute(normalizedPathname))) {
+    return nextForRequest(request)
+  }
+
+  const accessToken = request.cookies.get(authConfig.cookieName.accessToken)?.value
+  const refreshToken = request.cookies.get(authConfig.cookieName.refreshToken)?.value
+
+  if (accessToken) {
+    const payload = await verifyAccessToken(accessToken)
+    if (payload) {
+      if (
+        (normalizedPathname.startsWith('/admin') ||
+          (process.env.NODE_ENV === 'production' && isDevRoute(normalizedPathname))) &&
+        !hasPermission(payload.permissions, ADMIN_PERMISSION)
+      ) {
+        if (apiRoute) {
+          return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+        }
+        return NextResponse.redirect(new URL('/forbidden', request.url))
+      }
+
+      return nextForRequest(request)
+    }
+  }
+
+  if (refreshToken) {
+    const userId = await verifyRefreshToken(refreshToken)
+    if (userId) {
+      if (apiRoute) {
+        return NextResponse.json(
+          { success: false, message: 'Access token expired' },
+          { status: 401, headers: { 'x-auth-refreshable': 'true' } }
+        )
+      }
+
+      const refreshUrl = new URL('/api/auth/refresh', request.url)
+      refreshUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`)
+      return NextResponse.redirect(refreshUrl)
+    }
+  }
+
+  return unauthorizedResponse(request, pathname)
 }
 
-// กำหนด Matcher ว่าจะให้ Middleware นี้ทำงานกับ Path ไหนบ้าง
 export const config = {
   matcher: [
-    // ดักจับทุก Request ยกเว้น _next, ไฟล์ Static และ รูปภาพ
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)',
   ],
 }

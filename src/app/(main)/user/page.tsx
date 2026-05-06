@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { api } from '@/services/apiClient'
 import { Button, Input, Modal, Badge, Can } from '@/components/ui'
 import { DataTable } from '@/components/table/DataTable'
@@ -24,6 +25,9 @@ interface User {
 }
 
 export default function UserManagementPage() {
+  const t = useTranslations('userPage')
+  const tCommon = useTranslations('common')
+  const tStatus = useTranslations('status')
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [total, setTotal] = useState(0)
@@ -31,12 +35,8 @@ export default function UserManagementPage() {
   const [page, setPage] = useState(1)
   const [limit] = useState(10)
   const [search, setSearch] = useState('')
-
-  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -61,7 +61,7 @@ export default function UserManagementPage() {
         setTotal(res.data.meta.total)
       }
     } catch {
-      toast.error('ไม่สามารถโหลดข้อมูลผู้ใช้ได้')
+      toast.error(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -82,8 +82,8 @@ export default function UserManagementPage() {
       setFormData({
         name: user.name,
         email: user.email,
-        password: '', // ไม่แก้รหัสผ่านตรงนี้
-        roleIds: user.roles.map((r) => r.role.id),
+        password: '',
+        roleIds: user.roles.map((role) => role.role.id),
       })
     } else {
       setEditingUser(null)
@@ -101,43 +101,41 @@ export default function UserManagementPage() {
     e.preventDefault()
     try {
       if (editingUser) {
-        // แก้ไข User (ยกเว้นรหัสผ่าน)
         const res = await api.patch(`/api/user/${editingUser.id}`, {
           name: formData.name,
           email: formData.email,
           roleIds: formData.roleIds,
         })
         if (res.error) return toast.error(res.error)
-        toast.success('อัปเดตผู้ใช้งานสำเร็จ')
+        toast.success(t('updateSuccess'))
       } else {
-        // สร้าง User ใหม่
         const res = await api.post('/api/user', formData)
         if (res.error) return toast.error(res.error)
-        toast.success('สร้างผู้ใช้งานสำเร็จ')
+        toast.success(t('createSuccess'))
       }
       setIsModalOpen(false)
       fetchUsers()
     } catch {
-      toast.error('เกิดข้อผิดพลาดในการบันทึก')
+      toast.error(t('saveError'))
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานนี้?')) return
+    if (!confirm(t('deleteConfirm'))) return
     try {
       const res = await api.delete(`/api/user/${id}`)
       if (res.error) return toast.error(res.error)
-      toast.success('ลบผู้ใช้งานสำเร็จ')
+      toast.success(t('deleteSuccess'))
       fetchUsers()
     } catch {
-      toast.error('ไม่สามารถลบผู้ใช้งานได้')
+      toast.error(t('deleteError'))
     }
   }
 
   const columns = [
     {
       key: 'user',
-      label: 'User',
+      label: t('user'),
       render: (row: User) => (
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-[var(--color-surface-mid)] flex items-center justify-center text-[var(--color-text-muted)] font-bold overflow-hidden border border-[var(--color-border)]">
@@ -157,32 +155,32 @@ export default function UserManagementPage() {
     },
     {
       key: 'roles',
-      label: 'Roles',
+      label: t('roles'),
       render: (row: User) => (
         <div className="flex flex-wrap gap-1">
-          {row.roles.map((r) => (
-            <Badge key={r.role.id} variant="secondary" size="sm" className="capitalize">
-              {r.role.name}
+          {row.roles.map((role) => (
+            <Badge key={role.role.id} variant="secondary" size="sm" className="capitalize">
+              {role.role.name}
             </Badge>
           ))}
           {row.roles.length === 0 && (
-            <span className="text-xs text-neutral-400 italic">No roles</span>
+            <span className="text-xs text-neutral-400 italic">{t('noRoles')}</span>
           )}
         </div>
       ),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('status'),
       render: (row: User) => (
         <Badge variant={row.isActive ? 'primary' : 'default'} size="sm">
-          {row.isActive ? 'Active' : 'Inactive'}
+          {row.isActive ? tStatus('active') : tStatus('inactive')}
         </Badge>
       ),
     },
     {
       key: 'createdAt',
-      label: 'Joined',
+      label: t('joined'),
       render: (row: User) => (
         <span className="text-xs text-[var(--color-text-muted)]">
           {format(new Date(row.createdAt), 'MMM dd, yyyy')}
@@ -199,16 +197,16 @@ export default function UserManagementPage() {
             className="text-3xl font-black tracking-tight"
             style={{ color: 'var(--color-primary)' }}
           >
-            User Directory
+            {t('title')}
           </h1>
           <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-            Manage your organization&apos;s members and their access levels.
+            {t('description')}
           </p>
         </div>
         <Can I={PERMISSIONS.USER_CREATE}>
           <Button variant="primary" onClick={() => handleOpenModal()}>
             <span className="material-symbols-outlined mr-2">person_add</span>
-            Add New User
+            {t('addNewUser')}
           </Button>
         </Can>
       </header>
@@ -250,35 +248,34 @@ export default function UserManagementPage() {
         />
       </div>
 
-      {/* CREATE/EDIT MODAL */}
       <Modal
         is_open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingUser ? 'Edit User' : 'Create New User'}
+        title={editingUser ? t('editUser') : t('createNewUser')}
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-4">
             <Input
-              label="Full Name"
-              placeholder="John Doe"
+              label={t('fullName')}
+              placeholder={t('fullNamePlaceholder')}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
             <Input
-              label="Email Address"
+              label={t('emailAddress')}
               type="email"
-              placeholder="john@example.com"
+              placeholder={t('emailPlaceholder')}
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
             {!editingUser && (
               <Input
-                label="Initial Password"
+                label={t('initialPassword')}
                 type="password"
-                placeholder="At least 6 characters"
+                placeholder={t('passwordPlaceholder')}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
@@ -287,7 +284,7 @@ export default function UserManagementPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                Assign Roles
+                {t('assignRoles')}
               </label>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 {roles.map((role) => (
@@ -330,10 +327,10 @@ export default function UserManagementPage() {
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button variant="primary" type="submit">
-              {editingUser ? 'Save Changes' : 'Create User'}
+              {editingUser ? tCommon('save') : t('createUser')}
             </Button>
           </div>
         </form>

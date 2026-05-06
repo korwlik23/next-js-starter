@@ -1,11 +1,14 @@
+import type { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/authorize'
 import { AuditService } from '@/modules/audit/service'
 import { paginatedResponse, serverError } from '@/utils/api'
 import { logger } from '@/lib/logger'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
-// GET /api/admin/audit-logs
 export const GET = withAuth(
   async (req: Request, { user }: any) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
       const { searchParams } = new URL(req.url)
       const page = Number(searchParams.get('page') ?? 1)
@@ -15,7 +18,7 @@ export const GET = withAuth(
       const userId = searchParams.get('userId') ?? undefined
 
       const { data, meta } = await AuditService.getLogs({
-        tenantId: user.tenantId, // กรองเฉพาะใน Tenant ของตัวเอง
+        tenantId: user.tenantId,
         userId,
         action,
         entity,
@@ -26,8 +29,8 @@ export const GET = withAuth(
       return paginatedResponse(data, meta)
     } catch (error) {
       logger.error('GET /api/admin/audit-logs error', error)
-      return serverError('ไม่สามารถดึงข้อมูล Audit Logs ได้')
+      return serverError(translate(locale, 'api.messages.auditLogsLoadError'))
     }
   },
-  { permission: 'audit.view' } // ใช้สิทธิ์ audit.view
+  { permission: 'audit.view' }
 )

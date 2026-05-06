@@ -51,6 +51,14 @@ export async function setAuthCookies(accessToken: string, refreshToken: string) 
 // ─────────────────────────────────────────
 export async function clearAuthCookies() {
   const cookieStore = await cookies()
-  cookieStore.delete(authConfig.cookieName.accessToken)
-  cookieStore.delete(authConfig.cookieName.refreshToken)
+  const expiredCookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 0,
+  }
+
+  cookieStore.set(authConfig.cookieName.accessToken, '', expiredCookieOptions)
+  cookieStore.set(authConfig.cookieName.refreshToken, '', expiredCookieOptions)
 }

@@ -1,39 +1,59 @@
 import { NextRequest } from 'next/server'
-import { loginSchema, registerSchema } from './schema'
-import { loginService, registerService } from './service'
+import { createLoginSchema, createRegisterSchema } from './schema'
+import { LoginService, RegisterService } from './service'
 import { successResponse, badRequest, unauthorized } from '@/utils/api'
 import { logger } from '@/lib/logger'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
+
+function authValidationMessages(locale: ReturnType<typeof getLocaleFromRequest>) {
+  return {
+    invalidEmail: translate(locale, 'validation.invalidEmail'),
+    nameMin: translate(locale, 'validation.nameMin'),
+    passwordMin6: translate(locale, 'validation.passwordMin6'),
+    passwordMin8: translate(locale, 'validation.passwordMin8'),
+    passwordMismatch: translate(locale, 'validation.passwordMismatch'),
+    tokenRequired: translate(locale, 'validation.tokenRequired'),
+    refreshTokenRequired: translate(locale, 'validation.refreshTokenRequired'),
+  }
+}
 
 export class AuthController {
   static async Login(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
+
     try {
       const body = await req.json()
-      const parsed = loginSchema.safeParse(body)
-      if (!parsed.success) {
-        return badRequest('ข้อมูลเข้าสู่ระบบไม่ถูกต้อง')
+      const parsedData = createLoginSchema(authValidationMessages(locale)).safeParse(body)
+      if (!parsedData.success) {
+        return badRequest(translate(locale, 'auth.errors.invalidInput'))
       }
 
-      const result = await loginService(parsed.data)
-      return successResponse(result, 'เข้าสู่ระบบสำเร็จ')
+      const loginResult = await LoginService(parsedData.data)
+      return successResponse(loginResult, translate(locale, 'auth.successLogin'))
     } catch (error: any) {
       logger.error('AuthController.Login error', error)
-      return unauthorized(error.message || 'รหัสผ่านหรืออีเมลไม่ถูกต้อง')
+      return unauthorized(error.message || translate(locale, 'auth.errors.invalidCredentials'))
     }
   }
 
   static async Register(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
+
     try {
       const body = await req.json()
-      const parsed = registerSchema.safeParse(body)
-      if (!parsed.success) {
-        return badRequest('ข้อมูลสมัครสมาชิกไม่ถูกต้อง', parsed.error.flatten().fieldErrors as any)
+      const parsedData = createRegisterSchema(authValidationMessages(locale)).safeParse(body)
+      if (!parsedData.success) {
+        return badRequest(
+          translate(locale, 'auth.errors.invalidInput'),
+          parsedData.error.flatten().fieldErrors as Record<string, string[]>
+        )
       }
 
-      const result = await registerService(parsed.data)
-      return successResponse(result, 'สมัครสมาชิกสำเร็จ')
+      const registerResult = await RegisterService(parsedData.data)
+      return successResponse(registerResult, translate(locale, 'auth.successRegister'))
     } catch (error: any) {
       logger.error('AuthController.Register error', error)
-      return badRequest(error.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก')
+      return badRequest(error.message || translate(locale, 'auth.errors.server'))
     }
   }
 }

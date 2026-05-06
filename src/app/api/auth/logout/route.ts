@@ -1,15 +1,18 @@
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { logoutService } from '@/modules/auth/service'
-import { clearAuthCookies } from '@/lib/auth'
-import { getAuthUser } from '@/lib/auth'
+import { clearAuthCookies, getAuthUser } from '@/lib/auth'
 import { successResponse, unauthorized } from '@/utils/api'
 import { authConfig } from '@/config'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+  const message = translate(locale, 'auth.successLogout')
+
   try {
     const user = await getAuthUser()
-    if (!user) return unauthorized()
+    if (!user) return unauthorized(translate(locale, 'api.errors.unauthorized'))
 
     const cookieStore = await cookies()
     const refreshToken = cookieStore.get(authConfig.cookieName.refreshToken)?.value
@@ -17,13 +20,13 @@ export async function POST() {
     await logoutService(user.sub, refreshToken)
     await clearAuthCookies()
 
-    return successResponse(null, 'ออกจากระบบสำเร็จ')
+    return successResponse(null, message)
   } catch {
-    return successResponse(null, 'ออกจากระบบสำเร็จ')
+    return successResponse(null, message)
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser()
     const cookieStore = await cookies()

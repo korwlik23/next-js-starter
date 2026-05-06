@@ -1,28 +1,23 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/store/authStore'
 import { Skeleton } from '@/components/ui'
-import Link from 'next/link'
-
-// ────────────────────────────────────────
-// Profile Page — แสดงข้อมูลผู้ใช้จาก Auth Store
-// โหลดหน้า → fetch /api/auth/me เพื่อ sync ข้อมูลล่าสุดจาก server
-// ────────────────────────────────────────
 
 export default function ProfilePage() {
+  const t = useTranslations('profile')
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
 
-  // ── Sync ข้อมูลล่าสุดจาก server ทุกครั้งที่โหลดหน้า
   useEffect(() => {
-    async function SyncUserProfile() {
+    async function syncUserProfile() {
       try {
         const res = await fetch('/api/auth/me')
         if (!res.ok) return
         const json = await res.json()
         if (json.data && user) {
-          // อัปเดต authStore ด้วยข้อมูลล่าสุดจาก server
           setUser({
             ...user,
             name: json.data.name ?? user.name,
@@ -32,15 +27,14 @@ export default function ProfilePage() {
           })
         }
       } catch {
-        // silent fail — ใช้ข้อมูลใน cache แทน
+        // Keep cached auth store data if profile sync fails.
       }
     }
 
-    if (user) SyncUserProfile()
+    if (user) syncUserProfile()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── ถ้ายังไม่มี user data → แสดง skeleton
   if (!user) {
     return (
       <div>
@@ -53,19 +47,22 @@ export default function ProfilePage() {
     )
   }
 
-  // ── ดึงตัวอักษรย่อจากชื่อผู้ใช้
   const initials = user.name
     .split(' ')
-    .map((n) => n[0])
+    .map((namePart) => namePart[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
 
+  const information = [
+    { label: t('name'), value: user.name },
+    { label: t('email'), value: user.email },
+    { label: t('roles'), value: user.roles?.join(', ') ?? 'member' },
+  ]
+
   return (
     <div>
-      {/* Cover + Avatar Section */}
       <div className="relative mb-6">
-        {/* Cover image area */}
         <div
           className="w-full h-36 sm:h-48 rounded-[var(--radius-md)]"
           style={{ backgroundColor: 'var(--color-surface-high)' }}
@@ -80,7 +77,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Avatar overlay — ใช้ตัวอักษรย่อจากชื่อจริง */}
         <div
           className="absolute bottom-0 left-4 sm:left-8 translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-[var(--radius-md)] border-4 flex items-center justify-center text-xl sm:text-2xl font-bold"
           style={{
@@ -92,15 +88,13 @@ export default function ProfilePage() {
           {initials}
         </div>
 
-        {/* Action buttons */}
         <div className="absolute bottom-4 right-4 flex gap-3">
           <Link href="/settings" className="btn-primary text-[10px] py-2 px-4">
-            Edit Profile
+            {t('editProfile')}
           </Link>
         </div>
       </div>
 
-      {/* Name + Role — ข้อมูลจริงจาก auth store */}
       <div className="mt-14 sm:mt-0 sm:ml-36 mb-6 sm:mb-8">
         <h1
           className="text-2xl sm:text-3xl font-extrabold uppercase"
@@ -109,25 +103,18 @@ export default function ProfilePage() {
           {user.name}
         </h1>
         <p className="label-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-          {user.roles?.join(' / ') ?? 'Member'}
+          {user.roles?.join(' / ') ?? t('member')}
         </p>
       </div>
 
-      {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-        {/* Left Column — Information */}
         <div className="space-y-5 sm:space-y-6">
-          {/* Information */}
           <section>
             <h3 className="label-xs mb-4" style={{ color: 'var(--color-text-subtle)' }}>
-              Information
+              {t('information')}
             </h3>
             <div className="space-y-3">
-              {[
-                { label: 'Name', value: user.name },
-                { label: 'Email', value: user.email },
-                { label: 'Roles', value: user.roles?.join(', ') ?? 'member' },
-              ].map((item) => (
+              {information.map((item) => (
                 <div
                   key={item.label}
                   className="flex flex-col gap-1 sm:flex-row sm:justify-between py-2"
@@ -144,11 +131,10 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* Permission Summary */}
           {user.permissions && user.permissions.length > 0 && (
             <section>
               <h3 className="label-xs mb-4" style={{ color: 'var(--color-text-subtle)' }}>
-                Permissions
+                {t('permissions')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {user.permissions.slice(0, 10).map((perm) => (
@@ -166,7 +152,7 @@ export default function ProfilePage() {
                 ))}
                 {user.permissions.length > 10 && (
                   <span className="label-xs px-2 py-1" style={{ color: 'var(--color-text-faint)' }}>
-                    +{user.permissions.length - 10} more
+                    {t('more', { count: user.permissions.length - 10 })}
                   </span>
                 )}
               </div>
@@ -174,16 +160,15 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Right Column — Security */}
         <div className="lg:col-span-2 space-y-5 sm:space-y-6">
           <section className="editorial-card-elevated p-4 sm:p-5">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="label-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                  Security Summary
+                  {t('securitySummary')}
                 </h3>
                 <p className="text-lg font-bold mt-1" style={{ color: 'var(--color-primary)' }}>
-                  Account Overview
+                  {t('accountOverview')}
                 </p>
               </div>
               <span
@@ -194,7 +179,6 @@ export default function ProfilePage() {
               </span>
             </div>
             <div className="space-y-3">
-              {/* Account status */}
               <div
                 className="flex items-center justify-between py-3"
                 style={{ borderBottom: '1px solid var(--color-border)' }}
@@ -208,7 +192,7 @@ export default function ProfilePage() {
                   </span>
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
-                      Account Active
+                      {t('accountActive')}
                     </p>
                     <p className="label-xs" style={{ color: 'var(--color-text-faint)' }}>
                       ID: {user.id.slice(0, 12)}...
@@ -216,11 +200,10 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <span className="label-xs" style={{ color: 'var(--color-success)' }}>
-                  Active
+                  {t('active')}
                 </span>
               </div>
 
-              {/* Quick links */}
               <div className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
                   <span
@@ -230,7 +213,7 @@ export default function ProfilePage() {
                     settings
                   </span>
                   <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
-                    Manage Account Settings
+                    {t('manageAccountSettings')}
                   </p>
                 </div>
                 <Link
@@ -238,7 +221,7 @@ export default function ProfilePage() {
                   className="label-xs underline underline-offset-4 transition-colors hover:opacity-70"
                   style={{ color: 'var(--color-text-muted)' }}
                 >
-                  Settings
+                  {t('settings')}
                 </Link>
               </div>
             </div>

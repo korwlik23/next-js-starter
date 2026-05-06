@@ -1,50 +1,60 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'react-hot-toast'
 import { Input, Button } from '@/components/ui'
-import { resetPasswordSchema, type ResetPasswordInput } from '@/modules/auth/schema'
+import { createResetPasswordSchema, type ResetPasswordInput } from '@/modules/auth/schema'
 import { api } from '@/services/apiClient'
 
 function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-
+  const t = useTranslations('resetPassword')
+  const tValidation = useTranslations('validation')
   const [isLoading, setIsLoading] = useState(false)
+
+  const schema = useMemo(
+    () =>
+      createResetPasswordSchema({
+        tokenRequired: tValidation('tokenRequired'),
+        passwordMin8: tValidation('passwordMin8'),
+        passwordMismatch: tValidation('passwordMismatch'),
+      }),
+    [tValidation]
+  )
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<ResetPasswordInput>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       token: token || '',
     },
   })
 
-  // หากไม่มี Token ไม่ให้ทำรายการ
   if (!token) {
     return (
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--color-text)' }}>
-          Link ไม่ถูกต้อง
+          {t('invalidLinkTitle')}
         </h1>
         <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>
-          ไม่พบ Token สำหรับการตั้งรหัสผ่านใหม่
-          กรุณากรอกอีเมลเพื่อขอลิงก์เปลี่ยนรหัสผ่านใหม่อีกครั้ง
+          {t('invalidLinkDescription')}
         </p>
         <Link
           href="/forgot-password"
           style={{ color: 'var(--color-primary)' }}
           className="text-sm font-semibold hover:underline"
         >
-          กลับไปหน้าลืมรหัสผ่าน
+          {t('backToForgot')}
         </Link>
       </div>
     )
@@ -59,10 +69,10 @@ function ResetPasswordForm() {
         return
       }
 
-      toast.success('เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่')
+      toast.success(t('success'))
       router.push('/login')
     } catch {
-      toast.error('ไม่สามารถตั้งรหัสผ่านใหม่ได้')
+      toast.error(t('error'))
     } finally {
       setIsLoading(false)
     }
@@ -74,35 +84,35 @@ function ResetPasswordForm() {
         className="text-2xl sm:text-3xl font-extrabold text-center mb-4"
         style={{ color: 'var(--color-text)' }}
       >
-        ตั้งรหัสผ่านใหม่
+        {t('title')}
       </h1>
       <p className="text-center mb-6 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-        กรุณากรอกรหัสผ่านใหม่ที่คุณต้องการใช้งาน
+        {t('description')}
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <input type="hidden" {...register('token')} />
 
         <Input
-          label="รหัสผ่านใหม่"
+          label={t('newPassword')}
           type="password"
-          placeholder="อย่างน้อย 8 ตัวอักษร"
+          placeholder={t('newPasswordPlaceholder')}
           error={errors.password?.message}
           {...register('password')}
           disabled={isLoading}
         />
 
         <Input
-          label="ยืนยันรหัสผ่านใหม่"
+          label={t('confirmPassword')}
           type="password"
-          placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+          placeholder={t('confirmPasswordPlaceholder')}
           error={errors.confirmPassword?.message}
           {...register('confirmPassword')}
           disabled={isLoading}
         />
 
         <Button type="submit" variant="primary" className="w-full mt-2" isLoading={isLoading}>
-          เปลี่ยนรหัสผ่าน
+          {t('submit')}
         </Button>
 
         <p className="text-center mt-6 text-sm">
@@ -111,7 +121,7 @@ function ResetPasswordForm() {
             style={{ color: 'var(--color-text-muted)' }}
             className="hover:text-black dark:hover:text-white transition-colors"
           >
-            กลับไปหน้าเข้าสู่ระบบ
+            {t('backToLogin')}
           </Link>
         </p>
       </form>
@@ -120,8 +130,10 @@ function ResetPasswordForm() {
 }
 
 export default function ResetPasswordPage() {
+  const tCommon = useTranslations('common')
+
   return (
-    <Suspense fallback={<div className="text-center">กำลังโหลด...</div>}>
+    <Suspense fallback={<div className="text-center">{tCommon('loading')}</div>}>
       <ResetPasswordForm />
     </Suspense>
   )

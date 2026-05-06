@@ -13,6 +13,7 @@ export const updateUserSchema = z.object({
   email: z.string().email().optional(),
   avatar: z.string().url().optional().nullable(),
   isActive: z.boolean().optional(),
+  roleIds: z.array(z.string()).optional(),
 })
 
 export const updatePasswordSchema = z

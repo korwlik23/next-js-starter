@@ -1,6 +1,27 @@
 'use client'
 
+import { useMemo } from 'react'
 import '@/app/globals.css'
+import enMessages from '../../messages/en.json'
+import thMessages from '../../messages/th.json'
+
+const messages = {
+  en: enMessages.errorPage,
+  th: thMessages.errorPage,
+}
+
+function getClientLocale() {
+  if (typeof document === 'undefined') {
+    return 'th'
+  }
+
+  const locale = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith('locale='))
+    ?.split('=')[1]
+
+  return locale === 'en' ? 'en' : 'th'
+}
 
 export default function GlobalError({
   error,
@@ -9,8 +30,10 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const t = useMemo(() => messages[getClientLocale()], [])
+
   return (
-    <html lang="th" suppressHydrationWarning>
+    <html lang={getClientLocale()} suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
@@ -29,10 +52,8 @@ export default function GlobalError({
             <span className="material-symbols-outlined text-6xl text-red-500 mb-6 block">
               error
             </span>
-            <h1 className="text-3xl font-extrabold text-white mb-4">เกิดข้อผิดพลาดร้ายแรง (500)</h1>
-            <p className="text-[var(--color-text-muted)] text-sm mb-8">
-              พบปัญหา Internal Server Error ของระบบ ไม่สามารถประมวลผลคำขอนี้ได้ในขณะนี้
-            </p>
+            <h1 className="text-3xl font-extrabold text-white mb-4">{t.criticalTitle}</h1>
+            <p className="text-[var(--color-text-muted)] text-sm mb-8">{t.criticalDescription}</p>
             {process.env.NODE_ENV === 'development' && (
               <div
                 className="p-4 rounded-xl text-left mb-8 overflow-auto max-h-48 text-xs font-mono break-all"
@@ -46,7 +67,7 @@ export default function GlobalError({
               </div>
             )}
             <button onClick={() => reset()} className="btn-primary w-full py-3">
-              รีโหลดหน้าเว็บอีกครั้ง
+              {t.reload}
             </button>
           </div>
         </div>

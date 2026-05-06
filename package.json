@@ -29,6 +29,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "inngest": "^4.2.6",
     "jose": "^6.2.2",
     "lru-cache": "^11.2.7",
     "lucide-react": "^0.577.0",

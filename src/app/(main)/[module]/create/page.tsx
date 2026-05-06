@@ -3,9 +3,12 @@
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Input, Button } from '@/components/ui'
 
 export default function ModuleCreatePage() {
+  const t = useTranslations('moduleForm')
+  const tCommon = useTranslations('common')
   const params = useParams<{ module: string }>()
   const router = useRouter()
   const moduleName = params.module ?? 'items'
@@ -29,12 +32,12 @@ export default function ModuleCreatePage() {
       })
       const json = await res.json()
       if (!res.ok) {
-        setError(json.message ?? 'เกิดข้อผิดพลาด')
+        setError(json.message ?? t('genericError'))
         return
       }
       router.push(`/${moduleName}`)
     } catch {
-      setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
+      setError(t('networkError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -42,26 +45,24 @@ export default function ModuleCreatePage() {
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <Link
             href={`/${moduleName}`}
             className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-low)] hover:text-[var(--color-primary)]"
-            aria-label={`Back to ${moduleLabel}`}
+            aria-label={t('backToList', { module: moduleLabel })}
           >
             <span className="material-symbols-outlined text-lg">arrow_back</span>
           </Link>
           <p className="text-[0.7rem] uppercase font-bold text-[var(--color-text-faint)]">
-            {moduleLabel} / New
+            {moduleLabel} / {t('new')}
           </p>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-primary)]">
-          Create {moduleLabel}
+          {t('createTitle', { module: moduleLabel })}
         </h1>
       </header>
 
-      {/* Form */}
       <div className="max-w-xl">
         <form onSubmit={handleSubmit} className="editorial-card-elevated p-4 sm:p-6 space-y-5">
           {Object.entries(fields).map(([key, val]) => (
@@ -71,7 +72,7 @@ export default function ModuleCreatePage() {
                 type={key === 'email' ? 'email' : key === 'password' ? 'password' : 'text'}
                 value={val}
                 onChange={(e) => setFields((prev) => ({ ...prev, [key]: e.target.value }))}
-                placeholder={`Enter ${key}...`}
+                placeholder={t('fieldPlaceholder', { field: key })}
                 required
               />
             </div>
@@ -85,11 +86,11 @@ export default function ModuleCreatePage() {
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
             <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-              Create {moduleLabel}
+              {t('createTitle', { module: moduleLabel })}
             </Button>
             <Link href={`/${moduleName}`}>
               <Button type="button" variant="secondary">
-                Cancel
+                {tCommon('cancel')}
               </Button>
             </Link>
           </div>

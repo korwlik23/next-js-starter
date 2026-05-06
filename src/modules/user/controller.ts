@@ -13,13 +13,17 @@ import {
 } from '@/utils/api'
 import { PERMISSIONS } from '@/constants'
 import { logger } from '@/lib/logger'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
 export class UserController {
   static async GetUsers(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
+
     try {
       const user = await getAuthUser()
-      if (!user) return unauthorized()
-      if (!can(user, PERMISSIONS.USER_READ)) return forbidden()
+      if (!user) return unauthorized(translate(locale, 'api.errors.unauthorized'))
+      if (!can(user, PERMISSIONS.USER_READ))
+        return forbidden(translate(locale, 'api.errors.forbidden'))
 
       const { searchParams } = new URL(req.url)
       const page = Number(searchParams.get('page') ?? 1)
@@ -30,37 +34,43 @@ export class UserController {
       return paginatedResponse(users, { total, page, limit })
     } catch (error) {
       logger.error('UserController.GetUsers error', error)
-      return serverError()
+      return serverError(translate(locale, 'api.messages.userLoadError'))
     }
   }
 
   static async CreateUser(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
+
     try {
       const authUser = await getAuthUser()
-      if (!authUser) return unauthorized()
-      if (!can(authUser, PERMISSIONS.USER_CREATE)) return forbidden()
+      if (!authUser) return unauthorized(translate(locale, 'api.errors.unauthorized'))
+      if (!can(authUser, PERMISSIONS.USER_CREATE))
+        return forbidden(translate(locale, 'api.errors.forbidden'))
 
       const body = await req.json()
       const parsed = createUserSchema.safeParse(body)
       if (!parsed.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(locale, 'api.errors.validation'),
           parsed.error.flatten().fieldErrors as Record<string, string[]>
         )
       }
 
-      // บังคับให้ tenantId ตรงกับผู้สร้างเพื่อป้องกัน Data Leakage
       if (authUser.tenantId) {
         parsed.data.tenantId = authUser.tenantId
       }
 
       const newUser = await createUserService(parsed.data)
-      return createdResponse(newUser, 'สร้างผู้ใช้งานสำเร็จ')
+      return createdResponse(newUser, translate(locale, 'api.messages.userCreated'))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
       logger.error('UserController.CreateUser error', error)
-      if (message.includes('ถูกใช้งานแล้ว')) return badRequest(message)
-      return serverError()
+      if (error instanceof Error && error.message === 'EMAIL_EXISTS') {
+        return badRequest(translate(locale, 'api.messages.emailExists'))
+      }
+      if (error instanceof Error && error.message === 'INVALID_ROLE_ASSIGNMENT') {
+        return badRequest(translate(locale, 'api.messages.invalidRoleAssignment'))
+      }
+      return serverError(translate(locale, 'api.errors.server'))
     }
   }
 }

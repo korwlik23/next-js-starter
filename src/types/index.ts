@@ -78,6 +78,7 @@ export interface TokenPayload {
   roles: string[]
   permissions: string[]
   tenantId?: string | null
+  impersonatorId?: string // admin userId who is impersonating
   iat?: number
   exp?: number
 }

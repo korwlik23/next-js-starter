@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button, Badge, Modal, Input, Skeleton } from '@/components/ui'
 import { api } from '@/services/apiClient'
 import { toast } from 'react-hot-toast'
 import { formatDistanceToNow } from 'date-fns'
-import { th } from 'date-fns/locale'
+import { enUS, th } from 'date-fns/locale'
 
 interface TeamMember {
   id: string
@@ -32,6 +33,11 @@ interface TeamData {
 }
 
 export default function TeamPage() {
+  const t = useTranslations('teamPage')
+  const tCommon = useTranslations('common')
+  const tStatus = useTranslations('status')
+  const locale = useLocale()
+  const dateLocale = locale === 'th' ? th : enUS
   const [data, setData] = useState<TeamData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
@@ -40,7 +46,6 @@ export default function TeamPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [error, setError] = useState('')
 
-  // Fetch data
   useEffect(() => {
     async function fetchData() {
       try {
@@ -58,44 +63,41 @@ export default function TeamPage() {
         }
       } catch {
         setData({ members: [], invitations: [] })
-        toast.error('ไม่สามารถดึงข้อมูลสมาชิกทีมได้')
+        toast.error(t('loadError'))
       } finally {
         setIsLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [t])
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inviteEmail) return
     if (!currentUser?.tenantId) {
-      toast.error('ไม่พบข้อมูลองค์กรของคุณ')
+      toast.error(t('missingTenant'))
       return
     }
 
     setIsInviting(true)
     try {
-      // สำหรับ Starter นี้ เราใช้ Role ID แบบง่ายๆ (สมมติ 'member' role id หรือ hardcode ตาม seed)
-      // ในระบบจริงควรมี list ให้เลือก
       const res = await api.post('/api/tenant/invite', {
         email: inviteEmail,
-        roleId: 'member', // Default role สำหรับคำเชิญ
+        roleId: 'member',
         tenantId: currentUser.tenantId,
       })
 
       if (res.error) {
         toast.error(res.error)
       } else {
-        toast.success('ส่งคำเชิญเรียบร้อยแล้ว')
+        toast.success(t('inviteSuccess'))
         setIsInviteModalOpen(false)
         setInviteEmail('')
-        // Refresh data
         const teamRes = await api.get<TeamData>('/api/tenant/members')
         if (teamRes.data) setData(teamRes.data)
       }
     } catch {
-      toast.error('เกิดข้อผิดพลาดในการส่งคำเชิญ')
+      toast.error(t('inviteError'))
     } finally {
       setIsInviting(false)
     }
@@ -112,14 +114,13 @@ export default function TeamPage() {
 
   return (
     <div className="pb-12">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text)' }}>
-            Team Management
+            {t('title')}
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-            จัดการสมาชิกในทีมของคุณ เชิญสมาชิกใหม่ และกำหนดสิทธิ์การใช้งาน
+            {t('description')}
           </p>
         </div>
         <Button
@@ -127,7 +128,7 @@ export default function TeamPage() {
           onClick={() => setIsInviteModalOpen(true)}
         >
           <span className="material-symbols-outlined text-base">person_add</span>
-          เชิญสมาชิก (Invite)
+          {t('invite')}
         </Button>
       </div>
 
@@ -139,7 +140,7 @@ export default function TeamPage() {
             borderColor: 'var(--color-warning, #e67e22)',
           }}
         >
-          หน้านี้ต้องใช้บัญชีที่อยู่ใน tenant เช่น admin@acme.com / password123
+          {t('tenantRequired')}
         </div>
       )}
 
@@ -152,46 +153,25 @@ export default function TeamPage() {
         </div>
       )}
 
-      {/* Team Members Table */}
       <div className="editorial-card-elevated overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr style={{ backgroundColor: 'var(--color-surface-low)' }}>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  ชื่อ / อีเมล
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  บทบาท (Role)
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  สถานะ
-                </th>
-                <th
-                  className="text-left p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  เข้าร่วมเมื่อ
-                </th>
-                <th
-                  className="text-right p-4 font-semibold"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Actions
-                </th>
+                {[t('nameEmail'), t('role'), t('status'), t('joinedAt'), t('actions')].map(
+                  (label, index) => (
+                    <th
+                      key={label}
+                      className={`${index === 4 ? 'text-right' : 'text-left'} p-4 font-semibold`}
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
+                      {label}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
-              {/* Members List */}
               {data?.members.map((member) => (
                 <tr key={member.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td className="p-4">
@@ -207,7 +187,7 @@ export default function TeamPage() {
                       </div>
                       <div>
                         <p className="font-medium" style={{ color: 'var(--color-text)' }}>
-                          {member.name} {member.id === currentUser?.id && '(คุณ)'}
+                          {member.name} {member.id === currentUser?.id && `(${t('you')})`}
                         </p>
                         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                           {member.email}
@@ -226,13 +206,13 @@ export default function TeamPage() {
                   </td>
                   <td className="p-4">
                     <Badge variant={member.isActive ? 'success' : 'error'}>
-                      {member.isActive ? 'Active' : 'Inactive'}
+                      {member.isActive ? tStatus('active') : tStatus('inactive')}
                     </Badge>
                   </td>
                   <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     {formatDistanceToNow(new Date(member.createdAt), {
                       addSuffix: true,
-                      locale: th,
+                      locale: dateLocale,
                     })}
                   </td>
                   <td className="p-4 text-right">
@@ -241,13 +221,12 @@ export default function TeamPage() {
                       className="text-xs font-medium px-3 py-1 rounded transition-opacity hover:opacity-70 disabled:opacity-30"
                       style={{ color: 'var(--color-error, #e74c3c)' }}
                     >
-                      ลบออก
+                      {t('remove')}
                     </button>
                   </td>
                 </tr>
               ))}
 
-              {/* Invitations List */}
               {data?.invitations.map((invite) => (
                 <tr key={invite.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <td className="p-4">
@@ -266,7 +245,7 @@ export default function TeamPage() {
                           className="font-medium italic"
                           style={{ color: 'var(--color-text-muted)' }}
                         >
-                          รอการตอบรับ...
+                          {t('waiting')}
                         </p>
                         <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                           {invite.email}
@@ -275,16 +254,16 @@ export default function TeamPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <Badge variant="outline">Member</Badge>
+                    <Badge variant="outline">{t('member')}</Badge>
                   </td>
                   <td className="p-4">
-                    <Badge variant="warning">Pending</Badge>
+                    <Badge variant="warning">{tStatus('pending')}</Badge>
                   </td>
                   <td className="p-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    ส่งเมื่อ{' '}
+                    {t('sentAt')}{' '}
                     {formatDistanceToNow(new Date(invite.createdAt), {
                       addSuffix: true,
-                      locale: th,
+                      locale: dateLocale,
                     })}
                   </td>
                   <td className="p-4 text-right">
@@ -295,7 +274,7 @@ export default function TeamPage() {
                         backgroundColor: 'var(--color-surface-mid)',
                       }}
                     >
-                      ยกเลิกคำเชิญ
+                      {t('cancelInvitation')}
                     </button>
                   </td>
                 </tr>
@@ -308,7 +287,7 @@ export default function TeamPage() {
                     className="p-8 text-center text-sm"
                     style={{ color: 'var(--color-text-faint)' }}
                   >
-                    ไม่พบสมาชิกทีม
+                    {t('empty')}
                   </td>
                 </tr>
               )}
@@ -317,17 +296,16 @@ export default function TeamPage() {
         </div>
       </div>
 
-      {/* Invite Modal */}
       <Modal
         is_open={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        title="เชิญสมาชิกใหม่เข้าร่วมทีม"
+        title={t('inviteTitle')}
       >
         <form onSubmit={handleInvite} className="space-y-6 pt-4">
           <Input
-            label="อีเมลผู้รับ"
+            label={t('recipientEmail')}
             type="email"
-            placeholder="example@email.com"
+            placeholder={t('recipientEmailPlaceholder')}
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             required
@@ -336,14 +314,14 @@ export default function TeamPage() {
             className="bg-[var(--color-surface-mid)] p-4 rounded-lg text-xs"
             style={{ color: 'var(--color-text-muted)' }}
           >
-            คำเชิญจะมีอายุ 7 วัน ผู้รับจะได้รับอีเมลพร้อมลิงก์เพื่อเข้าสู่ระบบและร่วมทีมโดยอัตโนมัติ
+            {t('inviteHint')}
           </div>
           <div className="flex flex-col-reverse gap-3 mt-6 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => setIsInviteModalOpen(false)} type="button">
-              ยกเลิก
+              {tCommon('cancel')}
             </Button>
             <Button variant="primary" type="submit" isLoading={isInviting}>
-              ส่งคำเชิญ
+              {t('sendInvite')}
             </Button>
           </div>
         </form>

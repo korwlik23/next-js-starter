@@ -1,3 +1,4 @@
+import type { NextRequest } from 'next/server'
 import { withAuth } from '@/lib/authorize'
 import { getUsersService, createUserService } from '@/modules/user/service'
 import { createUserSchema } from '@/modules/user/schema'
@@ -6,17 +7,18 @@ import { PERMISSIONS } from '@/constants'
 import { logger } from '@/lib/logger'
 import { AuditService } from '@/modules/audit/service'
 import { getRequestMetadata } from '@/utils/request'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
-// GET /api/user — List users
 export const GET = withAuth(
   async (req: Request, { user }: any) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
       const { searchParams } = new URL(req.url)
       const page = Number(searchParams.get('page') ?? 1)
       const limit = Number(searchParams.get('limit') ?? 10)
       const search = searchParams.get('search') ?? undefined
 
-      // ดึงข้อมูลผู้ใช้เฉพาะใน Tenant ของตัวเองเท่านั้น
       const { users, total } = await getUsersService(user.tenantId, {
         page,
         limit,
@@ -26,33 +28,32 @@ export const GET = withAuth(
       return paginatedResponse(users, { total, page, limit })
     } catch (error) {
       logger.error('GET /api/user error', error)
-      return serverError()
+      return serverError(translate(locale, 'api.messages.userLoadError'))
     }
   },
   { permission: PERMISSIONS.USER_READ }
 )
 
-// POST /api/user — Create user
 export const POST = withAuth(
   async (req: Request, { user }: any) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
       const body = await req.json()
       const parsed = createUserSchema.safeParse(body)
 
       if (!parsed.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(locale, 'api.errors.validation'),
           parsed.error.flatten().fieldErrors as Record<string, string[]>
         )
       }
 
-      // บังคับให้ user ที่ถูกสร้างใหม่ต้องอยู่ใน tenant เดียวกับคนสร้าง
       const newUser = await createUserService({
         ...parsed.data,
         tenantId: user.tenantId,
       })
 
-      // Audit Log: User Created
       const { ipAddress, userAgent } = getRequestMetadata(req)
       AuditService.record({
         userId: user.userId,
@@ -68,12 +69,16 @@ export const POST = withAuth(
         },
       })
 
-      return createdResponse(newUser, 'สร้างผู้ใช้งานสำเร็จ')
+      return createdResponse(newUser, translate(locale, 'api.messages.userCreated'))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
       logger.error('POST /api/user error', error)
-      if (message.includes('ถูกใช้งานแล้ว')) return badRequest(message)
-      return serverError()
+      if (error instanceof Error && error.message === 'EMAIL_EXISTS') {
+        return badRequest(translate(locale, 'api.messages.emailExists'))
+      }
+      if (error instanceof Error && error.message === 'INVALID_ROLE_ASSIGNMENT') {
+        return badRequest(translate(locale, 'api.messages.invalidRoleAssignment'))
+      }
+      return serverError(translate(locale, 'api.errors.server'))
     }
   },
   { permission: PERMISSIONS.USER_CREATE }

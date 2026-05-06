@@ -13,6 +13,13 @@ function getJwtSecret() {
 
 const secret = getJwtSecret()
 
+function createTokenId() {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  )
+}
+
 // ─────────────────────────────────────────
 // SIGN ACCESS TOKEN (short-lived)
 // ─────────────────────────────────────────
@@ -30,6 +37,7 @@ export async function signAccessToken(payload: Omit<TokenPayload, 'iat' | 'exp'>
 export async function signRefreshToken(userId: string): Promise<string> {
   return new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: 'HS256' })
+    .setJti(createTokenId())
     .setIssuedAt()
     .setExpirationTime(process.env.JWT_REFRESH_EXPIRES ?? '7d')
     .sign(secret)

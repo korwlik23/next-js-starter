@@ -1,16 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
+import { Area, AreaChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
 import { Skeleton } from '@/components/ui'
 import { api } from '@/services/apiClient'
 import { useAuthStore } from '@/store/authStore'
@@ -29,28 +22,29 @@ interface HealthData {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Create user', icon: 'person_add', href: '/user/create' },
-  { label: 'Analytics', icon: 'analytics', href: '/analytics' },
-  { label: 'Team', icon: 'groups', href: '/settings/team' },
-  { label: 'Audit logs', icon: 'history', href: '/settings/audit' },
+  { labelKey: 'createUser', icon: 'person_add', href: '/user/create' },
+  { labelKey: 'analytics', icon: 'analytics', href: '/analytics' },
+  { labelKey: 'team', icon: 'groups', href: '/settings/team' },
+  { labelKey: 'auditLogs', icon: 'history', href: '/settings/audit' },
 ]
 
-const formatMetric = (value: number | undefined) =>
-  typeof value === 'number' ? value.toLocaleString() : 'Unavailable'
-
 export default function DashboardPage() {
+  const t = useTranslations('dashboard')
+  const tNav = useTranslations('nav')
   const user = useAuthStore((s) => s.user)
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [daily_activity, setDailyActivity] = useState<{ day: string; count: number }[]>([])
+  const [dailyActivity, setDailyActivity] = useState<{ day: string; count: number }[]>([])
   const [health, setHealth] = useState<HealthData | null>(null)
-  const [is_loading, setIsLoading] = useState(true)
-  const [is_mounted, setIsMounted] = useState(false)
-  const [load_error, setLoadError] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const [chartSize, setChartSize] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
     setIsMounted(true)
 
-    async function FetchDashboardData() {
+    async function fetchDashboardData() {
       setIsLoading(true)
 
       try {
@@ -76,55 +70,80 @@ export default function DashboardPage() {
         setStats(null)
         setDailyActivity([])
         setHealth(null)
-        setLoadError('Unable to load dashboard data')
+        setLoadError(t('loadError'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    FetchDashboardData()
+    fetchDashboardData()
+  }, [t])
+
+  useEffect(() => {
+    const element = chartContainerRef.current
+    if (!element) return
+
+    const updateChartSize = () => {
+      const rect = element.getBoundingClientRect()
+      setChartSize({
+        width: Math.max(0, Math.floor(rect.width)),
+        height: Math.max(0, Math.floor(rect.height)),
+      })
+    }
+
+    updateChartSize()
+    const observer = new ResizeObserver(updateChartSize)
+    observer.observe(element)
+    return () => observer.disconnect()
   }, [])
 
-  const health_checks = health
+  const healthChecks = health
     ? [health.env_db, health.env_jwt, health.db_connected, health.bcrypt_works]
     : []
-  const health_score =
-    health_checks.length > 0
-      ? Math.round((health_checks.filter(Boolean).length / health_checks.length) * 100)
+  const healthScore =
+    healthChecks.length > 0
+      ? Math.round((healthChecks.filter(Boolean).length / healthChecks.length) * 100)
       : null
-  const platform_status =
-    health_score === null ? 'Unknown' : health_score === 100 ? 'Operational' : 'Needs Attention'
-  const user_name = user?.name?.split(' ')[0] ?? 'Guest'
+  const platformStatus =
+    healthScore === null
+      ? t('unknown')
+      : healthScore === 100
+        ? t('operational')
+        : t('needsAttention')
+  const userName = user?.name?.split(' ')[0] ?? t('guest')
+  const chartReady = isMounted && chartSize.width > 0 && chartSize.height > 0
+  const formatMetric = (value: number | undefined) =>
+    typeof value === 'number' ? value.toLocaleString() : t('unavailable')
 
-  const stat_cards = [
+  const statCards = [
     {
-      label: 'Actions this week',
+      label: t('actionsThisWeek'),
       value: formatMetric(stats?.total_actions_7d),
       icon: 'trending_up',
-      helper: 'Recorded in audit activity',
+      helper: t('actionsThisWeekHelper'),
       color: 'var(--color-info)',
     },
     {
-      label: 'Total users',
+      label: t('totalUsers'),
       value: formatMetric(stats?.total_users),
       icon: 'group',
-      helper: 'All members in this tenant',
+      helper: t('totalUsersHelper'),
       color: 'var(--color-success)',
     },
     {
-      label: 'Active users',
+      label: t('activeUsers'),
       value: formatMetric(stats?.active_users),
       icon: 'person',
-      helper: 'Users currently active',
+      helper: t('activeUsersHelper'),
       color: 'var(--color-warning)',
     },
     {
-      label: 'System health',
-      value: health_score === null ? 'Unknown' : `${health_score}%`,
+      label: t('systemHealth'),
+      value: healthScore === null ? t('unknown') : `${healthScore}%`,
       icon: 'monitor_heart',
-      helper: health_score === 100 ? 'All checks passing' : 'Review health checks',
-      color: health_score === 100 ? 'var(--color-success)' : 'var(--color-warning)',
-      progress: health_score ?? 0,
+      helper: healthScore === 100 ? t('allChecksPassing') : t('reviewHealthChecks'),
+      color: healthScore === 100 ? 'var(--color-success)' : 'var(--color-warning)',
+      progress: healthScore ?? 0,
     },
   ]
 
@@ -136,19 +155,19 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-bold text-[var(--color-text-muted)]">
                 <span className="h-2 w-2 rounded-full bg-[var(--color-success)] shadow-[0_0_12px_var(--color-success)]" />
-                Platform {platform_status}
+                {t('platformStatus', { status: platformStatus })}
               </span>
               <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-semibold text-[var(--color-text-subtle)]">
-                Tenant overview
+                {t('tenantOverview')}
               </span>
             </div>
 
             <div>
               <h1 className="text-2xl font-black leading-tight text-[var(--color-text)] sm:text-3xl lg:text-4xl">
-                ยินดีต้อนรับ, {user_name}
+                {t('welcome', { name: userName })}
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-muted)] sm:text-base">
-                ภาพรวมผู้ใช้ กิจกรรม และสถานะระบบล่าสุดของ tenant นี้
+                {t('description')}
               </p>
             </div>
           </div>
@@ -159,24 +178,24 @@ export default function DashboardPage() {
               className="btn-primary min-h-12 w-full justify-center shadow-sm"
             >
               <span className="material-symbols-outlined text-lg">add_circle</span>
-              Create user
+              {t('createUser')}
             </Link>
             <Link href="/analytics" className="btn-secondary min-h-12 w-full justify-center">
               <span className="material-symbols-outlined text-lg">analytics</span>
-              View report
+              {t('viewReport')}
             </Link>
           </div>
         </div>
       </header>
 
-      {load_error && (
+      {loadError && (
         <div className="rounded-[var(--radius-md)] border border-[var(--color-error)]/25 bg-[var(--color-error-container)] p-4 text-sm font-medium text-[var(--color-error)]">
-          {load_error}
+          {loadError}
         </div>
       )}
 
       <section className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {is_loading
+        {isLoading
           ? Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="editorial-card-elevated min-h-[148px] p-5">
                 <Skeleton width="64%" height={16} />
@@ -188,7 +207,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))
-          : stat_cards.map((stat) => (
+          : statCards.map((stat) => (
               <article
                 key={stat.label}
                 className="editorial-card-elevated group flex min-h-[148px] flex-col justify-between overflow-hidden p-5 transition-transform duration-200 hover:-translate-y-0.5"
@@ -232,26 +251,29 @@ export default function DashboardPage() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
-                Activity trend
+                {t('activityTrend')}
               </p>
               <h2 className="mt-1 text-xl font-black text-[var(--color-text)] sm:text-2xl">
-                การใช้งาน 7 วันล่าสุด
+                {t('activityLast7Days')}
               </h2>
             </div>
             <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-3 py-1 text-xs font-bold text-[var(--color-text-muted)]">
-              <span className="material-symbols-outlined text-sm">calendar_month</span>7 days
+              <span className="material-symbols-outlined text-sm">calendar_month</span>
+              {t('days7')}
             </span>
           </div>
 
-          <div className="h-[260px] w-full sm:h-[320px]">
-            {is_loading ? (
+          <div ref={chartContainerRef} className="min-h-[260px] min-w-0 w-full sm:min-h-[320px]">
+            {isLoading ? (
               <Skeleton width="100%" height="100%" />
             ) : (
-              is_mounted &&
-              (daily_activity.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+              isMounted &&
+              (dailyActivity.length > 0 ? (
+                chartReady ? (
                   <AreaChart
-                    data={daily_activity}
+                    width={chartSize.width}
+                    height={chartSize.height}
+                    data={dailyActivity}
                     margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
                   >
                     <defs>
@@ -298,14 +320,16 @@ export default function DashboardPage() {
                       type="monotone"
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                ) : (
+                  <Skeleton width="100%" height="100%" />
+                )
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface-low)] p-6 text-center">
                   <span className="material-symbols-outlined text-4xl text-[var(--color-text-faint)]">
                     bar_chart
                   </span>
                   <p className="text-sm font-bold text-[var(--color-text-muted)]">
-                    No activity data yet
+                    {t('noActivity')}
                   </p>
                 </div>
               ))
@@ -317,14 +341,16 @@ export default function DashboardPage() {
           <section className="editorial-card-elevated overflow-hidden">
             <div className="border-b border-[var(--color-border)] p-5">
               <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
-                Quick actions
+                {t('quickActions')}
               </p>
-              <h2 className="mt-1 text-lg font-black text-[var(--color-text)]">ทำงานต่อได้ทันที</h2>
+              <h2 className="mt-1 text-lg font-black text-[var(--color-text)]">
+                {t('quickActionsTitle')}
+              </h2>
             </div>
             <div className="grid grid-cols-2">
               {QUICK_ACTIONS.map((action, index) => (
                 <Link
-                  key={action.label}
+                  key={action.labelKey}
                   href={action.href}
                   className="group flex min-h-28 flex-col justify-between border-[var(--color-border)] p-4 transition-colors hover:bg-[var(--color-surface-low)]"
                   style={{
@@ -336,7 +362,7 @@ export default function DashboardPage() {
                     {action.icon}
                   </span>
                   <span className="text-xs font-black uppercase text-[var(--color-text-muted)]">
-                    {action.label}
+                    {action.labelKey === 'analytics' ? tNav('analytics') : t(action.labelKey)}
                   </span>
                 </Link>
               ))}
@@ -350,17 +376,15 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
-                  Health checks
+                  {t('healthChecks')}
                 </p>
                 <p className="mt-1 text-2xl font-black text-[var(--color-text)]">
-                  {health_score === null
-                    ? 'Unknown'
-                    : `${health_checks.filter(Boolean).length}/${health_checks.length}`}
+                  {healthScore === null
+                    ? t('unknown')
+                    : `${healthChecks.filter(Boolean).length}/${healthChecks.length}`}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-                  {health_score === 100
-                    ? 'Core services are passing.'
-                    : 'Some checks need attention before production use.'}
+                  {healthScore === 100 ? t('coreServicesPassing') : t('checksNeedAttention')}
                 </p>
               </div>
             </div>
@@ -377,10 +401,10 @@ export default function DashboardPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-lg font-black text-[var(--color-text)]">
-                  {user?.name ?? 'Admin User'}
+                  {user?.name ?? t('adminUser')}
                 </h2>
                 <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-low)] px-2.5 py-1 text-[10px] font-black uppercase text-[var(--color-text-muted)]">
-                  {user?.roles?.[0] ?? 'Staff'}
+                  {user?.roles?.[0] ?? t('staff')}
                 </span>
               </div>
               <p className="mt-1 truncate text-sm font-medium text-[var(--color-text-subtle)]">
@@ -391,15 +415,19 @@ export default function DashboardPage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-low)] px-4 py-3">
-              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">Actions</p>
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                {t('actions')}
+              </p>
               <p className="mt-1 text-xl font-black text-[var(--color-text)]">
                 {formatMetric(stats?.total_actions_7d)}
               </p>
             </div>
             <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface-low)] px-4 py-3">
-              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">Health</p>
+              <p className="text-xs font-bold uppercase text-[var(--color-text-subtle)]">
+                {t('health')}
+              </p>
               <p className="mt-1 text-xl font-black text-[var(--color-text)]">
-                {health_score === null ? 'Unknown' : `${health_score}%`}
+                {healthScore === null ? t('unknown') : `${healthScore}%`}
               </p>
             </div>
           </div>

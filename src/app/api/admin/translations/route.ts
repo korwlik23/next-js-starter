@@ -1,43 +1,51 @@
+import type { NextRequest } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { withAuth } from '@/lib/authorize'
 import { TranslationService } from '@/modules/i18n/service'
 import { successResponse, badRequest, serverError } from '@/utils/api'
 import { logger } from '@/lib/logger'
-import { revalidateTag } from 'next/cache'
 import { AuditService } from '@/modules/audit/service'
 import { getRequestMetadata } from '@/utils/request'
 import { getAuthUser } from '@/lib/auth'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
-// GET /api/admin/translations — รายการคำแปล
 export const GET = withAuth(
   async (req: Request) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
       const { searchParams } = new URL(req.url)
-      const locale = searchParams.get('locale') || 'th'
+      const targetLocale = searchParams.get('locale') || 'th'
 
-      const data = await TranslationService.getByLocale(locale)
+      const data = await TranslationService.getByLocale(targetLocale)
       return successResponse(data)
     } catch (error) {
       logger.error('GET /api/admin/translations error', error)
-      return serverError()
+      return serverError(translate(locale, 'api.errors.server'))
     }
   },
   { permission: ['translation.manage', 'settings.update'] }
 )
 
-// POST /api/admin/translations — อัปเดต/เพิ่มคำแปล
 export const POST = withAuth(
   async (req: Request) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
       const body = await req.json()
-      const { locale, namespace, key, value } = body
+      const { locale: targetLocale, namespace, key, value } = body
 
-      if (!locale || !namespace || !key) {
-        return badRequest('กรุณาระบุข้อมูลให้ครบถ้วน (locale, namespace, key)')
+      if (!targetLocale || !namespace || !key) {
+        return badRequest(translate(locale, 'api.messages.translationRequired'))
       }
 
-      const result = await TranslationService.upsert({ locale, namespace, key, value })
+      const result = await TranslationService.upsert({
+        locale: targetLocale,
+        namespace,
+        key,
+        value,
+      })
 
-      // Audit Log: Translation Updated
       const authUser = await getAuthUser()
       const { ipAddress, userAgent } = getRequestMetadata(req)
       await AuditService.record({
@@ -45,19 +53,18 @@ export const POST = withAuth(
         tenantId: authUser?.tenantId,
         action: 'TRANSLATION_UPSERT',
         entity: 'Translation',
-        entityId: `${locale}:${namespace}:${key}`,
+        entityId: `${targetLocale}:${namespace}:${key}`,
         ipAddress,
         userAgent,
-        metadata: { locale, namespace, key },
+        metadata: { locale: targetLocale, namespace, key },
       })
 
-      // ล้าง cache เพื่อให้คำแปลใหม่แสดงผลทันที
       revalidateTag('translations', 'max')
 
-      return successResponse(result, 'บันทึกคำแปลสำเร็จ')
+      return successResponse(result, translate(locale, 'api.messages.translationSaved'))
     } catch (error) {
       logger.error('POST /api/admin/translations error', error)
-      return serverError()
+      return serverError(translate(locale, 'api.errors.server'))
     }
   },
   { permission: ['translation.manage', 'settings.update'] }

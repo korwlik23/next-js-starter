@@ -9,12 +9,13 @@ export class HealthService {
     }
 
     try {
-      const userCount = await prisma.user.count()
+      await prisma.$queryRaw`SELECT 1`
       checks.db_connected = true
-      checks.user_count = userCount
     } catch (err) {
       checks.db_connected = false
-      checks.db_error = err instanceof Error ? err.message : String(err)
+      if (process.env.NODE_ENV !== 'production') {
+        checks.db_error = err instanceof Error ? err.message : String(err)
+      }
     }
 
     try {
@@ -24,7 +25,9 @@ export class HealthService {
       checks.bcrypt_works = match
     } catch (err) {
       checks.bcrypt_works = false
-      checks.bcrypt_error = err instanceof Error ? err.message : String(err)
+      if (process.env.NODE_ENV !== 'production') {
+        checks.bcrypt_error = err instanceof Error ? err.message : String(err)
+      }
     }
 
     return checks

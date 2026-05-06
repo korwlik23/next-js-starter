@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { registerSchema } from '@/modules/auth/schema'
+import { createRegisterSchema } from '@/modules/auth/schema'
 import { registerService } from '@/modules/auth/service'
 import { setAuthCookies } from '@/lib/auth'
 import { createdResponse, badRequest, conflict, serverError } from '@/utils/api'
@@ -7,27 +7,43 @@ import { logger } from '@/lib/logger'
 import { features } from '@/config'
 import { AuditService } from '@/modules/audit/service'
 import { getRequestMetadata } from '@/utils/request'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
+import type { SupportedLocale } from '@/i18n/config'
+
+function authValidationMessages(locale: SupportedLocale) {
+  return {
+    invalidEmail: translate(locale, 'validation.invalidEmail'),
+    nameMin: translate(locale, 'validation.nameMin'),
+    passwordMin6: translate(locale, 'validation.passwordMin6'),
+    passwordMin8: translate(locale, 'validation.passwordMin8'),
+    passwordMismatch: translate(locale, 'validation.passwordMismatch'),
+    tokenRequired: translate(locale, 'validation.tokenRequired'),
+    refreshTokenRequired: translate(locale, 'validation.refreshTokenRequired'),
+  }
+}
 
 export async function POST(req: NextRequest) {
+  const locale = getLocaleFromRequest(req)
+  const t = (key: string) => translate(locale, key)
+
   if (!features.registration) {
-    return badRequest('Registration is currently disabled')
+    return badRequest(t('auth.errors.registrationDisabled'))
   }
 
   try {
     const body = await req.json()
-    const parsed = registerSchema.safeParse(body)
+    const parsed = createRegisterSchema(authValidationMessages(locale)).safeParse(body)
 
     if (!parsed.success) {
       return badRequest(
-        'ข้อมูลไม่ถูกต้อง',
+        t('auth.errors.invalidInput'),
         parsed.error.flatten().fieldErrors as Record<string, string[]>
       )
     }
 
     const { tokens, user } = await registerService(parsed.data)
-
-    // Audit Log: User Registered
     const { ipAddress, userAgent } = getRequestMetadata(req)
+
     AuditService.record({
       userId: user.sub,
       tenantId: user.tenantId,
@@ -41,12 +57,19 @@ export async function POST(req: NextRequest) {
 
     return createdResponse(
       { user: { id: user.sub, name: user.name, email: user.email, roles: user.roles } },
-      'สร้างบัญชีสำเร็จ'
+      t('auth.successRegister')
     )
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
+    const code = error instanceof Error ? error.message : 'AUTH_SERVER_ERROR'
+
+    if (code === 'AUTH_EMAIL_IN_USE') {
+      logger.warn('Register failed', {
+        reason: 'Email already exists',
+      })
+      return conflict(t('auth.errors.emailInUse'))
+    }
+
     logger.error('Register error', error)
-    if (message.includes('ถูกใช้งานแล้ว')) return conflict(message)
-    return serverError()
+    return serverError(t('auth.errors.server'))
   }
 }

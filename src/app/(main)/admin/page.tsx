@@ -1,16 +1,12 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useLocale, useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { api } from '@/services/apiClient'
 import { Skeleton } from '@/components/ui'
 import { timeAgo } from '@/utils/format'
 
-// ────────────────────────────────────────
-// Admin Panel — ใช้ React Query สำหรับ data fetching
-// ข้อมูล real-time จาก /api/admin/stats + auto-refetch
-// ────────────────────────────────────────
-
-/** โครงสร้างข้อมูล stats จาก API */
 interface AdminStats {
   total_users: number
   total_tenants: number
@@ -32,41 +28,7 @@ interface AdminData {
   recent_events: RecentEvent[]
 }
 
-// ── Config สำหรับ stat cards
-const STAT_CONFIG = [
-  { key: 'total_users' as const, label: 'ผู้ใช้ทั้งหมด', icon: 'group' },
-  { key: 'total_tenants' as const, label: 'Tenants ที่ใช้งาน', icon: 'apartment' },
-  { key: 'active_sessions' as const, label: 'Active Sessions', icon: 'devices' },
-  { key: 'api_requests_24h' as const, label: 'API Requests (24h)', icon: 'api' },
-]
-
-// ── Quick action links
-const QUICK_ACTIONS = [
-  {
-    label: 'จัดการผู้ใช้',
-    href: '/user',
-    icon: 'manage_accounts',
-    desc: 'ดู/แก้ไข/ลบ ผู้ใช้ในระบบ',
-  },
-  {
-    label: 'Audit Log',
-    href: '/settings/audit',
-    icon: 'history',
-    desc: 'ดูประวัติการกระทำทั้งหมด',
-  },
-  { label: 'API Keys', href: '/settings/api-keys', icon: 'key', desc: 'จัดการ API Keys' },
-  {
-    label: 'จัดการภาษา',
-    href: '/admin/translations',
-    icon: 'translate',
-    desc: 'แก้ไขคำแปลของระบบ',
-  },
-  { label: 'Billing', href: '/billing', icon: 'payments', desc: 'ดูข้อมูลบิลและ subscription' },
-  { label: 'Analytics', href: '/analytics', icon: 'analytics', desc: 'ดูสถิติการใช้งาน' },
-]
-
-/** ฟังก์ชันดึงข้อมูล admin stats — ใช้กับ React Query */
-async function FetchAdminStats(): Promise<AdminData> {
+async function fetchAdminStats(): Promise<AdminData> {
   const result = await api.get<AdminData>('/api/admin/stats')
   if (result.error) throw new Error(result.error)
   if (!result.data) throw new Error('No data')
@@ -74,41 +36,87 @@ async function FetchAdminStats(): Promise<AdminData> {
 }
 
 export default function AdminPage() {
-  // ── ใช้ React Query แทน useState/useEffect
-  // staleTime 30 วินาที + refetch ทุก 60 วินาทีอัตโนมัติ
+  const t = useTranslations('adminPage')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
+  const formatterLocale = locale === 'th' ? 'th-TH' : 'en-US'
+
+  const statConfig = [
+    { key: 'total_users' as const, label: t('totalUsers'), icon: 'group' },
+    { key: 'total_tenants' as const, label: t('totalTenants'), icon: 'apartment' },
+    { key: 'active_sessions' as const, label: t('activeSessions'), icon: 'devices' },
+    { key: 'api_requests_24h' as const, label: t('apiRequests'), icon: 'api' },
+  ]
+
+  const quickActions = [
+    {
+      label: t('userManagement'),
+      href: '/user',
+      icon: 'manage_accounts',
+      desc: t('userManagementDescription'),
+    },
+    {
+      label: t('auditLog'),
+      href: '/admin/audit-logs',
+      icon: 'history',
+      desc: t('auditLogDescription'),
+    },
+    {
+      label: t('apiKeys'),
+      href: '/settings/api-keys',
+      icon: 'key',
+      desc: t('apiKeysDescription'),
+    },
+    {
+      label: t('translations'),
+      href: '/admin/translations',
+      icon: 'translate',
+      desc: t('translationsDescription'),
+    },
+    {
+      label: t('billing'),
+      href: '/billing',
+      icon: 'payments',
+      desc: t('billingDescription'),
+    },
+    {
+      label: t('analytics'),
+      href: '/analytics',
+      icon: 'analytics',
+      desc: t('analyticsDescription'),
+    },
+  ]
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin', 'stats'],
-    queryFn: FetchAdminStats,
+    queryFn: fetchAdminStats,
     staleTime: 30_000,
     refetchInterval: 60_000,
   })
 
   return (
     <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-700">
-      {/* 1. PAGE HEADER — High Contrast */}
       <header className="mb-6 pt-2">
         <h1
           className="text-2xl sm:text-3xl font-extrabold mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
-          Command Center
+          {t('title')}
         </h1>
         <p className="text-base font-medium max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
-          System-wide overview, health metrics, and administrative control tools.
+          {t('description')}
         </p>
       </header>
 
-      {/* Error Message */}
       {error && (
         <div className="p-4 rounded-[var(--radius-md)] mb-5 bg-[var(--color-error)]/10 border border-[var(--color-error)]/20 text-[var(--color-error)] text-sm font-medium flex items-center gap-3">
           <span className="material-symbols-outlined text-base">error</span>
-          {error.message}
+          {error.message === 'No data' ? tCommon('noData') : error.message}
         </div>
       )}
 
-      {/* 2. SYSTEM STATS — Primary Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {STAT_CONFIG.map((stat) => (
+        {statConfig.map((stat) => (
           <div
             key={stat.key}
             className="editorial-card-elevated p-4 sm:p-5 flex flex-col justify-between min-h-[124px] shadow-sm"
@@ -129,7 +137,7 @@ export default function AdminPage() {
                 <Skeleton width="60%" height="2.5rem" />
               ) : (
                 <p className="text-3xl font-black" style={{ color: 'var(--color-primary)' }}>
-                  {data?.stats?.[stat.key]?.toLocaleString() ?? '—'}
+                  {data?.stats?.[stat.key]?.toLocaleString(formatterLocale) ?? '-'}
                 </p>
               )}
             </div>
@@ -138,17 +146,16 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-        {/* 3. ACTIVITY FEED — Recent Events Timeline */}
         <div className="lg:col-span-7">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-black uppercase" style={{ color: 'var(--color-primary)' }}>
-              Recent System Events
+              {t('recentEvents')}
             </h2>
             <span
               className="text-[10px] font-bold py-1 px-2 rounded-full bg-[var(--color-surface-low)]"
               style={{ color: 'var(--color-text-faint)' }}
             >
-              Live Feed
+              {t('liveFeed')}
             </span>
           </div>
 
@@ -162,7 +169,6 @@ export default function AdminPage() {
             ) : data?.recent_events && data.recent_events.length > 0 ? (
               data.recent_events.map((event) => (
                 <div key={event.id} className="relative group">
-                  {/* Timeline Dot */}
                   <div className="absolute -left-5 sm:-left-8 top-1.5 w-3 h-3 rounded-full border-2 border-[var(--color-border)] bg-[var(--color-surface)] group-hover:border-[var(--color-primary)] transition-colors z-10" />
 
                   <div className="editorial-card-elevated p-4 shadow-sm transition-all">
@@ -177,7 +183,7 @@ export default function AdminPage() {
                         className="text-[10px] font-bold"
                         style={{ color: 'var(--color-text-faint)' }}
                       >
-                        {timeAgo(event.created_at)}
+                        {timeAgo(event.created_at, formatterLocale)}
                       </span>
                     </div>
                     <p
@@ -209,25 +215,24 @@ export default function AdminPage() {
                   event_busy
                 </span>
                 <p className="text-sm font-bold" style={{ color: 'var(--color-text-faint)' }}>
-                  No recent activity detected
+                  {t('noRecentActivity')}
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* 4. CONTROL PANEL — Quick Actions Grid */}
         <div className="lg:col-span-5">
           <h2
             className="text-sm font-black uppercase mb-5"
             style={{ color: 'var(--color-primary)' }}
           >
-            Control Panel
+            {t('controlPanel')}
           </h2>
           <div className="grid grid-cols-1 gap-4">
-            {QUICK_ACTIONS.map((action) => (
-              <a
-                key={action.label}
+            {quickActions.map((action) => (
+              <Link
+                key={action.href}
                 href={action.href}
                 className="editorial-card-elevated p-4 sm:p-5 flex items-center gap-4 transition-all hover:shadow-md border-transparent hover:border-[var(--color-primary)]/20"
               >
@@ -248,17 +253,17 @@ export default function AdminPage() {
                     {action.desc}
                   </p>
                 </div>
-                <span className="material-symbols-outlined text-lg opacity-30 group-hover:opacity-100 transition-opacity">
+                <span className="material-symbols-outlined text-lg opacity-30 transition-opacity">
                   chevron_right
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
 
           <div className="mt-6 p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-sm flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-xs font-black uppercase mb-1 opacity-70">Support Status</p>
-              <p className="text-sm font-bold">Systems operational</p>
+              <p className="text-xs font-black uppercase mb-1 opacity-70">{t('supportStatus')}</p>
+              <p className="text-sm font-bold">{t('systemsOperational')}</p>
             </div>
             <span className="w-3 h-3 rounded-full bg-white animate-pulse" />
           </div>

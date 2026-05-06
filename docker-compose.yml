@@ -9,13 +9,15 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=mysql://nextjs_user:nextjs_password@db:3306/nextjs_starter
+      - DATABASE_URL=${DATABASE_URL:-mysql://nextjs_user:nextjs_password@db:3306/nextjs_starter}
       - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
       - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
-      - JWT_SECRET=replace-with-a-random-secret-at-least-32-chars
-      - JWT_ACCESS_EXPIRES=15m
-      - JWT_REFRESH_EXPIRES=7d
-      - NEXT_PUBLIC_ROOT_DOMAIN=localhost:3000
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET to a unique random value of at least 32 characters}
+      - JWT_ACCESS_EXPIRES=${JWT_ACCESS_EXPIRES:-15m}
+      - JWT_REFRESH_EXPIRES=${JWT_REFRESH_EXPIRES:-7d}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:?Set NEXT_PUBLIC_APP_URL to your production URL}
+      - NEXT_PUBLIC_ROOT_DOMAIN=${NEXT_PUBLIC_ROOT_DOMAIN:?Set NEXT_PUBLIC_ROOT_DOMAIN to your root domain}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
     depends_on:
       db:
         condition: service_healthy
@@ -25,10 +27,10 @@ services:
     ports:
       - '3306:3306'
     environment:
-      - MYSQL_ROOT_PASSWORD=rootpassword
-      - MYSQL_DATABASE=nextjs_starter
-      - MYSQL_USER=nextjs_user
-      - MYSQL_PASSWORD=nextjs_password
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-nextjs_starter}
+      - MYSQL_USER=${MYSQL_USER:-nextjs_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:

@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { Spinner, Input, Button } from '@/components/ui'
 
 const skipKeys = ['id', 'password', 'deletedAt', 'createdAt', 'updatedAt', 'roles', 'permissions']
 
 export default function ModuleEditPage() {
+  const t = useTranslations('moduleForm')
+  const tCommon = useTranslations('common')
   const params = useParams<{ module: string; id: string }>()
   const router = useRouter()
   const { module: moduleName, id } = params
@@ -17,15 +20,16 @@ export default function ModuleEditPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
   useEffect(() => {
     fetch(`/api/${moduleName}/${id}`)
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((json) => {
         if (json.data) {
           const editable: Record<string, string> = {}
-          for (const [k, v] of Object.entries(json.data)) {
-            if (!skipKeys.includes(k) && typeof v !== 'object') {
-              editable[k] = v === null ? '' : String(v)
+          for (const [key, value] of Object.entries(json.data)) {
+            if (!skipKeys.includes(key) && typeof value !== 'object') {
+              editable[key] = value === null ? '' : String(value)
             }
           }
           setFields(editable)
@@ -46,12 +50,12 @@ export default function ModuleEditPage() {
       })
       const json = await res.json()
       if (!res.ok) {
-        setError(json.message ?? 'เกิดข้อผิดพลาด')
+        setError(json.message ?? t('genericError'))
         return
       }
       router.push(`/${moduleName}/${id}`)
     } catch {
-      setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้')
+      setError(t('networkError'))
     } finally {
       setIsSubmitting(false)
     }
@@ -64,16 +68,16 @@ export default function ModuleEditPage() {
           <Link
             href={`/${moduleName}/${id}`}
             className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-low)] hover:text-[var(--color-primary)]"
-            aria-label={`Back to ${moduleLabel} detail`}
+            aria-label={t('backToDetail', { module: moduleLabel })}
           >
             <span className="material-symbols-outlined text-lg">arrow_back</span>
           </Link>
           <p className="text-[0.7rem] uppercase font-bold text-[var(--color-text-faint)]">
-            {moduleLabel} / Edit
+            {moduleLabel} / {t('edit')}
           </p>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-primary)]">
-          Edit {moduleLabel}
+          {t('editTitle', { module: moduleLabel })}
         </h1>
       </header>
 
@@ -103,11 +107,11 @@ export default function ModuleEditPage() {
 
             <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
               <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-                Save Changes
+                {tCommon('save')}
               </Button>
               <Link href={`/${moduleName}/${id}`}>
                 <Button type="button" variant="secondary">
-                  Cancel
+                  {tCommon('cancel')}
                 </Button>
               </Link>
             </div>

@@ -1,13 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { api } from '@/services/apiClient'
 import { Skeleton } from '@/components/ui'
 import toast from 'react-hot-toast'
-
-// ────────────────────────────────────────
-// Billing Page — เชื่อมกับ Stripe จริง
-// ────────────────────────────────────────
 
 interface SubscriptionInfo {
   plan: string
@@ -25,57 +22,73 @@ interface SubscriptionInfo {
   }[]
 }
 
-const PLAN_OPTIONS = [
-  {
-    name: 'Free',
-    slug: 'free',
-    price: '฿0',
-    period: '/เดือน',
-    features: ['ผู้ใช้สูงสุด 3 คน', 'โปรเจคสูงสุด 5 โปรเจค', 'อัปโหลดไฟล์สูงสุด 10MB'],
-  },
-  {
-    name: 'Pro',
-    slug: 'pro',
-    price: '฿590',
-    period: '/เดือน',
-    features: [
-      'ผู้ใช้สูงสุด 20 คน',
-      'โปรเจคสูงสุด 50 โปรเจค',
-      'Custom Domain',
-      'API Access',
-      'Audit Log',
-      'Analytics',
-      'Webhook',
-      'อัปโหลดไฟล์สูงสุด 100MB',
-    ],
-    is_popular: true,
-  },
-  {
-    name: 'Enterprise',
-    slug: 'enterprise',
-    price: '฿2,990',
-    period: '/เดือน',
-    features: [
-      'ผู้ใช้ไม่จำกัด',
-      'โปรเจคไม่จำกัด',
-      'ทุกอย่างใน Pro',
-      'SSO / SAML',
-      'Priority Support',
-      'อัปโหลดไฟล์สูงสุด 500MB',
-    ],
-  },
-]
-
 export default function BillingPage() {
+  const t = useTranslations('billingPage')
+  const tStatus = useTranslations('status')
+  const locale = useLocale()
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
-  const [is_loading, setIsLoading] = useState(true)
-  const [upgrading_plan, setUpgradingPlan] = useState<string | null>(null)
-  const [is_portal_loading, setIsPortalLoading] = useState(false)
-  const [error_message, setErrorMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
+  const [isPortalLoading, setIsPortalLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  // ── ดึงข้อมูล subscription ปัจจุบันจาก API
+  const formatterLocale = locale === 'th' ? 'th-TH' : 'en-US'
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(formatterLocale, {
+        style: 'currency',
+        currency: 'THB',
+        maximumFractionDigits: 0,
+      }),
+    [formatterLocale]
+  )
+
+  const planOptions = useMemo(
+    () => [
+      {
+        name: 'Free',
+        slug: 'free',
+        price: currencyFormatter.format(0),
+        period: t('monthly'),
+        features: [t('features.freeUsers'), t('features.freeProjects'), t('features.freeUpload')],
+      },
+      {
+        name: 'Pro',
+        slug: 'pro',
+        price: currencyFormatter.format(590),
+        period: t('monthly'),
+        features: [
+          t('features.proUsers'),
+          t('features.proProjects'),
+          t('features.customDomain'),
+          t('features.apiAccess'),
+          t('features.auditLog'),
+          t('features.analytics'),
+          t('features.webhook'),
+          t('features.proUpload'),
+        ],
+        isPopular: true,
+      },
+      {
+        name: 'Enterprise',
+        slug: 'enterprise',
+        price: currencyFormatter.format(2990),
+        period: t('monthly'),
+        features: [
+          t('features.enterpriseUsers'),
+          t('features.enterpriseProjects'),
+          t('features.allPro'),
+          t('features.sso'),
+          t('features.prioritySupport'),
+          t('features.enterpriseUpload'),
+        ],
+      },
+    ],
+    [currencyFormatter, t]
+  )
+
   useEffect(() => {
-    async function FetchSubscription() {
+    async function fetchSubscription() {
       setIsLoading(true)
       try {
         const result = await api.get<SubscriptionInfo>('/api/billing')
@@ -84,47 +97,50 @@ export default function BillingPage() {
           setErrorMessage('')
         } else {
           setSubscription(null)
-          setErrorMessage(result.error ?? 'Unable to load billing data')
+          setErrorMessage(result.error ?? t('loadError'))
         }
       } catch {
         setSubscription(null)
-        setErrorMessage('Unable to load billing data')
+        setErrorMessage(t('loadError'))
       } finally {
         setIsLoading(false)
       }
     }
 
-    FetchSubscription()
-  }, [])
+    fetchSubscription()
+  }, [t])
 
-  const HandleUpgrade = useCallback(async (plan_slug: string) => {
-    setUpgradingPlan(plan_slug)
-    try {
-      const result = await api.post<{ url?: string; checkout_url?: string }>('/api/billing', {
-        action: 'checkout',
-        plan: plan_slug,
-      })
+  const handleUpgrade = useCallback(
+    async (planSlug: string) => {
+      setUpgradingPlan(planSlug)
+      try {
+        const result = await api.post<{ url?: string; checkout_url?: string }>('/api/billing', {
+          action: 'checkout',
+          plan: planSlug,
+        })
 
-      if (result.error) {
-        toast.error(result.error)
-        return
+        if (result.error) {
+          toast.error(result.error)
+          return
+        }
+
+        const checkoutUrl = result.data?.url ?? result.data?.checkout_url
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl
+        } else {
+          toast.success(t('switchedPlan', { plan: planSlug }))
+          setSubscription((prev) => (prev ? { ...prev, plan: planSlug } : null))
+        }
+      } catch {
+        toast.error(t('actionError'))
+      } finally {
+        setUpgradingPlan(null)
       }
+    },
+    [t]
+  )
 
-      const checkoutUrl = result.data?.url ?? result.data?.checkout_url
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl
-      } else {
-        toast.success(`เปลี่ยนแพลนเป็น ${plan_slug} สำเร็จ`)
-        setSubscription((prev) => (prev ? { ...prev, plan: plan_slug } : null))
-      }
-    } catch {
-      toast.error('ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setUpgradingPlan(null)
-    }
-  }, [])
-
-  const HandleManageBilling = useCallback(async () => {
+  const handleManageBilling = useCallback(async () => {
     setIsPortalLoading(true)
     try {
       const result = await api.post<{ url?: string }>('/api/billing', {
@@ -139,41 +155,40 @@ export default function BillingPage() {
       if (result.data?.url) {
         window.location.href = result.data.url
       } else {
-        toast.error('Billing portal is not available for this account yet')
+        toast.error(t('portalUnavailable'))
       }
     } catch {
-      toast.error('Unable to open billing portal')
+      toast.error(t('portalError'))
     } finally {
       setIsPortalLoading(false)
     }
-  }, [])
+  }, [t])
 
-  const current_plan = subscription?.plan
+  const currentPlan = subscription?.plan
+  const displayPlan = currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : ''
 
   return (
     <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
-      {/* 1. PAGE HEADER — Focus Point */}
       <header className="mb-10 pt-4">
         <h1
           className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"
           style={{ color: 'var(--color-primary)' }}
         >
-          Subscription & Billing
+          {t('title')}
         </h1>
         <p className="text-base font-medium max-w-2xl" style={{ color: 'var(--color-text-muted)' }}>
-          Manage your billing information, subscription plans, and view your payment history.
+          {t('description')}
         </p>
       </header>
 
-      {error_message && (
+      {errorMessage && (
         <div className="mb-8 rounded-xl border border-[var(--color-error)]/20 bg-[var(--color-error)]/10 p-4 text-sm font-medium text-[var(--color-error)]">
-          {error_message}
+          {errorMessage}
         </div>
       )}
 
-      {/* 2. CURRENT SUBSCRIPTION — Primary Information */}
       <div className="mb-12">
-        {is_loading ? (
+        {isLoading ? (
           <Skeleton width="100%" height="120px" border_radius="var(--radius-lg)" />
         ) : (
           <div
@@ -189,19 +204,17 @@ export default function BillingPage() {
                   className="text-[10px] font-black uppercase tracking-widest mb-1"
                   style={{ color: 'var(--color-text-faint)' }}
                 >
-                  Current Status
+                  {t('currentStatus')}
                 </p>
                 <div className="flex items-center gap-3">
                   <h2
                     className="text-2xl font-black tracking-tight"
                     style={{ color: 'var(--color-primary)' }}
                   >
-                    {current_plan
-                      ? `${current_plan.charAt(0).toUpperCase() + current_plan.slice(1)} Plan`
-                      : 'Billing Unavailable'}
+                    {currentPlan ? t('planLabel', { plan: displayPlan }) : t('billingUnavailable')}
                   </h2>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20">
-                    {subscription?.status?.toUpperCase() ?? 'UNAVAILABLE'}
+                    {subscription?.status?.toUpperCase() ?? tStatus('unavailable')}
                   </span>
                 </div>
                 <p
@@ -209,39 +222,43 @@ export default function BillingPage() {
                   style={{ color: 'var(--color-text-muted)' }}
                 >
                   {subscription?.current_period_end
-                    ? `Renews on ${new Date(subscription.current_period_end).toLocaleDateString('en-US', { dateStyle: 'long' })}`
+                    ? t('renewsOn', {
+                        date: new Date(subscription.current_period_end).toLocaleDateString(
+                          formatterLocale,
+                          { dateStyle: 'long' }
+                        ),
+                      })
                     : subscription
-                      ? 'No active billing period'
-                      : 'Billing data could not be loaded from the API'}
+                      ? t('noActivePeriod')
+                      : t('apiUnavailable')}
                 </p>
               </div>
             </div>
             <button
               type="button"
-              onClick={HandleManageBilling}
-              disabled={is_portal_loading || !subscription}
+              onClick={handleManageBilling}
+              disabled={isPortalLoading || !subscription}
               className="btn-secondary text-[10px] py-2.5 px-6 rounded-md uppercase font-black tracking-widest"
             >
-              {is_portal_loading ? 'Opening...' : 'Manage Billing'}
+              {isPortalLoading ? t('opening') : t('manageBilling')}
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. PRICING TIERS — Choice Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mb-10">
-        {PLAN_OPTIONS.map((plan) => {
-          const is_current = current_plan === plan.slug
-          const is_pro = plan.slug === 'pro'
+        {planOptions.map((plan) => {
+          const isCurrent = currentPlan === plan.slug
+          const isPro = plan.slug === 'pro'
 
           return (
             <div
               key={plan.slug}
-              className={`editorial-card-elevated p-4 sm:p-5 flex flex-col transition-all duration-300 ${is_pro ? 'border-[var(--color-primary)]/40 shadow-md shadow-black/5' : 'shadow-sm'}`}
+              className={`editorial-card-elevated p-4 sm:p-5 flex flex-col transition-all duration-300 ${isPro ? 'border-[var(--color-primary)]/40 shadow-md shadow-black/5' : 'shadow-sm'}`}
             >
-              {is_pro && (
+              {plan.isPopular && (
                 <span className="text-[9px] font-black uppercase tracking-widest text-center px-3 py-1 rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)] absolute -top-3 left-1/2 -translate-x-1/2">
-                  Recommended
+                  {t('recommended')}
                 </span>
               )}
               <h3
@@ -260,9 +277,9 @@ export default function BillingPage() {
               </div>
 
               <ul className="space-y-4 mb-10 flex-1">
-                {plan.features.map((feature, idx) => (
+                {plan.features.map((feature) => (
                   <li
-                    key={idx}
+                    key={feature}
                     className="flex items-start gap-3 text-xs font-medium"
                     style={{ color: 'var(--color-text-muted)' }}
                   >
@@ -275,43 +292,39 @@ export default function BillingPage() {
               </ul>
 
               <button
-                onClick={() => HandleUpgrade(plan.slug)}
+                onClick={() => handleUpgrade(plan.slug)}
                 disabled={
-                  !subscription ||
-                  is_current ||
-                  plan.slug === 'free' ||
-                  upgrading_plan === plan.slug
+                  !subscription || isCurrent || plan.slug === 'free' || upgradingPlan === plan.slug
                 }
-                className={`w-full py-3.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${is_current ? 'bg-[var(--color-surface-mid)] text-[var(--color-text-faint)]' : 'btn-primary'}`}
+                className={`w-full py-3.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isCurrent ? 'bg-[var(--color-surface-mid)] text-[var(--color-text-faint)]' : 'btn-primary'}`}
               >
                 {!subscription
-                  ? 'Unavailable'
-                  : is_current
-                    ? 'Current Plan'
+                  ? tStatus('unavailable')
+                  : isCurrent
+                    ? t('currentPlan')
                     : plan.slug === 'free'
-                      ? 'Included'
-                      : upgrading_plan === plan.slug
-                        ? 'Processing...'
-                        : `Switch to ${plan.name}`}
+                      ? t('included')
+                      : upgradingPlan === plan.slug
+                        ? tStatus('processing')
+                        : t('switchTo', { plan: plan.name })}
               </button>
             </div>
           )
         })}
       </div>
 
-      {/* 4. BILLING HISTORY — Supporting Data Table */}
       <section className="editorial-card-elevated overflow-hidden shadow-sm">
         <div className="p-4 sm:p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/30 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div>
             <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
-              Billing History
+              {t('billingHistory')}
             </h2>
             <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
-              Download and manage your past invoices.
+              {t('historyDescription')}
             </p>
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-faint)]">
-            PDF Format
+            {t('pdfFormat')}
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -319,66 +332,66 @@ export default function BillingPage() {
             <thead>
               <tr className="bg-[var(--color-surface-low)]/50">
                 <th className="text-left px-4 sm:px-5 py-3 text-[10px] font-black uppercase text-[var(--color-text-faint)] border-b border-[var(--color-border)]">
-                  Date
+                  {t('date')}
                 </th>
                 <th className="text-left px-4 sm:px-5 py-3 text-[10px] font-black uppercase text-[var(--color-text-faint)] border-b border-[var(--color-border)]">
-                  Description
+                  {t('descriptionColumn')}
                 </th>
                 <th className="text-left px-4 sm:px-5 py-3 text-[10px] font-black uppercase text-[var(--color-text-faint)] border-b border-[var(--color-border)]">
-                  Amount
+                  {t('amount')}
                 </th>
                 <th className="text-left px-4 sm:px-5 py-3 text-[10px] font-black uppercase text-[var(--color-text-faint)] border-b border-[var(--color-border)]">
-                  Status
+                  {t('status')}
                 </th>
                 <th className="text-right px-4 sm:px-5 py-3 text-[10px] font-black uppercase text-[var(--color-text-faint)] border-b border-[var(--color-border)]">
-                  Action
+                  {t('action')}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {subscription?.invoices && subscription.invoices.length > 0 ? (
-                subscription.invoices.map((inv) => (
+                subscription.invoices.map((invoice) => (
                   <tr
-                    key={inv.id}
+                    key={invoice.id}
                     className="group hover:bg-[var(--color-surface-low)] transition-colors"
                   >
                     <td className="px-4 sm:px-5 py-4 font-medium whitespace-nowrap">
-                      {new Date(inv.created_at).toLocaleDateString('en-US', {
+                      {new Date(invoice.created_at).toLocaleDateString(formatterLocale, {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
                       })}
                     </td>
-                    <td className="px-4 sm:px-5 py-4 font-medium">Standard Subscription</td>
+                    <td className="px-4 sm:px-5 py-4 font-medium">{t('standardSubscription')}</td>
                     <td
                       className="px-4 sm:px-5 py-4 font-bold"
                       style={{ color: 'var(--color-primary)' }}
                     >
-                      ฿{inv.amount.toLocaleString()}
+                      {currencyFormatter.format(invoice.amount)}
                     </td>
                     <td className="px-4 sm:px-5 py-4">
                       <span
                         className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter border ${
-                          inv.status === 'paid'
+                          invoice.status === 'paid'
                             ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/20'
                             : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20'
                         }`}
                       >
-                        {inv.status}
+                        {invoice.status}
                       </span>
                     </td>
                     <td className="px-4 sm:px-5 py-4 text-right">
-                      {inv.pdf_url ? (
+                      {invoice.pdf_url ? (
                         <a
-                          href={inv.pdf_url}
+                          href={invoice.pdf_url}
                           className="text-[var(--color-primary)] hover:underline text-xs font-bold flex items-center justify-end gap-1"
                         >
                           <span className="material-symbols-outlined text-sm">download</span>{' '}
-                          Receipt
+                          {t('receipt')}
                         </a>
                       ) : (
                         <span className="text-[var(--color-text-faint)] text-xs font-medium italic">
-                          Processing
+                          {tStatus('processing')}
                         </span>
                       )}
                     </td>
@@ -394,7 +407,7 @@ export default function BillingPage() {
                         </span>
                       </div>
                       <p className="text-sm font-bold text-[var(--color-text-faint)]">
-                        No billing history available
+                        {t('noHistory')}
                       </p>
                     </div>
                   </td>

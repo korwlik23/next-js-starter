@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface Props {
   children: ReactNode
@@ -10,6 +11,23 @@ interface Props {
 interface State {
   hasError: boolean
   error?: Error
+}
+
+function DefaultErrorFallback({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations('components.feedback')
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <span className="material-symbols-outlined text-4xl text-neutral-700 mb-4">error</span>
+      <p className="text-sm text-neutral-500 mb-4">{t('renderError')}</p>
+      <button
+        onClick={onRetry}
+        className="text-[10px] font-bold uppercase tracking-widest border border-neutral-700 text-white px-4 py-2 hover:border-white transition-colors"
+      >
+        {t('retry')}
+      </button>
+    </div>
+  )
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -26,16 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <span className="material-symbols-outlined text-4xl text-neutral-700 mb-4">error</span>
-            <p className="text-sm text-neutral-500 mb-4">เกิดข้อผิดพลาดในการแสดงผล</p>
-            <button
-              onClick={() => this.setState({ hasError: false })}
-              className="text-[10px] font-bold uppercase tracking-widest border border-neutral-700 text-white px-4 py-2 hover:border-white transition-colors"
-            >
-              ลองใหม่
-            </button>
-          </div>
+          <DefaultErrorFallback onRetry={() => this.setState({ hasError: false })} />
         )
       )
     }
@@ -43,9 +52,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// ────────────────────────────────────────
-// EmptyState
-// ────────────────────────────────────────
 interface EmptyStateProps {
   icon?: string
   title?: string
@@ -53,25 +59,19 @@ interface EmptyStateProps {
   action?: ReactNode
 }
 
-export function EmptyState({
-  icon = 'inbox',
-  title = 'ไม่พบข้อมูล',
-  description,
-  action,
-}: EmptyStateProps) {
+export function EmptyState({ icon = 'inbox', title, description, action }: EmptyStateProps) {
+  const t = useTranslations('components.feedback')
+
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <span className="material-symbols-outlined text-5xl text-neutral-800 mb-5">{icon}</span>
-      <p className="text-base font-semibold text-neutral-400 mb-1">{title}</p>
+      <p className="text-base font-semibold text-neutral-400 mb-1">{title ?? t('emptyTitle')}</p>
       {description && <p className="text-sm text-neutral-600 mb-6 max-w-sm">{description}</p>}
       {action}
     </div>
   )
 }
 
-// ────────────────────────────────────────
-// LoadingOverlay
-// ────────────────────────────────────────
 export function LoadingOverlay() {
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">

@@ -1,13 +1,16 @@
+import type { NextRequest } from 'next/server'
 import { successResponse, serverError } from '@/utils/api'
 import { GetMembersAndInvitationsService } from '@/modules/tenant/service'
 import { logger } from '@/lib/logger'
 import { withAuth } from '@/lib/authorize'
 import prisma from '@/lib/prisma'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
 export const GET = withAuth(
   async (req: Request, { user }: any) => {
+    const locale = getLocaleFromRequest(req as NextRequest)
+
     try {
-      // Find tenantId for this user
       const currentUser = await prisma.user.findUnique({
         where: { id: user.userId },
         select: { tenantId: true },
@@ -22,7 +25,7 @@ export const GET = withAuth(
       return successResponse(data)
     } catch (error) {
       logger.error('Fetch tenant members error', { error })
-      return serverError('เกิดข้อผิดพลาดในการดึงข้อมูลสมาชิกทีม')
+      return serverError(translate(locale, 'api.messages.teamMembersLoadError'))
     }
   },
   { permission: 'team.read' }

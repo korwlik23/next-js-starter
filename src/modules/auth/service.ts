@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { signAuthTokens, signAccessToken, verifyRefreshToken } from '@/lib/jwt'
 import { logger } from '@/lib/logger'
+import { inngest } from '@/lib/inngest'
 import { GenerateId } from '@/lib/ulid'
 import type { LoginInput, RegisterInput } from './schema'
 import type { AuthTokens, TokenPayload } from '@/types'
@@ -12,9 +13,9 @@ import { AuthRepository } from './repository'
 // ─────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────
-async function getUserWithPermissions(userId: string) {
+export async function GetUserWithPermissions(user_id: string) {
   return prisma.user.findUnique({
-    where: { id: userId, deletedAt: null },
+    where: { id: user_id, deletedAt: null },
     include: {
       roles: {
         include: {
@@ -34,18 +35,25 @@ async function getUserWithPermissions(userId: string) {
   })
 }
 
-function buildTokenPayload(user: Awaited<ReturnType<typeof getUserWithPermissions>>): TokenPayload {
+export function BuildTokenPayload(
+  user: Awaited<ReturnType<typeof GetUserWithPermissions>>
+): TokenPayload {
   if (!user) throw new Error('User not found')
 
+  const scoped_roles = user.roles.filter((ur) => {
+    if (!user.tenantId) return ur.tenantId == null && ur.role.tenantId == null
+    return ur.tenantId === user.tenantId || ur.role.tenantId === user.tenantId
+  })
+
   // Collect role-based permissions
-  const rolePermissions = user.roles.flatMap((ur) =>
+  const role_permissions = scoped_roles.flatMap((ur) =>
     ur.role.permissions.map((rp) => rp.permission.name)
   )
   // Direct override permissions
-  const directPermissions = user.permissions.map((up) => up.permission.name)
+  const direct_permissions = user.permissions.map((up) => up.permission.name)
 
-  const permissions = [...new Set([...rolePermissions, ...directPermissions])]
-  const roles = user.roles.map((ur) => ur.role.name)
+  const permissions = [...new Set([...role_permissions, ...direct_permissions])]
+  const roles = scoped_roles.map((ur) => ur.role.name)
 
   return {
     sub: user.id,
@@ -60,32 +68,32 @@ function buildTokenPayload(user: Awaited<ReturnType<typeof getUserWithPermission
 // ─────────────────────────────────────────
 // LOGIN
 // ─────────────────────────────────────────
-export async function loginService(
-  input: LoginInput
+export async function LoginService(
+  input_data: LoginInput
 ): Promise<{ tokens: AuthTokens; user: TokenPayload }> {
-  const user = await AuthRepository.findUserByEmail(input.email)
+  const user = await AuthRepository.findUserByEmail(input_data.email)
 
   if (!user || !user.isActive || user.deletedAt) {
-    throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+    throw new Error('AUTH_INVALID_CREDENTIALS')
   }
 
-  const passwordMatch = await bcrypt.compare(input.password, user.password)
-  if (!passwordMatch) {
-    throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+  const password_match = await bcrypt.compare(input_data.password, user.password)
+  if (!password_match) {
+    throw new Error('AUTH_INVALID_CREDENTIALS')
   }
 
-  const userWithPerms = await getUserWithPermissions(user.id)
-  const payload = buildTokenPayload(userWithPerms)
+  const user_with_perms = await GetUserWithPermissions(user.id)
+  const payload = BuildTokenPayload(user_with_perms)
   const tokens = await signAuthTokens(payload)
 
   // Store refresh token in DB
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   await prisma.refreshToken.create({
     data: {
       id: GenerateId(),
       userId: user.id,
       token: tokens.refreshToken,
-      expiresAt,
+      expiresAt: expires_at,
     },
   })
 
@@ -96,37 +104,59 @@ export async function loginService(
 // ─────────────────────────────────────────
 // REGISTER
 // ─────────────────────────────────────────
-export async function registerService(
-  input: RegisterInput
+export async function RegisterService(
+  input_data: RegisterInput
 ): Promise<{ tokens: AuthTokens; user: TokenPayload }> {
-  const existing = await AuthRepository.findUserByEmail(input.email)
-  if (existing) throw new Error('อีเมลนี้ถูกใช้งานแล้ว')
+  const existing = await AuthRepository.findUserByEmail(input_data.email)
+  if (existing) throw new Error('AUTH_EMAIL_IN_USE')
 
-  const hashed = await bcrypt.hash(input.password, 12)
+  const hashed_password = await bcrypt.hash(input_data.password, 12)
 
   // Get default 'member' role
-  const memberRole = await prisma.role.findFirst({
+  const member_role = await prisma.role.findFirst({
     where: { name: 'member', tenantId: null },
   })
 
   const user = await prisma.user.create({
     data: {
       id: GenerateId(),
-      name: input.name,
-      email: input.email,
-      password: hashed,
-      ...(memberRole ? { roles: { create: { roleId: memberRole.id } } } : {}),
+      name: input_data.name,
+      email: input_data.email,
+      password: hashed_password,
+      ...(member_role ? { roles: { create: { roleId: member_role.id } } } : {}),
     },
   })
 
-  const userWithPerms = await getUserWithPermissions(user.id)
-  const payload = buildTokenPayload(userWithPerms)
+  const user_with_perms = await GetUserWithPermissions(user.id)
+  const payload = BuildTokenPayload(user_with_perms)
   const tokens = await signAuthTokens(payload)
 
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   await prisma.refreshToken.create({
-    data: { id: GenerateId(), userId: user.id, token: tokens.refreshToken, expiresAt },
+    data: { id: GenerateId(), userId: user.id, token: tokens.refreshToken, expiresAt: expires_at },
   })
+
+  // Trigger background job (เช่น ส่งอีเมลต้อนรับ)
+  await inngest
+    .send({
+      name: 'app/user.registered',
+      data: {
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.name,
+      },
+    })
+    .catch((error) => {
+      const missing_event_key =
+        error instanceof Error && error.message.includes("couldn't find an event key")
+
+      if (missing_event_key && process.env.NODE_ENV !== 'production') {
+        logger.debug('Skipped user registration event; INNGEST_EVENT_KEY is not configured')
+        return
+      }
+
+      logger.warn('Failed to enqueue user registration event', error)
+    })
 
   logger.info(`New user registered: ${user.email}`)
   return { tokens, user: payload }
@@ -135,34 +165,34 @@ export async function registerService(
 // ─────────────────────────────────────────
 // REFRESH ACCESS TOKEN
 // ─────────────────────────────────────────
-export async function refreshTokenService(
-  refreshToken: string
+export async function RefreshTokenService(
+  refresh_token: string
 ): Promise<{ accessToken: string; user: TokenPayload }> {
-  const userId = await verifyRefreshToken(refreshToken)
-  if (!userId) throw new Error('Invalid refresh token')
+  const user_id = await verifyRefreshToken(refresh_token)
+  if (!user_id) throw new Error('Invalid refresh token')
 
-  const storedToken = await AuthRepository.findRefreshToken(refreshToken, userId)
-  if (!storedToken) throw new Error('Refresh token expired or revoked')
+  const stored_token = await AuthRepository.findRefreshToken(refresh_token, user_id)
+  if (!stored_token) throw new Error('Refresh token expired or revoked')
 
-  const userWithPerms = await getUserWithPermissions(userId)
-  const payload = buildTokenPayload(userWithPerms)
-  const accessToken = await signAccessToken(payload)
+  const user_with_perms = await GetUserWithPermissions(user_id)
+  const payload = BuildTokenPayload(user_with_perms)
+  const access_token = await signAccessToken(payload)
 
-  return { accessToken, user: payload }
+  return { accessToken: access_token, user: payload }
 }
 
 // ─────────────────────────────────────────
 // FORGOT & RESET PASSWORD
 // ─────────────────────────────────────────
-export async function forgotPasswordService(input: ForgotPasswordInput) {
-  const user = await AuthRepository.findUserByEmail(input.email)
+export async function ForgotPasswordService(input_data: ForgotPasswordInput) {
+  const user = await AuthRepository.findUserByEmail(input_data.email)
 
   // Security: อย่าแจ้งเตือนถ้าไม่มี email นี้ในระบบเพื่อป้องกัน User enumeration
   if (!user || !user.isActive || user.deletedAt) return { success: true }
 
   // Generate Reset Token
   const token = GenerateId()
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 2) // 2 ชั่วโมง
+  const expires_at = new Date(Date.now() + 1000 * 60 * 60 * 2) // 2 ชั่วโมง
 
   // เคลียร์ token เก่าแล้วสร้างใหม่
   await prisma.resetPasswordToken.deleteMany({ where: { email: user.email } })
@@ -171,7 +201,7 @@ export async function forgotPasswordService(input: ForgotPasswordInput) {
       id: GenerateId(),
       email: user.email,
       token,
-      expiresAt,
+      expiresAt: expires_at,
     },
   })
 
@@ -182,24 +212,24 @@ export async function forgotPasswordService(input: ForgotPasswordInput) {
   return { success: true }
 }
 
-export async function resetPasswordService(input: ResetPasswordInput) {
-  const resetToken = await prisma.resetPasswordToken.findUnique({
-    where: { token: input.token },
+export async function ResetPasswordService(input_data: ResetPasswordInput) {
+  const reset_token = await prisma.resetPasswordToken.findUnique({
+    where: { token: input_data.token },
   })
 
-  if (!resetToken || resetToken.expiresAt < new Date()) {
+  if (!reset_token || reset_token.expiresAt < new Date()) {
     throw new Error('Token ไม่ถูกต้องหรือหมดอายุแล้ว')
   }
 
-  const user = await AuthRepository.findUserByEmail(resetToken.email)
+  const user = await AuthRepository.findUserByEmail(reset_token.email)
   if (!user) {
     throw new Error('ไม่พบข้อมูลผู้ใช้')
   }
 
-  const hashed = await bcrypt.hash(input.password, 12)
+  const hashed_password = await bcrypt.hash(input_data.password, 12)
   await prisma.user.update({
     where: { id: user.id },
-    data: { password: hashed },
+    data: { password: hashed_password },
   })
 
   // ลบ token ทิ้งทันทีหลังจากใช้งานเสร็จ
@@ -212,18 +242,26 @@ export async function resetPasswordService(input: ResetPasswordInput) {
 // ─────────────────────────────────────────
 // LOGOUT
 // ─────────────────────────────────────────
-export async function logoutService(userId: string, refreshToken?: string) {
-  if (refreshToken) {
+export async function LogoutService(user_id: string, refresh_token?: string) {
+  if (refresh_token) {
     await prisma.refreshToken.updateMany({
-      where: { userId, token: refreshToken },
+      where: { userId: user_id, token: refresh_token },
       data: { revokedAt: new Date() },
     })
   } else {
     // Revoke all tokens for user
     await prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
+      where: { userId: user_id, revokedAt: null },
       data: { revokedAt: new Date() },
     })
   }
-  logger.info(`User logged out: ${userId}`)
+  logger.info(`User logged out: ${user_id}`)
 }
+
+// Backward-compatible aliases used by route handlers.
+export const loginService = LoginService
+export const registerService = RegisterService
+export const refreshTokenService = RefreshTokenService
+export const forgotPasswordService = ForgotPasswordService
+export const resetPasswordService = ResetPasswordService
+export const logoutService = LogoutService

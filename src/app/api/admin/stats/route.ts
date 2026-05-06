@@ -2,6 +2,7 @@ import { successResponse, serverError } from '@/utils/api'
 import { AdminService } from '@/modules/admin/service'
 import { logger } from '@/lib/logger'
 import { withAuth } from '@/lib/authorize'
+import { PERMISSIONS } from '@/constants'
 
 export const GET = withAuth(
   async (_req: Request) => {
@@ -13,5 +14,5 @@ export const GET = withAuth(
       return serverError(error instanceof Error ? error.message : 'Internal error')
     }
   },
-  { permission: 'dashboard.view' }
+  { permission: PERMISSIONS.ADMIN_ACCESS }
 )

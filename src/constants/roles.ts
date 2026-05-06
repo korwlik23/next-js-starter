@@ -28,9 +28,19 @@ export const PERMISSIONS = {
   // Dashboard
   DASHBOARD_VIEW: 'dashboard.view',
 
+  // Admin
+  ADMIN_ACCESS: 'admin.access',
+  ADMIN_IMPERSONATE: 'admin.impersonate',
+
   // Settings
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_UPDATE: 'settings.update',
+
+  // Tenant / Team
+  TENANT_LIST: 'tenant.list',
+  TENANT_CREATE: 'tenant.create',
+  TEAM_READ: 'team.read',
+  TEAM_INVITE: 'team.invite',
 
   // Billing
   BILLING_VIEW: 'billing.view',
@@ -55,8 +65,12 @@ export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
     PERMISSIONS.USER_READ,
     PERMISSIONS.USER_UPDATE,
     PERMISSIONS.ROLE_READ,
+    PERMISSIONS.ADMIN_ACCESS,
+    PERMISSIONS.ADMIN_IMPERSONATE,
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.TEAM_READ,
+    PERMISSIONS.TEAM_INVITE,
     PERMISSIONS.AUDIT_VIEW,
   ],
   member: [PERMISSIONS.DASHBOARD_VIEW, PERMISSIONS.USER_READ],

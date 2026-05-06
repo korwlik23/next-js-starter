@@ -2,7 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown'
 import { SearchInput } from '@/components/ui/SearchInput'
 import { useAuthStore } from '@/store/authStore'
@@ -20,6 +22,8 @@ interface TopNavProps {
 
 export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
   const pathname = usePathname()
+  const tCommon = useTranslations('common')
+  const tNav = useTranslations('nav')
   const user = useAuthStore((s) => s.user)
   const title =
     _title ||
@@ -29,7 +33,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
       .at(-1)
       ?.replace(/-/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase()) ||
-    'Dashboard'
+    tNav('dashboard')
   const initials =
     user?.name
       ?.split(' ')
@@ -51,7 +55,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
         <button
           onClick={onOpenSidebar}
           className="lg:hidden -ml-2 flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] text-gray-600 hover:bg-[var(--color-surface-mid)] hover:text-gray-900 focus:outline-none"
-          aria-label="Open navigation"
+          aria-label={tNav('openNavigation')}
           type="button"
         >
           <span className="material-symbols-outlined">menu</span>
@@ -65,7 +69,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
 
         {/* Search — ช่องค้นหาด้านซ้าย */}
         <div className="hidden w-full max-w-lg sm:block">
-          <SearchInput placeholder="Search..." query_param="q" size="sm" />
+          <SearchInput placeholder={tCommon('search')} query_param="q" size="sm" />
         </div>
       </div>
 
@@ -73,6 +77,8 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         {/* สลับหน้าจอ ThemeToggle */}
         <ThemeToggle />
+
+        <LanguageSwitcher compact className="hidden sm:inline-flex" />
 
         {/* Notifications bell — ใช้คอมโพเนนต์ใหม่ที่เชื่อมต่อ API จริง */}
         <NotificationDropdown />
@@ -82,7 +88,7 @@ export function TopNav({ title: _title, onOpenSidebar }: TopNavProps) {
           href="/settings"
           className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors hover:bg-[var(--color-surface-mid)]"
           style={{ color: 'var(--color-text-subtle)' }}
-          aria-label="Settings"
+          aria-label={tNav('settings')}
         >
           <span className="material-symbols-outlined text-[1.2rem]">settings</span>
         </Link>

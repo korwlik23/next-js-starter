@@ -1,33 +1,44 @@
 import { z } from 'zod'
 
-// ─────────────────────────────────────────
-// CREATE ROLE SCHEMA
-// ─────────────────────────────────────────
-export const createRoleSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'ชื่อ Role ต้องมีอย่างน้อย 2 ตัวอักษร')
-    .max(50, 'ชื่อ Role ต้องไม่เกิน 50 ตัวอักษร')
-    .regex(/^[a-z0-9_-]+$/, 'ชื่อ Role ต้องเป็นตัวพิมพ์เล็ก a-z, 0-9, _ หรือ - เท่านั้น'),
-  description: z.string().max(255).optional(),
-  // รายการ Permission ID ที่ต้องการผูกกับ Role นี้
-  permission_ids: z.array(z.string()).optional().default([]),
-})
+interface RoleSchemaMessages {
+  nameMin: string
+  nameMax: string
+  namePattern: string
+}
 
-// ─────────────────────────────────────────
-// UPDATE ROLE SCHEMA
-// ─────────────────────────────────────────
-export const updateRoleSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'ชื่อ Role ต้องมีอย่างน้อย 2 ตัวอักษร')
-    .max(50, 'ชื่อ Role ต้องไม่เกิน 50 ตัวอักษร')
-    .regex(/^[a-z0-9_-]+$/, 'ชื่อ Role ต้องเป็นตัวพิมพ์เล็ก a-z, 0-9, _ หรือ - เท่านั้น')
-    .optional(),
-  description: z.string().max(255).optional().nullable(),
-  // ถ้าส่ง permission_ids มา ระบบจะ sync สิทธิ์ใหม่ทั้งหมด (replace old)
-  permission_ids: z.array(z.string()).optional(),
-})
+const defaultMessages: RoleSchemaMessages = {
+  nameMin: 'Role name must be at least 2 characters',
+  nameMax: 'Role name must be at most 50 characters',
+  namePattern: 'Role name must use lowercase letters, numbers, underscores, or hyphens only',
+}
+
+export function createRoleSchemaFactory(messages: RoleSchemaMessages = defaultMessages) {
+  return z.object({
+    name: z
+      .string()
+      .min(2, messages.nameMin)
+      .max(50, messages.nameMax)
+      .regex(/^[a-z0-9_-]+$/, messages.namePattern),
+    description: z.string().max(255).optional(),
+    permission_ids: z.array(z.string()).optional().default([]),
+  })
+}
+
+export function updateRoleSchemaFactory(messages: RoleSchemaMessages = defaultMessages) {
+  return z.object({
+    name: z
+      .string()
+      .min(2, messages.nameMin)
+      .max(50, messages.nameMax)
+      .regex(/^[a-z0-9_-]+$/, messages.namePattern)
+      .optional(),
+    description: z.string().max(255).optional().nullable(),
+    permission_ids: z.array(z.string()).optional(),
+  })
+}
+
+export const createRoleSchema = createRoleSchemaFactory()
+export const updateRoleSchema = updateRoleSchemaFactory()
 
 export type CreateRoleInput = z.infer<typeof createRoleSchema>
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>

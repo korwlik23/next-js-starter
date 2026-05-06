@@ -4,30 +4,22 @@ import { getAuthUserFromRequest } from '@/lib/auth'
 import { BillingService } from '@/modules/billing/service'
 import { logger } from '@/lib/logger'
 import { can } from '@/lib/permissions'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
-// ────────────────────────────────────────
-// Billing API — จัดการ subscription / checkout
-// GET  → ดึงข้อมูล subscription ปัจจุบัน
-// POST → สร้าง Stripe Checkout Session
-// ────────────────────────────────────────
-
-/**
- * GET /api/billing — ดึงข้อมูล billing ของ tenant
- */
 export async function GET(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+
   try {
     const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
-    if (!can(user, 'billing.view')) return forbidden()
+    if (!user) return unauthorized(translate(locale, 'api.errors.unauthorized'))
+    if (!can(user, 'billing.view')) return forbidden(translate(locale, 'api.errors.forbidden'))
 
-    // ถ้ามี tenantId → ดึง subscription จริง, ไม่มี → free plan
-    const tenant_id = (user as any).tenantId
-    if (tenant_id) {
-      const subscription = await BillingService.GetSubscription(tenant_id)
+    const tenantId = (user as any).tenantId
+    if (tenantId) {
+      const subscription = await BillingService.GetSubscription(tenantId)
       return successResponse(subscription)
     }
 
-    // ผู้ใช้ไม่ได้อยู่ใน tenant ใดๆ → return free plan
     return successResponse({
       plan: 'free',
       status: 'active',
@@ -38,19 +30,19 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('[Billing API] GET error', { error })
-    return serverError(error instanceof Error ? error.message : 'Internal error')
+    return serverError(
+      error instanceof Error ? error.message : translate(locale, 'api.errors.server')
+    )
   }
 }
 
-/**
- * POST /api/billing — สร้าง Stripe Checkout Session หรือ Customer Portal
- * Body: { action: 'checkout' | 'portal', plan?: string }
- */
 export async function POST(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+
   try {
     const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
-    if (!can(user, 'billing.manage')) return forbidden()
+    if (!user) return unauthorized(translate(locale, 'api.errors.unauthorized'))
+    if (!can(user, 'billing.manage')) return forbidden(translate(locale, 'api.errors.forbidden'))
 
     const body = await request.json()
     const { action = 'checkout', plan } = body as {
@@ -58,28 +50,28 @@ export async function POST(request: NextRequest) {
       plan?: string
     }
 
-    const tenant_id = (user as any).tenantId
-    if (!tenant_id) {
-      return serverError('User must belong to a tenant to manage billing')
+    const tenantId = (user as any).tenantId
+    if (!tenantId) {
+      return serverError(translate(locale, 'api.messages.tenantRequired'))
     }
 
-    const return_url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing`
+    const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing`
 
-    // ── สร้าง Customer Portal Session
     if (action === 'portal') {
-      const result = await BillingService.CreateCustomerPortalSession(tenant_id, return_url)
-      return successResponse(result, 'Redirecting to customer portal...')
+      const result = await BillingService.CreateCustomerPortalSession(tenantId, returnUrl)
+      return successResponse(result, translate(locale, 'api.messages.billingPortalRedirect'))
     }
 
-    // ── สร้าง Checkout Session
     if (!plan || !['pro', 'enterprise'].includes(plan)) {
-      return serverError('Invalid plan. Available: pro, enterprise')
+      return serverError(translate(locale, 'api.messages.invalidBillingPlan'))
     }
 
-    const result = await BillingService.CreateCheckoutSession(tenant_id, plan, return_url)
-    return successResponse(result, 'Redirecting to checkout...')
+    const result = await BillingService.CreateCheckoutSession(tenantId, plan, returnUrl)
+    return successResponse(result, translate(locale, 'api.messages.billingCheckoutRedirect'))
   } catch (error) {
     logger.error('[Billing API] POST error', { error })
-    return serverError(error instanceof Error ? error.message : 'Internal error')
+    return serverError(
+      error instanceof Error ? error.message : translate(locale, 'api.errors.server')
+    )
   }
 }

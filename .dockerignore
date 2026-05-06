@@ -5,4 +5,11 @@ npm-debug.log
 README.md
 .next
 .git
-.env*.local
+.env
+.env.*
+!.env.example
+!.env.production.example
+coverage
+playwright-report
+test-results
+tsconfig.tsbuildinfo

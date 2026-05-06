@@ -19,56 +19,95 @@ import {
   updateRoleService,
   deleteRoleService,
 } from './service'
-import { createRoleSchema, updateRoleSchema } from './schema'
+import { createRoleSchemaFactory, updateRoleSchemaFactory } from './schema'
 import { AuditService } from '../audit/service'
 import { getRequestMetadata } from '@/utils/request'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
+
+function getRoleSchemaMessages(locale: ReturnType<typeof getLocaleFromRequest>) {
+  return {
+    nameMin: translate(locale, 'api.messages.roleNameMin'),
+    nameMax: translate(locale, 'api.messages.roleNameMax'),
+    namePattern: translate(locale, 'api.messages.roleNamePattern'),
+  }
+}
+
+function roleErrorResponse(error: unknown, locale: ReturnType<typeof getLocaleFromRequest>) {
+  const message = error instanceof Error ? error.message : ''
+
+  if (message === 'ROLE_EXISTS') {
+    return badRequest(translate(locale, 'api.messages.roleExists'), ERROR_CODES.CONFLICT)
+  }
+  if (message === 'ROLE_NOT_FOUND') {
+    return notFound(translate(locale, 'api.messages.roleNotFound'), ERROR_CODES.ROLE_NOT_FOUND)
+  }
+  if (message === 'SYSTEM_ROLE_UPDATE_FORBIDDEN') {
+    return badRequest(
+      translate(locale, 'api.messages.systemRoleUpdateForbidden'),
+      ERROR_CODES.SYSTEM_ROLE_PROTECTED
+    )
+  }
+  if (message === 'SYSTEM_ROLE_DELETE_FORBIDDEN') {
+    return badRequest(
+      translate(locale, 'api.messages.systemRoleDeleteForbidden'),
+      ERROR_CODES.SYSTEM_ROLE_PROTECTED
+    )
+  }
+
+  return null
+}
 
 export class RoleController {
-  // ─────────────────────────────────────────
-  // GET /api/role — ดึงรายการ Role ทั้งหมด
-  // ─────────────────────────────────────────
-  static async GetRoles(_req: NextRequest) {
-    try {
-      const auth_user = await getAuthUser()
-      if (!auth_user) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
-      if (!can(auth_user, PERMISSIONS.ROLE_READ))
-        return forbidden('คุณไม่มีสิทธิ์อ่านข้อมูล Role', ERROR_CODES.FORBIDDEN)
+  static async GetRoles(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
 
-      const roles = await getRolesService(auth_user.tenantId ?? null)
+    try {
+      const authUser = await getAuthUser()
+      if (!authUser)
+        return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
+      if (!can(authUser, PERMISSIONS.ROLE_READ))
+        return forbidden(translate(locale, 'api.messages.roleReadForbidden'), ERROR_CODES.FORBIDDEN)
+
+      const roles = await getRolesService(authUser.tenantId ?? null)
       return successResponse(roles)
     } catch (error) {
       logger.error('RoleController.GetRoles error', error)
-      return serverError('ไม่สามารถดึงข้อมูล Role ได้', ERROR_CODES.INTERNAL_ERROR)
+      return serverError(
+        translate(locale, 'api.messages.rolesLoadError'),
+        ERROR_CODES.INTERNAL_ERROR
+      )
     }
   }
 
-  // ─────────────────────────────────────────
-  // POST /api/role — สร้าง Role ใหม่
-  // ─────────────────────────────────────────
   static async CreateRole(req: NextRequest) {
+    const locale = getLocaleFromRequest(req)
+
     try {
-      const auth_user = await getAuthUser()
-      if (!auth_user) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
-      if (!can(auth_user, PERMISSIONS.ROLE_CREATE))
-        return forbidden('คุณไม่มีสิทธิ์สร้าง Role', ERROR_CODES.FORBIDDEN)
+      const authUser = await getAuthUser()
+      if (!authUser)
+        return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
+      if (!can(authUser, PERMISSIONS.ROLE_CREATE))
+        return forbidden(
+          translate(locale, 'api.messages.roleCreateForbidden'),
+          ERROR_CODES.FORBIDDEN
+        )
 
       const body = await req.json()
-      const parsed = createRoleSchema.safeParse(body)
+      const parsed = createRoleSchemaFactory(getRoleSchemaMessages(locale)).safeParse(body)
       if (!parsed.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(locale, 'api.errors.validation'),
           ERROR_CODES.VALIDATION_ERROR,
           parsed.error.flatten().fieldErrors as Record<string, string[]>
         )
       }
 
-      const role = await createRoleService(parsed.data, auth_user.tenantId ?? null)
+      const role = await createRoleService(parsed.data, authUser.tenantId ?? null)
 
-      // Audit Log: Role Created
       const { ipAddress, userAgent } = getRequestMetadata(req)
       AuditService.record({
-        userId: auth_user.sub,
-        tenantId: auth_user.tenantId,
+        userId: authUser.sub,
+        tenantId: authUser.tenantId,
         action: 'ROLE_CREATE',
         entity: 'Role',
         entityId: role.id,
@@ -80,64 +119,76 @@ export class RoleController {
         },
       })
 
-      return createdResponse(role, `สร้าง Role "${role.name}" สำเร็จ`)
+      return createdResponse(
+        role,
+        translate(locale, 'api.messages.roleCreated', undefined, { name: role.name })
+      )
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
       logger.error('RoleController.CreateRole error', error)
-      if (message.includes('มีอยู่แล้ว')) return badRequest(message, ERROR_CODES.CONFLICT)
-      return serverError('ไม่สามารถสร้าง Role ได้', ERROR_CODES.INTERNAL_ERROR)
+      const localizedError = roleErrorResponse(error, locale)
+      if (localizedError) return localizedError
+      return serverError(
+        translate(locale, 'api.messages.roleCreateError'),
+        ERROR_CODES.INTERNAL_ERROR
+      )
     }
   }
 
-  // ─────────────────────────────────────────
-  // GET /api/role/[id] — ดึงข้อมูล Role เจาะจง
-  // ─────────────────────────────────────────
-  static async GetRole(req: NextRequest, role_id: string) {
-    try {
-      const auth_user = await getAuthUser()
-      if (!auth_user) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
-      if (!can(auth_user, PERMISSIONS.ROLE_READ))
-        return forbidden('คุณไม่มีสิทธิ์อ่านข้อมูล Role', ERROR_CODES.FORBIDDEN)
+  static async GetRole(req: NextRequest, roleId: string) {
+    const locale = getLocaleFromRequest(req)
 
-      const role = await getRoleByIdService(role_id, auth_user.tenantId ?? null)
-      if (!role) return notFound('ไม่พบ Role ที่ต้องการ', ERROR_CODES.ROLE_NOT_FOUND)
+    try {
+      const authUser = await getAuthUser()
+      if (!authUser)
+        return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
+      if (!can(authUser, PERMISSIONS.ROLE_READ))
+        return forbidden(translate(locale, 'api.messages.roleReadForbidden'), ERROR_CODES.FORBIDDEN)
+
+      const role = await getRoleByIdService(roleId, authUser.tenantId ?? null)
+      if (!role)
+        return notFound(translate(locale, 'api.messages.roleNotFound'), ERROR_CODES.ROLE_NOT_FOUND)
       return successResponse(role)
     } catch (error) {
       logger.error('RoleController.GetRole error', error)
-      return serverError('ไม่สามารถดึงข้อมูล Role ได้', ERROR_CODES.INTERNAL_ERROR)
+      return serverError(
+        translate(locale, 'api.messages.rolesLoadError'),
+        ERROR_CODES.INTERNAL_ERROR
+      )
     }
   }
 
-  // ─────────────────────────────────────────
-  // PATCH /api/role/[id] — แก้ไข Role
-  // ─────────────────────────────────────────
-  static async UpdateRole(req: NextRequest, role_id: string) {
+  static async UpdateRole(req: NextRequest, roleId: string) {
+    const locale = getLocaleFromRequest(req)
+
     try {
-      const auth_user = await getAuthUser()
-      if (!auth_user) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
-      if (!can(auth_user, PERMISSIONS.ROLE_UPDATE))
-        return forbidden('คุณไม่มีสิทธิ์แก้ไข Role', ERROR_CODES.FORBIDDEN)
+      const authUser = await getAuthUser()
+      if (!authUser)
+        return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
+      if (!can(authUser, PERMISSIONS.ROLE_UPDATE))
+        return forbidden(
+          translate(locale, 'api.messages.roleUpdateForbidden'),
+          ERROR_CODES.FORBIDDEN
+        )
 
       const body = await req.json()
-      const parsed = updateRoleSchema.safeParse(body)
+      const parsed = updateRoleSchemaFactory(getRoleSchemaMessages(locale)).safeParse(body)
       if (!parsed.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(locale, 'api.errors.validation'),
           ERROR_CODES.VALIDATION_ERROR,
           parsed.error.flatten().fieldErrors as Record<string, string[]>
         )
       }
 
-      const role = await updateRoleService(role_id, parsed.data, auth_user.tenantId ?? null)
+      const role = await updateRoleService(roleId, parsed.data, authUser.tenantId ?? null)
 
-      // Audit Log: Role Updated
       const { ipAddress, userAgent } = getRequestMetadata(req)
       AuditService.record({
-        userId: auth_user.sub,
-        tenantId: auth_user.tenantId,
+        userId: authUser.sub,
+        tenantId: authUser.tenantId,
         action: 'ROLE_UPDATE',
         entity: 'Role',
-        entityId: role_id,
+        entityId: roleId,
         ipAddress,
         userAgent,
         metadata: {
@@ -146,50 +197,57 @@ export class RoleController {
         },
       })
 
-      return successResponse(role, `อัปเดต Role "${role.name}" สำเร็จ`)
+      return successResponse(
+        role,
+        translate(locale, 'api.messages.roleUpdated', undefined, { name: role.name })
+      )
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
       logger.error('RoleController.UpdateRole error', error)
-      if (message.includes('ไม่พบ')) return notFound(message, ERROR_CODES.ROLE_NOT_FOUND)
-      if (message.includes('System Role'))
-        return badRequest(message, ERROR_CODES.SYSTEM_ROLE_PROTECTED)
-      return serverError('ไม่สามารถอัปเดต Role ได้', ERROR_CODES.INTERNAL_ERROR)
+      const localizedError = roleErrorResponse(error, locale)
+      if (localizedError) return localizedError
+      return serverError(
+        translate(locale, 'api.messages.roleUpdateError'),
+        ERROR_CODES.INTERNAL_ERROR
+      )
     }
   }
 
-  // ─────────────────────────────────────────
-  // DELETE /api/role/[id] — ลบ Role
-  // ─────────────────────────────────────────
-  static async DeleteRole(_req: NextRequest, role_id: string) {
+  static async DeleteRole(req: NextRequest, roleId: string) {
+    const locale = getLocaleFromRequest(req)
+
     try {
-      const auth_user = await getAuthUser()
-      if (!auth_user) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
-      if (!can(auth_user, PERMISSIONS.ROLE_DELETE))
-        return forbidden('คุณไม่มีสิทธิ์ลบ Role', ERROR_CODES.FORBIDDEN)
+      const authUser = await getAuthUser()
+      if (!authUser)
+        return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
+      if (!can(authUser, PERMISSIONS.ROLE_DELETE))
+        return forbidden(
+          translate(locale, 'api.messages.roleDeleteForbidden'),
+          ERROR_CODES.FORBIDDEN
+        )
 
-      await deleteRoleService(role_id, auth_user.tenantId ?? null)
+      await deleteRoleService(roleId, authUser.tenantId ?? null)
 
-      // Audit Log: Role Deleted
-      const { ipAddress, userAgent } = getRequestMetadata(_req)
+      const { ipAddress, userAgent } = getRequestMetadata(req)
       AuditService.record({
-        userId: auth_user.sub,
-        tenantId: auth_user.tenantId,
+        userId: authUser.sub,
+        tenantId: authUser.tenantId,
         action: 'ROLE_DELETE',
         entity: 'Role',
-        entityId: role_id,
+        entityId: roleId,
         ipAddress,
         userAgent,
-        metadata: { roleId: role_id },
+        metadata: { roleId },
       })
 
-      return successResponse(null, 'ลบ Role สำเร็จ')
+      return successResponse(null, translate(locale, 'api.messages.roleDeleted'))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาด'
       logger.error('RoleController.DeleteRole error', error)
-      if (message.includes('ไม่พบ')) return notFound(message, ERROR_CODES.ROLE_NOT_FOUND)
-      if (message.includes('System Role'))
-        return badRequest(message, ERROR_CODES.SYSTEM_ROLE_PROTECTED)
-      return serverError('ไม่สามารถลบ Role ได้', ERROR_CODES.INTERNAL_ERROR)
+      const localizedError = roleErrorResponse(error, locale)
+      if (localizedError) return localizedError
+      return serverError(
+        translate(locale, 'api.messages.roleDeleteError'),
+        ERROR_CODES.INTERNAL_ERROR
+      )
     }
   }
 }

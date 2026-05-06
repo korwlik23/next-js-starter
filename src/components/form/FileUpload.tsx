@@ -1,30 +1,18 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { clsx } from 'clsx'
 
-// ────────────────────────────────────────
-// FileUpload — คอมโพเนนต์ upload ไฟล์
-// รองรับ: Drag & Drop, preview, progress, validation
-// ────────────────────────────────────────
-
 interface FileUploadProps {
-  /** URL สำหรับ upload (default: /api/upload) */
   upload_url?: string
-  /** ประเภทไฟล์ที่อนุญาต (เช่น "image/*,.pdf") */
   accept?: string
-  /** ขนาดสูงสุด (bytes) */
   max_size?: number
-  /** callback เมื่อ upload สำเร็จ */
   onUploadComplete?: (data: { url: string; name: string }) => void
-  /** callback เมื่อ upload ผิดพลาด */
   onUploadError?: (error: string) => void
-  /** แสดง preview (สำหรับรูปภาพ) */
   show_preview?: boolean
-  /** CSS class เพิ่มเติม */
   className?: string
-  /** ข้อความแสดงใน drop zone */
   placeholder?: string
 }
 
@@ -38,20 +26,20 @@ export function FileUpload({
   onUploadError,
   show_preview = true,
   className,
-  placeholder = 'ลากไฟล์มาวาง หรือคลิกเพื่อเลือก',
+  placeholder,
 }: FileUploadProps) {
+  const t = useTranslations('components.fileUpload')
   const [status, setStatus] = useState<UploadStatus>('idle')
-  const [preview_url, setPreviewUrl] = useState<string | null>(null)
-  const [file_name, setFileName] = useState<string | null>(null)
-  const [error_message, setErrorMessage] = useState<string | null>(null)
-  const input_ref = useRef<HTMLInputElement>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const maxSizeMb = Math.round(max_size / 1024 / 1024)
 
-  // ตรวจสอบและ upload ไฟล์
-  const HandleFile = useCallback(
+  const handleFile = useCallback(
     async (file: File) => {
-      // validate ขนาดไฟล์
       if (file.size > max_size) {
-        const error = `ไฟล์ใหญ่เกินไป (สูงสุด ${Math.round(max_size / 1024 / 1024)}MB)`
+        const error = t('fileTooLarge', { size: maxSizeMb })
         setErrorMessage(error)
         setStatus('error')
         onUploadError?.(error)
@@ -62,80 +50,74 @@ export function FileUpload({
       setErrorMessage(null)
       setStatus('uploading')
 
-      // สร้าง preview สำหรับรูปภาพ
       if (show_preview && file.type.startsWith('image/')) {
         const reader = new FileReader()
         reader.onload = (e) => setPreviewUrl(e.target?.result as string)
         reader.readAsDataURL(file)
       }
 
-      // Upload ไฟล์
       try {
-        const form_data = new FormData()
-        form_data.append('file', file)
+        const formData = new FormData()
+        formData.append('file', file)
 
         const response = await fetch(upload_url, {
           method: 'POST',
-          body: form_data,
+          body: formData,
         })
 
         const json = await response.json()
 
         if (!response.ok) {
-          throw new Error(json.message ?? 'Upload failed')
+          throw new Error(json.message ?? t('uploadFailed'))
         }
 
         setStatus('success')
         onUploadComplete?.({ url: json.data.url, name: file.name })
       } catch (err) {
-        const error = err instanceof Error ? err.message : 'Upload failed'
+        const error = err instanceof Error ? err.message : t('uploadFailed')
         setErrorMessage(error)
         setStatus('error')
         onUploadError?.(error)
       }
     },
-    [upload_url, max_size, show_preview, onUploadComplete, onUploadError]
+    [upload_url, max_size, maxSizeMb, show_preview, onUploadComplete, onUploadError, t]
   )
 
-  // จัดการ Drag & Drop events
-  const HandleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setStatus('dragging')
   }
 
-  const HandleDragLeave = () => {
+  const handleDragLeave = () => {
     setStatus('idle')
   }
 
-  const HandleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
-    if (file) HandleFile(file)
+    if (file) handleFile(file)
   }
 
-  // จัดการเลือกไฟล์จาก input
-  const HandleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) HandleFile(file)
+    if (file) handleFile(file)
   }
 
-  // Reset state
-  const HandleReset = () => {
+  const handleReset = () => {
     setStatus('idle')
     setPreviewUrl(null)
     setFileName(null)
     setErrorMessage(null)
-    if (input_ref.current) input_ref.current.value = ''
+    if (inputRef.current) inputRef.current.value = ''
   }
 
   return (
     <div className={clsx('w-full', className)}>
-      {/* Drop Zone */}
       <div
-        onClick={() => input_ref.current?.click()}
-        onDragOver={HandleDragOver}
-        onDragLeave={HandleDragLeave}
-        onDrop={HandleDrop}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={clsx(
           'relative border-2 border-dashed rounded-sm p-8 text-center cursor-pointer transition-all duration-200',
           status === 'dragging' && 'border-white bg-neutral-900',
@@ -145,12 +127,11 @@ export function FileUpload({
           status === 'idle' && 'border-neutral-800 hover:border-neutral-600'
         )}
       >
-        {/* Preview Image */}
-        {preview_url && show_preview && (
+        {previewUrl && show_preview && (
           <div className="mb-4 flex justify-center relative h-40 w-full">
             <Image
-              src={preview_url}
-              alt="Preview"
+              src={previewUrl}
+              alt={t('previewAlt')}
               fill
               unoptimized
               className="object-contain rounded-sm"
@@ -158,26 +139,25 @@ export function FileUpload({
           </div>
         )}
 
-        {/* Status Icons & Text */}
         {status === 'uploading' ? (
           <div className="flex flex-col items-center gap-2">
             <span className="material-symbols-outlined animate-spin text-2xl text-neutral-400">
               progress_activity
             </span>
-            <p className="text-xs text-neutral-400">กำลังอัพโหลด...</p>
+            <p className="text-xs text-neutral-400">{t('uploading')}</p>
           </div>
         ) : status === 'success' ? (
           <div className="flex flex-col items-center gap-2">
             <span className="material-symbols-outlined text-2xl text-green-400">check_circle</span>
-            <p className="text-xs text-green-400">อัพโหลดสำเร็จ: {file_name}</p>
+            <p className="text-xs text-green-400">{t('uploadSuccess', { file: fileName ?? '' })}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                HandleReset()
+                handleReset()
               }}
               className="text-[10px] text-neutral-500 hover:text-white underline mt-1"
             >
-              อัพโหลดไฟล์ใหม่
+              {t('uploadNewFile')}
             </button>
           </div>
         ) : (
@@ -185,28 +165,24 @@ export function FileUpload({
             <span className="material-symbols-outlined text-2xl text-neutral-600">
               cloud_upload
             </span>
-            <p className="text-xs text-neutral-500">{placeholder}</p>
-            <p className="text-[10px] text-neutral-700">
-              สูงสุด {Math.round(max_size / 1024 / 1024)}MB
-            </p>
+            <p className="text-xs text-neutral-500">{placeholder ?? t('placeholder')}</p>
+            <p className="text-[10px] text-neutral-700">{t('maxSize', { size: maxSizeMb })}</p>
           </div>
         )}
 
-        {/* Hidden File Input */}
         <input
-          ref={input_ref}
+          ref={inputRef}
           type="file"
           accept={accept}
-          onChange={HandleInputChange}
+          onChange={handleInputChange}
           className="hidden"
         />
       </div>
 
-      {/* Error Message */}
-      {error_message && (
+      {errorMessage && (
         <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
           <span className="material-symbols-outlined text-sm">error</span>
-          {error_message}
+          {errorMessage}
         </p>
       )}
     </div>

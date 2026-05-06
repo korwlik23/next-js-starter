@@ -13,19 +13,15 @@ import {
 } from '@/utils/api'
 import { PERMISSIONS } from '@/constants'
 import { logger } from '@/lib/logger'
-
-// ────────────────────────────────────────
-// Translation Controller
-// ────────────────────────────────────────
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
 export class TranslationController {
-  /**
-   * ดึง translations ทั้งหมด (หรือตาม locale)
-   */
   static async GetTranslations(req: NextRequest) {
+    const requestLocale = getLocaleFromRequest(req)
+
     try {
       const user = await getAuthUser()
-      if (!user) return unauthorized()
+      if (!user) return unauthorized(translate(requestLocale, 'api.errors.unauthorized'))
 
       const { searchParams } = new URL(req.url)
       const parsed = translationQuerySchema.safeParse({
@@ -38,33 +34,33 @@ export class TranslationController {
       return successResponse(translations)
     } catch (error) {
       logger.error('TranslationController.GetTranslations error', error)
-      return serverError()
+      return serverError(translate(requestLocale, 'api.errors.server'))
     }
   }
 
-  /**
-   * เพิ่มหรืออัปเดตคำแปล
-   */
   static async UpsertTranslation(req: NextRequest) {
+    const requestLocale = getLocaleFromRequest(req)
+
     try {
       const user = await getAuthUser()
-      if (!user) return unauthorized()
-      if (!can(user, PERMISSIONS.SETTINGS_UPDATE)) return forbidden()
+      if (!user) return unauthorized(translate(requestLocale, 'api.errors.unauthorized'))
+      if (!can(user, PERMISSIONS.SETTINGS_UPDATE))
+        return forbidden(translate(requestLocale, 'api.errors.forbidden'))
 
       const body = await req.json()
       const parsed = upsertTranslationSchema.safeParse(body)
       if (!parsed.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(requestLocale, 'api.errors.validation'),
           parsed.error.flatten().fieldErrors as Record<string, string[]>
         )
       }
 
       const translation = await UpsertTranslation(parsed.data)
-      return createdResponse(translation, 'บันทึกคำแปลสำเร็จ')
+      return createdResponse(translation, translate(requestLocale, 'api.messages.translationSaved'))
     } catch (error) {
       logger.error('TranslationController.UpsertTranslation error', error)
-      return serverError()
+      return serverError(translate(requestLocale, 'api.errors.server'))
     }
   }
 }

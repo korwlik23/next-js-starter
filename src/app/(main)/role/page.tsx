@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { api } from '@/services/apiClient'
 import { Button, Input, Modal, Checkbox, Badge, Skeleton, Can } from '@/components/ui'
 import toast from 'react-hot-toast'
@@ -23,13 +24,13 @@ interface Role {
 }
 
 export default function RoleManagementPage() {
+  const t = useTranslations('rolePage')
+  const tCommon = useTranslations('common')
   const [roles, setRoles] = useState<Role[]>([])
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [groupedPermissions, setGroupedPermissions] = useState<Record<string, Permission[]>>({})
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-
-  // Form state
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +40,7 @@ export default function RoleManagementPage() {
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchData = async () => {
@@ -57,7 +59,7 @@ export default function RoleManagementPage() {
         setGroupedPermissions(permsRes.data.grouped)
       }
     } catch {
-      toast.error('ไม่สามารถโหลดข้อมูลได้')
+      toast.error(t('loadError'))
     } finally {
       setLoading(false)
     }
@@ -69,7 +71,7 @@ export default function RoleManagementPage() {
       setFormData({
         name: role.name,
         description: role.description || '',
-        permission_ids: role.permissions.map((p) => p.id),
+        permission_ids: role.permissions.map((permission) => permission.id),
       })
     } else {
       setEditingRole(null)
@@ -86,13 +88,13 @@ export default function RoleManagementPage() {
     setFormData((prev) => ({
       ...prev,
       permission_ids: prev.permission_ids.includes(id)
-        ? prev.permission_ids.filter((p) => p !== id)
+        ? prev.permission_ids.filter((permissionId) => permissionId !== id)
         : [...prev.permission_ids, id],
     }))
   }
 
   const handleToggleModule = (moduleName: string, checked: boolean) => {
-    const modulePermIds = groupedPermissions[moduleName].map((p) => p.id)
+    const modulePermIds = groupedPermissions[moduleName].map((permission) => permission.id)
     setFormData((prev) => {
       const otherPermIds = prev.permission_ids.filter((id) => !modulePermIds.includes(id))
       return {
@@ -107,7 +109,6 @@ export default function RoleManagementPage() {
     try {
       const url = editingRole ? `/api/role/${editingRole.id}` : '/api/role'
       const method = editingRole ? 'patch' : 'post'
-
       const res = await api[method]<Role>(url, formData)
 
       if (res.error) {
@@ -115,26 +116,26 @@ export default function RoleManagementPage() {
         return
       }
 
-      toast.success(editingRole ? 'อัปเดต Role สำเร็จ' : 'สร้าง Role สำเร็จ')
+      toast.success(editingRole ? t('updateSuccess') : t('createSuccess'))
       setIsModalOpen(false)
       fetchData()
     } catch {
-      toast.error('เกิดข้อผิดพลาดในการบันทึก')
+      toast.error(t('saveError'))
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบ Role นี้?')) return
+    if (!confirm(t('deleteConfirm'))) return
     try {
       const res = await api.delete(`/api/role/${id}`)
       if (res.error) {
         toast.error(res.error)
         return
       }
-      toast.success('ลบ Role สำเร็จ')
+      toast.success(t('deleteSuccess'))
       fetchData()
     } catch {
-      toast.error('ไม่สามารถลบ Role ได้')
+      toast.error(t('deleteError'))
     }
   }
 
@@ -146,8 +147,8 @@ export default function RoleManagementPage() {
           <Skeleton width="120px" height="40px" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} width="100%" height="200px" border_radius="1rem" />
+          {[1, 2, 3].map((item) => (
+            <Skeleton key={item} width="100%" height="200px" border_radius="1rem" />
           ))}
         </div>
       </div>
@@ -156,17 +157,16 @@ export default function RoleManagementPage() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-      {/* HEADER */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1
             className="text-3xl font-black tracking-tight"
             style={{ color: 'var(--color-primary)' }}
           >
-            Role Management
+            {t('title')}
           </h1>
           <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-            Define and manage access levels for your team members.
+            {t('description')}
           </p>
         </div>
         <Can I={PERMISSIONS.ROLE_CREATE}>
@@ -176,12 +176,11 @@ export default function RoleManagementPage() {
             className="shadow-lg shadow-blue-500/20"
           >
             <span className="material-symbols-outlined mr-2">add</span>
-            Create New Role
+            {t('createNewRole')}
           </Button>
         </Can>
       </header>
 
-      {/* ROLE GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((role) => (
           <div
@@ -201,7 +200,7 @@ export default function RoleManagementPage() {
                   </h3>
                   {role.isSystem && (
                     <Badge variant="default" size="sm" className="mt-0.5">
-                      System
+                      {t('system')}
                     </Badge>
                   )}
                 </div>
@@ -212,14 +211,14 @@ export default function RoleManagementPage() {
               className="text-sm line-clamp-2 mb-6 flex-1"
               style={{ color: 'var(--color-text-subtle)' }}
             >
-              {role.description || 'No description provided.'}
+              {role.description || t('noDescription')}
             </p>
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-gray-400 text-sm">key</span>
                 <span className="text-xs font-bold text-gray-500">
-                  {role.permissions.length} Permissions
+                  {t('permissions', { count: role.permissions.length })}
                 </span>
               </div>
 
@@ -230,7 +229,7 @@ export default function RoleManagementPage() {
                     size="sm"
                     onClick={() => handleOpenModal(role)}
                     className="h-8 w-8 p-0"
-                    title={role.isSystem ? 'System Role cannot be edited' : 'Edit Role'}
+                    title={role.isSystem ? t('systemRoleCannotEdit') : t('editRole')}
                     disabled={role.isSystem}
                   >
                     <span className="material-symbols-outlined text-[1.1rem]">edit</span>
@@ -243,7 +242,7 @@ export default function RoleManagementPage() {
                       size="sm"
                       onClick={() => handleDelete(role.id)}
                       className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                      title="Delete Role"
+                      title={t('deleteRole')}
                     >
                       <span className="material-symbols-outlined text-[1.1rem]">delete</span>
                     </Button>
@@ -255,18 +254,17 @@ export default function RoleManagementPage() {
         ))}
       </div>
 
-      {/* CREATE/EDIT MODAL */}
       <Modal
         is_open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingRole ? 'Edit Role' : 'Create New Role'}
+        title={editingRole ? t('editRole') : t('createNewRole')}
         size="lg"
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
-              label="Role Name"
-              placeholder="e.g. editor, moderator"
+              label={t('roleName')}
+              placeholder={t('roleNamePlaceholder')}
               value={formData.name}
               onChange={(e) =>
                 setFormData({
@@ -276,11 +274,11 @@ export default function RoleManagementPage() {
               }
               required
               disabled={!!editingRole && editingRole.isSystem}
-              hint="Use lowercase, numbers, underscores or hyphens only."
+              hint={t('nameHint')}
             />
             <Input
-              label="Description"
-              placeholder="What can this role do?"
+              label={t('descriptionLabel')}
+              placeholder={t('descriptionPlaceholder')}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
@@ -289,17 +287,20 @@ export default function RoleManagementPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-sm uppercase tracking-wider text-gray-500">
-                Permissions Matrix
+                {t('permissionsMatrix')}
               </h4>
               <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                {formData.permission_ids.length} / {permissions.length} selected
+                {t('selected', {
+                  selected: formData.permission_ids.length,
+                  total: permissions.length,
+                })}
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {Object.entries(groupedPermissions).map(([moduleName, modulePerms]) => {
-                const isAllSelected = modulePerms.every((p) =>
-                  formData.permission_ids.includes(p.id)
+                const isAllSelected = modulePerms.every((permission) =>
+                  formData.permission_ids.includes(permission.id)
                 )
                 return (
                   <div
@@ -316,7 +317,7 @@ export default function RoleManagementPage() {
                         onClick={() => handleToggleModule(moduleName, !isAllSelected)}
                         className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:underline"
                       >
-                        {isAllSelected ? 'Unselect All' : 'Select All'}
+                        {isAllSelected ? t('unselectAll') : t('selectAll')}
                       </button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -338,10 +339,10 @@ export default function RoleManagementPage() {
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button variant="primary" type="submit">
-              {editingRole ? 'Save Changes' : 'Create Role'}
+              {editingRole ? tCommon('save') : t('createRole')}
             </Button>
           </div>
         </form>

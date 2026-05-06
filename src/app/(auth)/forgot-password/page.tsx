@@ -1,30 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { forgotPasswordSchema, type ForgotPasswordInput } from '@/modules/auth/schema'
+import { createForgotPasswordSchema, type ForgotPasswordInput } from '@/modules/auth/schema'
 import { api } from '@/services/apiClient'
 import { toast } from 'react-hot-toast'
 
-// ────────────────────────────────────────
-// Forgot Password Page — ขอรีเซ็ตรหัสผ่าน
-// ใช้ editorial design เดียวกับ login
-// ────────────────────────────────────────
-
 export default function ForgotPasswordPage() {
-  const [is_sent, setIsSent] = useState(false)
-  const [sent_email, setSentEmail] = useState('')
+  const t = useTranslations('forgotPassword')
+  const tAuthErrors = useTranslations('auth.errors')
+  const tValidation = useTranslations('validation')
+  const [isSent, setIsSent] = useState(false)
+  const [sentEmail, setSentEmail] = useState('')
+
+  const schema = useMemo(
+    () =>
+      createForgotPasswordSchema({
+        invalidEmail: tValidation('invalidEmail'),
+      }),
+    [tValidation]
+  )
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(forgotPasswordSchema) })
+  } = useForm<ForgotPasswordInput>({ resolver: zodResolver(schema) })
 
-  /* ฟังก์ชัน submit — ส่ง reset link */
-  async function HandleSubmit(data: ForgotPasswordInput) {
+  async function onSubmit(data: ForgotPasswordInput) {
     try {
       const res = await api.post('/api/auth/forgot-password', data)
       if (res.error) {
@@ -34,13 +40,12 @@ export default function ForgotPasswordPage() {
         setIsSent(true)
       }
     } catch {
-      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      toast.error(tAuthErrors('server'))
     }
   }
 
   return (
     <div className="w-full max-w-[420px] flex flex-col items-center">
-      {/* Brand */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center mb-4">
           <span
@@ -54,17 +59,15 @@ export default function ForgotPasswordPage() {
           className="font-extrabold text-2xl uppercase mb-1"
           style={{ color: 'var(--color-primary)' }}
         >
-          Forgot Password
+          {t('title')}
         </h1>
         <p className="text-[10px] uppercase" style={{ color: 'var(--color-text-subtle)' }}>
-          Account Recovery
+          {t('subtitle')}
         </p>
       </div>
 
-      {/* Card */}
       <div className="w-full p-4 sm:p-6 editorial-card-elevated">
-        {is_sent ? (
-          /* สถานะส่งสำเร็จ */
+        {isSent ? (
           <div className="text-center py-4">
             <span
               className="material-symbols-outlined text-5xl mb-4 block"
@@ -73,48 +76,47 @@ export default function ForgotPasswordPage() {
               mark_email_read
             </span>
             <h2 className="font-bold text-lg mb-2" style={{ color: 'var(--color-primary)' }}>
-              Check your email
+              {t('sentTitle')}
             </h2>
             <p className="text-sm mb-6" style={{ color: 'var(--color-text-subtle)' }}>
-              We sent a reset link to
+              {t('sentDescription')}
               <br />
               <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
-                {sent_email}
+                {sentEmail}
               </span>
             </p>
             <p className="text-xs" style={{ color: 'var(--color-text-faint)' }}>
-              Didn&apos;t receive it? Check your spam folder.
+              {t('spamHint')}
             </p>
           </div>
         ) : (
-          /* ฟอร์มกรอก email */
           <>
             <header className="mb-6">
               <h2
                 className="font-bold text-xl tracking-tight mb-2"
                 style={{ color: 'var(--color-primary)' }}
               >
-                Reset Password
+                {t('resetTitle')}
               </h2>
               <p style={{ color: 'var(--color-text-subtle)' }} className="text-sm">
-                Enter your email address and we&apos;ll send you a reset link.
+                {t('resetDescription')}
               </p>
             </header>
 
-            <form onSubmit={handleSubmit(HandleSubmit)} className="space-y-5" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               <div>
                 <label
                   className="label-xs block mb-1"
                   style={{ color: 'var(--color-text-subtle)' }}
                   htmlFor="fp-email"
                 >
-                  Email Address
+                  {t('emailLabel')}
                 </label>
                 <input
                   id="fp-email"
                   type="email"
                   autoComplete="email"
-                  placeholder="name@example.com"
+                  placeholder={t('emailPlaceholder')}
                   className="editorial-input w-full"
                   {...register('email')}
                 />
@@ -136,11 +138,11 @@ export default function ForgotPasswordPage() {
                       <span className="material-symbols-outlined text-sm animate-spin">
                         progress_activity
                       </span>
-                      Sending...
+                      {t('sending')}
                     </>
                   ) : (
                     <>
-                      Send Reset Link
+                      {t('sendLink')}
                       <span className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1">
                         arrow_right_alt
                       </span>
@@ -153,7 +155,6 @@ export default function ForgotPasswordPage() {
         )}
       </div>
 
-      {/* Footer */}
       <footer className="mt-12 text-center">
         <Link
           href="/login"
@@ -161,7 +162,7 @@ export default function ForgotPasswordPage() {
           style={{ color: 'var(--color-text-faint)' }}
         >
           <span className="material-symbols-outlined text-sm">arrow_back</span>
-          Back to Sign In
+          {t('backToSignIn')}
         </Link>
       </footer>
     </div>

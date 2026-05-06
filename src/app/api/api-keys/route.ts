@@ -3,95 +3,92 @@ import { successResponse, badRequest, unauthorized, serverError } from '@/utils/
 import { getAuthUserFromRequest } from '@/lib/auth'
 import { CreateApiKey, ListApiKeys, RevokeApiKey } from '@/lib/api-key'
 import { can } from '@/lib/permissions'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 import { z } from 'zod'
 
-// ────────────────────────────────────────
-// API KEY MANAGEMENT — /api/api-keys
-// สร้าง, ดึงรายการ, และ revoke API keys
-// ────────────────────────────────────────
+function createKeySchema(message: string) {
+  return z.object({
+    name: z.string().min(1, message).max(100),
+  })
+}
 
-const CreateKeySchema = z.object({
-  name: z.string().min(1, 'ต้องระบุชื่อ API Key').max(100),
-})
-
-/**
- * GET /api/api-keys — ดึงรายการ API keys ของ tenant
- */
 export async function GET(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+  const t = (key: string) => translate(locale, key)
+
   try {
     const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
+    if (!user) return unauthorized(t('api.errors.unauthorized'))
 
-    const tenant_id = user.tenantId
-    if (!tenant_id) return badRequest('User is not assigned to a tenant')
+    const tenantId = user.tenantId
+    if (!tenantId) return badRequest(t('api.messages.tenantRequired'))
 
-    // ตรวจสอบสิทธิ์
     if (!can(user, 'settings.view')) {
-      return badRequest('ไม่มีสิทธิ์ดู API Keys')
+      return badRequest(t('api.messages.apiKeysViewForbidden'))
     }
 
-    const keys = await ListApiKeys(tenant_id)
+    const keys = await ListApiKeys(tenantId)
     return successResponse(keys)
   } catch (error) {
-    return serverError(error instanceof Error ? error.message : 'Internal error')
+    return serverError(error instanceof Error ? error.message : t('api.errors.server'))
   }
 }
 
-/**
- * POST /api/api-keys — สร้าง API key ใหม่
- */
 export async function POST(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+  const t = (key: string) => translate(locale, key)
+
   try {
     const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
+    if (!user) return unauthorized(t('api.errors.unauthorized'))
 
     if (!can(user, 'settings.update')) {
-      return badRequest('ไม่มีสิทธิ์สร้าง API Key')
+      return badRequest(t('api.messages.apiKeysCreateForbidden'))
     }
 
     const body = await request.json()
-    const parsed = CreateKeySchema.safeParse(body)
+    const parsed = createKeySchema(t('api.messages.apiKeyNameRequired')).safeParse(body)
 
     if (!parsed.success) {
-      return badRequest('Validation error', {
-        validation: parsed.error.issues.map((i) => i.message),
+      return badRequest(t('api.errors.validation'), {
+        validation: parsed.error.issues.map((issue) => issue.message),
       })
     }
 
-    const tenant_id = user.tenantId
-    if (!tenant_id) return badRequest('User is not assigned to a tenant')
+    const tenantId = user.tenantId
+    if (!tenantId) return badRequest(t('api.messages.tenantRequired'))
 
-    const result = await CreateApiKey(tenant_id, parsed.data.name, user.sub)
+    const result = await CreateApiKey(tenantId, parsed.data.name, user.sub)
 
-    return successResponse(result, 'สร้าง API Key เรียบร้อย')
+    return successResponse(result, t('api.messages.apiKeyCreated'))
   } catch (error) {
-    return serverError(error instanceof Error ? error.message : 'Internal error')
+    return serverError(error instanceof Error ? error.message : t('api.errors.server'))
   }
 }
 
-/**
- * DELETE /api/api-keys — Revoke API key
- */
 export async function DELETE(request: NextRequest) {
+  const locale = getLocaleFromRequest(request)
+  const t = (key: string) => translate(locale, key)
+
   try {
     const user = await getAuthUserFromRequest(request)
-    if (!user) return unauthorized()
+    if (!user) return unauthorized(t('api.errors.unauthorized'))
 
     if (!can(user, 'settings.update')) {
-      return badRequest('ไม่มีสิทธิ์ลบ API Key')
+      return badRequest(t('api.messages.apiKeysDeleteForbidden'))
     }
 
     const { id } = await request.json()
-    if (!id) return badRequest('ต้องระบุ API Key ID')
+    if (!id) return badRequest(t('api.messages.apiKeyIdRequired'))
 
-    const tenant_id = user.tenantId
-    if (!tenant_id) return badRequest('User is not assigned to a tenant')
+    const tenantId = user.tenantId
+    if (!tenantId) return badRequest(t('api.messages.tenantRequired'))
 
-    const success = await RevokeApiKey(id, tenant_id)
-    if (!success) return badRequest('ไม่สามารถ revoke API Key ได้')
+    const success = await RevokeApiKey(id, tenantId)
+    if (!success) return badRequest(t('api.messages.apiKeyRevokeFailed'))
 
-    return successResponse(null, 'Revoke API Key เรียบร้อย')
+    return successResponse(null, t('api.messages.apiKeyRevoked'))
   } catch (error) {
-    return serverError(error instanceof Error ? error.message : 'Internal error')
+    return serverError(error instanceof Error ? error.message : t('api.errors.server'))
   }
 }

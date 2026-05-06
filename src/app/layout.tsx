@@ -54,6 +54,8 @@ export const metadata: Metadata = {
 
 import { Toaster } from 'react-hot-toast'
 
+import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner'
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // โหลด locale และ messages จาก server
   const locale = await getLocale()
@@ -101,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               enableSystem
               disableTransitionOnChange
             >
+              <ImpersonationBanner />
               {children}
             </ThemeProvider>
           </QueryProvider>

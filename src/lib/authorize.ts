@@ -1,4 +1,3 @@
-import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getAuthUser } from '@/lib/auth'
@@ -8,39 +7,32 @@ import { getAuthUser } from '@/lib/auth'
  * ใช้อ่าน Header ที่ถูกส่งต่อมาจาก proxy.ts (x-user-id)
  */
 export async function authorize(requiredPermission?: string | string[], requiredRole?: string) {
-  const headersList = await headers()
-  let userId = headersList.get('x-user-id')
-  const userRolesStr = headersList.get('x-user-roles')
-  const cookieUser = userId ? null : await getAuthUser()
-
-  if (!userId && cookieUser) {
-    userId = cookieUser.sub
-  }
+  const cookieUser = await getAuthUser()
+  const userId = cookieUser?.sub
 
   if (!userId) {
     throw new Error('Unauthorized')
   }
 
-  const roles: string[] = userRolesStr ? JSON.parse(userRolesStr) : (cookieUser?.roles ?? [])
-
-  // ถ้าไม่มีการระบุสิทธิ์ที่อ้างอิง แค่ต้องการบอกว่าต้องล็อกอิน ถือว่าผ่าน
-  if (!requiredPermission && !requiredRole) {
-    return { userId, roles, granted: true }
-  }
-
-  // ดึง Permission จากฐานข้อมูลเพื่อเช็คจริง (ถ้าต้องการดึงแบบ Realtime)
+  // Always resolve the current user from the database so tenant scope,
+  // active status, roles, and permissions cannot be forged from headers.
   const userDetails = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
+    select: {
+      id: true,
+      tenantId: true,
+      isActive: true,
+      deletedAt: true,
       permissions: { include: { permission: true } },
       roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
     },
   })
 
-  if (!userDetails) {
-    throw new Error('User not found')
+  if (!userDetails || !userDetails.isActive || userDetails.deletedAt) {
+    throw new Error('Unauthorized')
   }
 
+  const roles = userDetails.roles.map((rolePvt) => rolePvt.role.name)
   const allPermissions = userDetails.permissions.map((p) => p.permission.name)
   userDetails.roles.forEach((rolePvt) => {
     rolePvt.role.permissions.forEach((rp) => {
@@ -49,6 +41,12 @@ export async function authorize(requiredPermission?: string | string[], required
       }
     })
   })
+  const tenantId = userDetails.tenantId ?? null
+
+  // ถ้าไม่มีการระบุสิทธิ์ที่อ้างอิง แค่ต้องการบอกว่าต้องล็อกอิน ถือว่าผ่าน
+  if (!requiredPermission && !requiredRole) {
+    return { userId, tenantId, roles, permissions: allPermissions, granted: true }
+  }
 
   let granted = false
 
@@ -73,7 +71,7 @@ export async function authorize(requiredPermission?: string | string[], required
     throw new Error('Forbidden')
   }
 
-  return { userId, roles, granted }
+  return { userId, tenantId, roles, permissions: allPermissions, granted }
 }
 
 /**

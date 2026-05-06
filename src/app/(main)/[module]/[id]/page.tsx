@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui'
@@ -8,12 +9,16 @@ import { Skeleton } from '@/components/ui'
 export default function ModuleDetailPage() {
   const params = useParams<{ module: string; id: string }>()
   const router = useRouter()
+  const t = useTranslations('moduleDetail')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
   const { module: moduleName, id } = params
 
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const moduleLabel = (moduleName ?? '').charAt(0).toUpperCase() + (moduleName ?? '').slice(1)
+  const formatterLocale = locale === 'th' ? 'th-TH' : 'en-US'
 
   useEffect(() => {
     fetch(`/api/${moduleName}/${id}`)
@@ -31,7 +36,6 @@ export default function ModuleDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
-      {/* 1. PAGE HEADER — High Impact */}
       <header className="mb-12 pt-4">
         <div className="flex items-center gap-3 mb-6">
           <Link
@@ -45,12 +49,12 @@ export default function ModuleDetailPage() {
               className="text-[10px] font-black uppercase tracking-[0.2em]"
               style={{ color: 'var(--color-text-faint)' }}
             >
-              {moduleLabel} / Record Detail
+              {moduleLabel} / {t('recordDetail')}
             </p>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
               <p className="text-xs font-bold" style={{ color: 'var(--color-text-muted)' }}>
-                Resource identified
+                {t('resourceIdentified')}
               </p>
             </div>
           </div>
@@ -61,7 +65,7 @@ export default function ModuleDetailPage() {
             className="text-4xl md:text-5xl font-extrabold tracking-tighter"
             style={{ color: 'var(--color-primary)' }}
           >
-            {isLoading ? 'Loading...' : ((data?.name as string) ?? id)}
+            {isLoading ? tCommon('loading') : ((data?.name as string) ?? id)}
           </h1>
 
           <div className="flex items-center gap-3">
@@ -70,7 +74,7 @@ export default function ModuleDetailPage() {
               className="btn-primary px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[var(--color-primary)]/10 flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-base">edit</span>
-              Modify
+              {t('modify')}
             </Link>
 
             {!deleteConfirm ? (
@@ -79,7 +83,7 @@ export default function ModuleDetailPage() {
                 className="px-6 py-2.5 rounded-xl border border-[var(--color-error)]/30 text-[var(--color-error)] text-[10px] font-black uppercase tracking-widest hover:bg-[var(--color-error)]/10 transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-base">delete</span>
-                Archive
+                {t('archive')}
               </button>
             ) : (
               <div className="flex items-center gap-2 bg-[var(--color-error)]/5 p-1 rounded-2xl border border-[var(--color-error)]/20 animate-in slide-in-from-right-2">
@@ -87,14 +91,14 @@ export default function ModuleDetailPage() {
                   onClick={handleDelete}
                   className="bg-[var(--color-error)] text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg"
                 >
-                  Confirm Delete
+                  {t('confirmDelete')}
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(false)}
                   className="px-4 py-2 text-[10px] font-black uppercase tracking-widest"
                   style={{ color: 'var(--color-text-muted)' }}
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </button>
               </div>
             )}
@@ -102,16 +106,14 @@ export default function ModuleDetailPage() {
         </div>
       </header>
 
-      {/* 2. INFORMATION GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* Main Details Card */}
         <div className="lg:col-span-8 editorial-card-elevated overflow-hidden shadow-sm">
           <div className="p-8 border-b border-[var(--color-border)] bg-[var(--color-surface-low)]/50">
             <h2
               className="text-sm font-black uppercase tracking-widest"
               style={{ color: 'var(--color-primary)' }}
             >
-              General Information
+              {t('generalInformation')}
             </h2>
           </div>
 
@@ -125,7 +127,9 @@ export default function ModuleDetailPage() {
               ))}
             </div>
           ) : !data ? (
-            <div className="p-20 text-center text-[var(--color-text-faint)]">Record not found</div>
+            <div className="p-20 text-center text-[var(--color-text-faint)]">
+              {t('recordNotFound')}
+            </div>
           ) : (
             <div className="divide-y divide-[var(--color-border)]/50">
               {Object.entries(data)
@@ -151,14 +155,14 @@ export default function ModuleDetailPage() {
                       style={{ color: 'var(--color-text-muted)' }}
                     >
                       {val === null || val === undefined ? (
-                        <span className="opacity-20">—</span>
+                        <span className="opacity-20">-</span>
                       ) : typeof val === 'boolean' ? (
                         <div className="flex items-center gap-2">
                           <span
                             className={`w-2 h-2 rounded-full ${val ? 'bg-emerald-500' : 'bg-neutral-500'}`}
                           />
                           <span className={val ? 'text-emerald-500' : ''}>
-                            {val ? 'Enabled' : 'Disabled'}
+                            {val ? t('enabled') : t('disabled')}
                           </span>
                         </div>
                       ) : (
@@ -173,34 +177,33 @@ export default function ModuleDetailPage() {
           )}
         </div>
 
-        {/* System Metadata Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <div className="editorial-card-elevated p-8 shadow-sm">
             <h2
               className="text-[10px] font-black uppercase tracking-widest mb-6"
               style={{ color: 'var(--color-primary)' }}
             >
-              System Metadata
+              {t('systemMetadata')}
             </h2>
             <div className="space-y-6">
               {[
-                { label: 'Reference ID', value: id, icon: 'tag' },
+                { label: t('referenceId'), value: id, icon: 'tag' },
                 {
-                  label: 'Created On',
+                  label: t('createdOn'),
                   value: data?.created_at
-                    ? new Date(data.created_at as string).toLocaleString()
-                    : '—',
+                    ? new Date(data.created_at as string).toLocaleString(formatterLocale)
+                    : '-',
                   icon: 'event',
                 },
                 {
-                  label: 'Last Modified',
+                  label: t('lastModified'),
                   value: data?.updated_at
-                    ? new Date(data.updated_at as string).toLocaleString()
-                    : '—',
+                    ? new Date(data.updated_at as string).toLocaleString(formatterLocale)
+                    : '-',
                   icon: 'update',
                 },
-              ].map((item, i) => (
-                <div key={i} className="flex flex-col gap-1.5">
+              ].map((item) => (
+                <div key={item.label} className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="material-symbols-outlined text-[14px] opacity-40">
                       {item.icon}
@@ -228,9 +231,9 @@ export default function ModuleDetailPage() {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
-                Verification
+                {t('verification')}
               </p>
-              <p className="text-xs font-bold">Data integrity verified</p>
+              <p className="text-xs font-bold">{t('dataIntegrityVerified')}</p>
             </div>
           </div>
         </div>

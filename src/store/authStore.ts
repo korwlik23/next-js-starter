@@ -7,6 +7,7 @@ interface AuthUser {
   email: string
   roles: string[]
   permissions?: string[]
+  impersonatorId?: string
   tenant?: {
     id: string
     name: string
@@ -19,6 +20,7 @@ interface AuthState {
   setUser: (user: AuthUser | null) => void
   clearUser: () => void
   isAuthenticated: () => boolean
+  isImpersonating: () => boolean
   hasPermission: (permission: string) => boolean
   hasRole: (role: string) => boolean
 }
@@ -33,6 +35,8 @@ export const useAuthStore = create<AuthState>()(
       clearUser: () => set({ user: null }),
 
       isAuthenticated: () => !!get().user,
+
+      isImpersonating: () => !!get().user?.impersonatorId,
 
       hasPermission: (permission) => {
         const user = get().user

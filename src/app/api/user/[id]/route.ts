@@ -20,41 +20,50 @@ import { PERMISSIONS, ERROR_CODES } from '@/constants'
 import { logger } from '@/lib/logger'
 import { AuditService } from '@/modules/audit/service'
 import { getRequestMetadata } from '@/utils/request'
+import { getLocaleFromRequest, translate } from '@/i18n/server'
 
 interface Params {
   params: Promise<{ id: string }>
 }
 
-// GET /api/user/[id]
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const locale = getLocaleFromRequest(req)
+
   try {
     const authUser = await getAuthUser()
-    if (!authUser) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
+    if (!authUser)
+      return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
     const { id } = await params
     if (authUser.sub !== id && !can(authUser, PERMISSIONS.USER_READ))
-      return forbidden('คุณไม่มีสิทธิ์อ่านข้อมูลผู้ใช้อื่น', ERROR_CODES.FORBIDDEN)
+      return forbidden(translate(locale, 'api.messages.userReadForbidden'), ERROR_CODES.FORBIDDEN)
     const user = await getUserByIdService(id, authUser.tenantId ?? null)
-    if (!user) return notFound('ไม่พบผู้ใช้งาน', ERROR_CODES.USER_NOT_FOUND)
+    if (!user)
+      return notFound(translate(locale, 'api.messages.userNotFound'), ERROR_CODES.USER_NOT_FOUND)
     return successResponse(user)
   } catch (error) {
     logger.error('GET /api/user/[id]', error)
-    return serverError('เกิดข้อผิดพลาดในการดึงข้อมูล', ERROR_CODES.INTERNAL_ERROR)
+    return serverError(translate(locale, 'api.messages.userLoadError'), ERROR_CODES.INTERNAL_ERROR)
   }
 }
 
-// PATCH /api/user/[id]
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const locale = getLocaleFromRequest(req)
+
   try {
     const authUser = await getAuthUser()
-    if (!authUser) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
+    if (!authUser)
+      return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
     const { id } = await params
     if (authUser.sub !== id && !can(authUser, PERMISSIONS.USER_UPDATE))
-      return forbidden('คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้ใช้อื่น', ERROR_CODES.FORBIDDEN)
+      return forbidden(translate(locale, 'api.messages.userUpdateForbidden'), ERROR_CODES.FORBIDDEN)
     const body = await req.json()
 
     if ('currentPassword' in body || 'password' in body || 'newPassword' in body) {
       if (authUser.sub !== id)
-        return forbidden('คุณไม่มีสิทธิ์เปลี่ยนรหัสผ่านผู้อื่น', ERROR_CODES.FORBIDDEN)
+        return forbidden(
+          translate(locale, 'api.messages.userPasswordChangeForbidden'),
+          ERROR_CODES.FORBIDDEN
+        )
 
       const parsedPassword = updatePasswordSchema.safeParse({
         currentPassword: body.currentPassword,
@@ -64,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
       if (!parsedPassword.success) {
         return badRequest(
-          'ข้อมูลไม่ถูกต้อง',
+          translate(locale, 'api.errors.validation'),
           ERROR_CODES.VALIDATION_ERROR,
           parsedPassword.error.flatten().fieldErrors as Record<string, string[]>
         )
@@ -72,7 +81,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
       await updatePasswordService(id, parsedPassword.data)
 
-      // Audit Log: Password Changed
       const { ipAddress, userAgent } = getRequestMetadata(req)
       AuditService.record({
         userId: authUser.sub,
@@ -85,24 +93,24 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         metadata: { targetUserId: id },
       })
 
-      return successResponse(null, 'เปลี่ยนรหัสผ่านสำเร็จ')
+      return successResponse(null, translate(locale, 'api.messages.passwordChanged'))
     }
 
     const parsed = updateUserSchema.safeParse(body)
     if (!parsed.success) {
       return badRequest(
-        'ข้อมูลไม่ถูกต้อง',
+        translate(locale, 'api.errors.validation'),
         ERROR_CODES.VALIDATION_ERROR,
         parsed.error.flatten().fieldErrors as Record<string, string[]>
       )
     }
 
     const user = await getUserByIdService(id, authUser.tenantId ?? null)
-    if (!user) return notFound('ไม่พบผู้ใช้งาน', ERROR_CODES.USER_NOT_FOUND)
+    if (!user)
+      return notFound(translate(locale, 'api.messages.userNotFound'), ERROR_CODES.USER_NOT_FOUND)
 
-    const updated = await updateUserService(id, parsed.data)
+    const updated = await updateUserService(id, parsed.data, authUser.tenantId ?? null)
 
-    // Audit Log: Profile Updated
     const { ipAddress, userAgent } = getRequestMetadata(req)
     AuditService.record({
       userId: authUser.sub,
@@ -118,46 +126,48 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     })
 
-    return successResponse(updated, 'อัปเดตผู้ใช้งานสำเร็จ')
+    return successResponse(updated, translate(locale, 'api.messages.userUpdated'))
   } catch (error) {
-    const message = error instanceof Error ? error.message : null
-    const is_known_error =
-      message &&
-      (message.includes('รหัสผ่านปัจจุบันไม่ถูกต้อง') ||
-        message.includes('ไม่พบผู้ใช้งาน') ||
-        message.includes('ไม่ตรงกัน'))
-
-    if (is_known_error) {
-      const code = message.includes('รหัสผ่านปัจจุบันไม่ถูกต้อง')
-        ? ERROR_CODES.INVALID_CREDENTIALS
-        : ERROR_CODES.BAD_REQUEST
-      logger.warn('PATCH /api/user/[id] validation error', { message })
-      return badRequest(message!, code)
+    if (error instanceof Error && error.message === 'CURRENT_PASSWORD_INVALID') {
+      return badRequest(
+        translate(locale, 'api.messages.currentPasswordInvalid'),
+        ERROR_CODES.INVALID_CREDENTIALS
+      )
     }
-
-    logger.error('PATCH /api/user/[id]', error)
-    return serverError('เกิดข้อผิดพลาดในการอัปเดต', ERROR_CODES.INTERNAL_ERROR)
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+      return notFound(translate(locale, 'api.messages.userNotFound'), ERROR_CODES.USER_NOT_FOUND)
+    }
+    if (error instanceof Error && error.message === 'INVALID_ROLE_ASSIGNMENT') {
+      return badRequest(
+        translate(locale, 'api.messages.invalidRoleAssignment'),
+        ERROR_CODES.BAD_REQUEST
+      )
+    }
+    logger.warn('PATCH /api/user/[id] failed', { error })
+    return badRequest(translate(locale, 'api.errors.validation'), ERROR_CODES.BAD_REQUEST)
   }
 }
 
-// DELETE /api/user/[id]
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const locale = getLocaleFromRequest(req)
+
   try {
     const authUser = await getAuthUser()
-    if (!authUser) return unauthorized('กรุณาเข้าสู่ระบบ', ERROR_CODES.UNAUTHORIZED)
+    if (!authUser)
+      return unauthorized(translate(locale, 'api.errors.unauthorized'), ERROR_CODES.UNAUTHORIZED)
     const { id } = await params
     if (authUser.sub !== id && !can(authUser, PERMISSIONS.USER_DELETE))
-      return forbidden('คุณไม่มีสิทธิ์ลบผู้ใช้อื่น', ERROR_CODES.FORBIDDEN)
-    if (authUser.sub === id) return badRequest('ไม่สามารถลบตัวเองได้', ERROR_CODES.BAD_REQUEST)
+      return forbidden(translate(locale, 'api.messages.userDeleteForbidden'), ERROR_CODES.FORBIDDEN)
+    if (authUser.sub === id)
+      return badRequest(translate(locale, 'api.messages.cannotDeleteSelf'), ERROR_CODES.BAD_REQUEST)
 
     const user = await getUserByIdService(id, authUser.tenantId ?? null)
-    if (!user) return notFound('ไม่พบผู้ใช้งาน', ERROR_CODES.USER_NOT_FOUND)
+    if (!user)
+      return notFound(translate(locale, 'api.messages.userNotFound'), ERROR_CODES.USER_NOT_FOUND)
 
     await deleteUserService(id)
 
-    // Audit Log: User Deleted
-    // Note: Since _req wasn't used before, we use it now to get metadata
-    const { ipAddress, userAgent } = getRequestMetadata(_req)
+    const { ipAddress, userAgent } = getRequestMetadata(req)
     AuditService.record({
       userId: authUser.sub,
       tenantId: authUser.tenantId,
@@ -169,9 +179,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       metadata: { targetUserId: id },
     })
 
-    return successResponse(null, 'ลบผู้ใช้งานสำเร็จ')
+    return successResponse(null, translate(locale, 'api.messages.userDeleted'))
   } catch (error) {
     logger.error('DELETE /api/user/[id]', error)
-    return serverError('เกิดข้อผิดพลาดในการลบ', ERROR_CODES.INTERNAL_ERROR)
+    return serverError(
+      translate(locale, 'api.messages.userDeleteError'),
+      ERROR_CODES.INTERNAL_ERROR
+    )
   }
 }

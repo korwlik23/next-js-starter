@@ -2,26 +2,21 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { clsx } from 'clsx'
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { useAuthStore } from '@/store/authStore'
 
-// ────────────────────────────────────────
-// nav items — รายการเมนูหลักของ sidebar
-// ────────────────────────────────────────
 const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-  { label: 'Users', href: '/user', icon: 'group' },
-  { label: 'Roles', href: '/role', icon: 'verified_user' },
-  { label: 'Analytics', href: '/analytics', icon: 'analytics' },
-  { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'history' },
-  { label: 'Translations', href: '/admin/translations', icon: 'translate' },
-  { label: 'Billing', href: '/billing', icon: 'payments' },
-  { label: 'Settings', href: '/settings', icon: 'settings' },
-]
-
-// ────────────────────────────────────────
-// Sidebar — แถบนำทางด้านซ้าย
-// ────────────────────────────────────────
+  { labelKey: 'dashboard', href: '/dashboard', icon: 'dashboard' },
+  { labelKey: 'users', href: '/user', icon: 'group' },
+  { labelKey: 'roles', href: '/role', icon: 'verified_user' },
+  { labelKey: 'analytics', href: '/analytics', icon: 'analytics' },
+  { labelKey: 'auditLogs', href: '/admin/audit-logs', icon: 'history' },
+  { labelKey: 'translations', href: '/admin/translations', icon: 'translate' },
+  { labelKey: 'billing', href: '/billing', icon: 'payments' },
+  { labelKey: 'settings', href: '/settings', icon: 'settings' },
+] as const
 
 interface SidebarProps {
   isOpen: boolean
@@ -30,6 +25,8 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const tNav = useTranslations('nav')
+  const tAuth = useTranslations('auth')
   const user = useAuthStore((s) => s.user)
   const clearUser = useAuthStore((s) => s.clearUser)
   const initials =
@@ -42,7 +39,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Overlay สำหรับ mobile เมื่อเปิด sidebar */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden backdrop-blur-sm transition-opacity"
@@ -82,17 +78,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <button
             onClick={onClose}
             className="lg:hidden h-10 w-10 rounded-[var(--radius-md)] text-gray-500 hover:bg-[var(--color-surface-mid)] hover:text-gray-700"
-            aria-label="Close navigation"
+            aria-label={tNav('closeNavigation')}
             type="button"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        {/* Navigation — รายการเมนู */}
         <nav className="flex-1 flex flex-col gap-1 px-3" aria-label="Main navigation">
           {NAV_ITEMS.map((item) => {
-            const is_active = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
               <Link
                 key={item.href}
@@ -100,10 +95,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={() => onClose()}
                 className={clsx(
                   'group relative flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
-                  is_active ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
+                  isActive ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
                 )}
                 style={
-                  is_active
+                  isActive
                     ? {
                         backgroundColor: 'var(--color-surface)',
                         color: 'var(--color-text)',
@@ -116,18 +111,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <span
                   className="material-symbols-outlined text-[1.1rem]"
-                  style={{ color: is_active ? 'var(--color-success)' : 'inherit' }}
+                  style={{ color: isActive ? 'var(--color-success)' : 'inherit' }}
                 >
                   {item.icon}
                 </span>
-                <span>{item.label}</span>
+                <span>{tNav(item.labelKey)}</span>
               </Link>
             )
           })}
         </nav>
 
-        {/* User Profile — แสดงข้อมูลผู้ใช้ด้านล่าง */}
         <div className="px-4 pt-4 pb-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <LanguageSwitcher className="mb-4 w-full justify-center sm:hidden" />
           <div className="flex items-center justify-between gap-2">
             <Link
               href="/profile"
@@ -154,7 +149,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   className="text-[10px] truncate mt-0.5"
                   style={{ color: 'var(--color-text-subtle)' }}
                 >
-                  View Profile
+                  {tNav('viewProfile')}
                 </p>
               </div>
             </Link>
@@ -163,7 +158,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               type="button"
               className="flex items-center justify-center w-8 h-8 shrink-0 rounded-[var(--radius-sm)] transition-colors hover:bg-[var(--color-surface-mid)]"
               style={{ color: 'var(--color-text-faint)' }}
-              title="Sign out"
+              title={tAuth('logout')}
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
                 clearUser()

@@ -1,10 +1,3 @@
-// ============================================================
-// UTILS — Format Helpers
-// ============================================================
-
-// ─────────────────────────────────────────
-// DATE
-// ─────────────────────────────────────────
 export function formatDate(date: Date | string, locale = 'th-TH'): string {
   if (!date) return '-'
   return new Intl.DateTimeFormat(locale, {
@@ -25,20 +18,22 @@ export function formatDateTime(date: Date | string, locale = 'th-TH'): string {
   }).format(new Date(date))
 }
 
-export function timeAgo(date: Date | string): string {
+export function timeAgo(date: Date | string, locale = 'th-TH'): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
-  if (seconds < 60) return 'เมื่อสักครู่'
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+
+  if (seconds < 60) return formatter.format(-seconds, 'second')
+
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} นาทีที่แล้ว`
+  if (minutes < 60) return formatter.format(-minutes, 'minute')
+
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`
+  if (hours < 24) return formatter.format(-hours, 'hour')
+
   const days = Math.floor(hours / 24)
-  return `${days} วันที่แล้ว`
+  return formatter.format(-days, 'day')
 }
 
-// ─────────────────────────────────────────
-// NUMBER
-// ─────────────────────────────────────────
 export function formatNumber(n: number, locale = 'th-TH'): string {
   return new Intl.NumberFormat(locale).format(n)
 }
@@ -50,9 +45,6 @@ export function formatCurrency(amount: number, currency = 'THB', locale = 'th-TH
   }).format(amount)
 }
 
-// ─────────────────────────────────────────
-// STRING
-// ─────────────────────────────────────────
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str
   return str.slice(0, maxLength) + '...'
