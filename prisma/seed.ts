@@ -171,6 +171,55 @@ async function main() {
   }
   console.log(`✅ ${featureFlags.length} feature flags seeded`)
 
+  // ─── i18n Locales & Settings
+  await prisma.locale.upsert({
+    where: { code: 'th' },
+    update: {
+      name: 'Thai',
+      nativeName: 'ไทย',
+      enabled: true,
+      isDefault: true,
+      fallbackLocale: null,
+    },
+    create: {
+      code: 'th',
+      name: 'Thai',
+      nativeName: 'ไทย',
+      enabled: true,
+      isDefault: true,
+    },
+  })
+
+  await prisma.locale.upsert({
+    where: { code: 'en' },
+    update: {
+      name: 'English',
+      nativeName: 'English',
+      enabled: true,
+      fallbackLocale: 'th',
+    },
+    create: {
+      code: 'en',
+      name: 'English',
+      nativeName: 'English',
+      enabled: true,
+      fallbackLocale: 'th',
+    },
+  })
+
+  await prisma.i18nSetting.upsert({
+    where: { id: 'global' },
+    update: {},
+    create: {
+      id: 'global',
+      langMode: 'switch',
+      defaultLocale: 'th',
+      switchLocaleA: 'th',
+      switchLocaleB: 'en',
+    },
+  })
+  console.log('✅ i18n locales and settings seeded')
+
   // ─── Translations (Initial Seed)
   const translations = [
     { locale: 'en', namespace: 'common', key: 'welcome', value: 'Welcome' },

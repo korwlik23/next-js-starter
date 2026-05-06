@@ -24,6 +24,7 @@ export const authConfig = {
     '/api/v1/auth/logout',
     '/api/auth/google/callback',
     '/api/auth/github/callback',
+    '/api/i18n/config',
     '/api/health',
     '/api/billing/webhook',
     '/api/webhooks/stripe',

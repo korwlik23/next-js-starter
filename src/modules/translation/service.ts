@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { GenerateId } from '@/lib/ulid'
-import { Translation } from '@prisma/client'
 
 // ────────────────────────────────────────
 // Translation Service
@@ -19,7 +18,14 @@ export async function GetAllTranslations(locale?: string) {
 /**
  * เพิ่มหรืออัปเดตคำแปล (Upsert)
  */
-export async function UpsertTranslation(data: Omit<Translation, 'id' | 'createdAt' | 'updatedAt'>) {
+interface UpsertTranslationInput {
+  locale: string
+  namespace: string
+  key: string
+  value: string
+}
+
+export async function UpsertTranslation(data: UpsertTranslationInput) {
   const { locale, namespace, key, value } = data
 
   return await prisma.translation.upsert({
@@ -32,6 +38,9 @@ export async function UpsertTranslation(data: Omit<Translation, 'id' | 'createdA
     },
     update: {
       value,
+      status: 'published',
+      source: 'manual',
+      reviewedAt: new Date(),
     },
     create: {
       id: GenerateId(),
@@ -39,6 +48,9 @@ export async function UpsertTranslation(data: Omit<Translation, 'id' | 'createdA
       namespace,
       key,
       value,
+      status: 'published',
+      source: 'manual',
+      reviewedAt: new Date(),
     },
   })
 }

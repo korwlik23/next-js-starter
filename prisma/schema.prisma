@@ -268,13 +268,46 @@ model Translation {
   locale    String
   namespace String
   key       String
-  value     String   @db.Text
+  value     String?  @db.Text
+  status    String   @default("published")
+  source    String   @default("manual")
+  reviewedAt DateTime?
+  updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([locale, namespace, key])
   @@index([locale])
+  @@index([locale, status])
+  @@index([status])
   @@map("translations")
+}
+
+model Locale {
+  code           String   @id
+  name           String
+  nativeName     String
+  enabled        Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  fallbackLocale String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([enabled])
+  @@index([isDefault])
+  @@map("locales")
+}
+
+model I18nSetting {
+  id            String   @id @default("global")
+  langMode      String   @default("switch")
+  defaultLocale String   @default("th")
+  switchLocaleA String   @default("th")
+  switchLocaleB String   @default("en")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("i18n_settings")
 }
 
 model FeatureFlag {

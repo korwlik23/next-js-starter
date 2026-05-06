@@ -16,8 +16,11 @@ export const GET = withAuth(
     try {
       const { searchParams } = new URL(req.url)
       const targetLocale = searchParams.get('locale') || 'th'
+      if (!(await TranslationService.isKnownLocale(targetLocale))) {
+        return badRequest(translate(locale, 'api.messages.unsupportedLocale'))
+      }
 
-      const data = await TranslationService.getByLocale(targetLocale)
+      const data = await TranslationService.getCatalogByLocale(targetLocale)
       return successResponse(data)
     } catch (error) {
       logger.error('GET /api/admin/translations error', error)
@@ -35,18 +38,25 @@ export const POST = withAuth(
       const body = await req.json()
       const { locale: targetLocale, namespace, key, value } = body
 
-      if (!targetLocale || !namespace || !key) {
+      if (!targetLocale || !namespace || !key || typeof value !== 'string') {
         return badRequest(translate(locale, 'api.messages.translationRequired'))
       }
+      if (!(await TranslationService.isKnownLocale(targetLocale))) {
+        return badRequest(translate(locale, 'api.messages.unsupportedLocale'))
+      }
+      if (!TranslationService.isKnownKey(targetLocale, namespace, key)) {
+        return badRequest(translate(locale, 'api.messages.translationKeyNotEditable'))
+      }
 
+      const authUser = await getAuthUser()
       const result = await TranslationService.upsert({
         locale: targetLocale,
         namespace,
         key,
         value,
+        updatedBy: authUser?.sub,
       })
 
-      const authUser = await getAuthUser()
       const { ipAddress, userAgent } = getRequestMetadata(req)
       await AuditService.record({
         userId: authUser?.sub,

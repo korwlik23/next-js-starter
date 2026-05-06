@@ -1,66 +1,79 @@
 import { getRequestConfig } from 'next-intl/server'
 import { cookies } from 'next/headers'
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocale } from './config'
-
-// ────────────────────────────────────────
-// i18n Request Config — โหลด messages ตาม locale
-// next-intl ใช้ไฟล์นี้ในการตั้งค่าภาษาสำหรับแต่ละ request
-// ────────────────────────────────────────
-
-import { prisma } from '@/lib/prisma'
+import { DEFAULT_LOCALE } from './config'
 import { deepMerge } from '@/utils/object'
 import { unstable_cache } from 'next/cache'
+import { TranslationService } from '@/modules/i18n/service'
 
-// ฟังก์ชันดึงและแปลงข้อมูล Database เป็น Object แบบมี Nested (Cache ไว้)
-const GetDbTranslations = unstable_cache(
-  async (locale: string) => {
+const getRuntimeConfig = unstable_cache(
+  async () => {
     try {
-      const records = await prisma.translation.findMany({
-        where: { locale },
-      })
-
-      const db_messages: Record<string, Record<string, string>> = {}
-      for (const record of records) {
-        if (!db_messages[record.namespace]) {
-          db_messages[record.namespace] = {}
-        }
-        db_messages[record.namespace][record.key] = record.value
+      return await TranslationService.getRuntimeConfig()
+    } catch (error) {
+      console.error('[i18n] Error fetching locale runtime config:', error)
+      return {
+        settings: {
+          id: 'global',
+          langMode: 'switch' as const,
+          defaultLocale: DEFAULT_LOCALE,
+          switchLocaleA: 'th',
+          switchLocaleB: 'en',
+        },
+        locales: [
+          {
+            code: 'th',
+            name: 'Thai',
+            nativeName: 'ไทย',
+            enabled: true,
+            isDefault: true,
+            fallbackLocale: null,
+          },
+          {
+            code: 'en',
+            name: 'English',
+            nativeName: 'English',
+            enabled: true,
+            isDefault: false,
+            fallbackLocale: 'th',
+          },
+        ],
+        availableLocales: ['th', 'en'],
       }
-      return db_messages
-    } catch (err) {
-      console.error('[i18n] Error fetching DB translations:', err)
-      return {} // ถ้า DB ล่มให้โหลดจาก JSON แทน
     }
   },
-  ['translations'], // cache key
-  { tags: ['translations'], revalidate: 3600 } // invalidate tag
+  ['i18n-runtime-config'],
+  { tags: ['i18n-settings', 'translations'], revalidate: 3600 }
+)
+
+const getDbTranslations = unstable_cache(
+  async (locale: string) => {
+    try {
+      return await TranslationService.getRuntimeDbMessages(locale)
+    } catch (error) {
+      console.error('[i18n] Error fetching DB translations:', error)
+      return {}
+    }
+  },
+  ['translations'],
+  { tags: ['translations'], revalidate: 3600 }
 )
 
 export default getRequestConfig(async () => {
-  // อ่าน locale จาก cookie (ตั้งโดย LanguageSwitcher)
-  const cookie_store = await cookies()
-  const cookie_locale = cookie_store.get('locale')?.value as SupportedLocale | undefined
-
-  // ตรวจสอบว่า locale ที่ได้มาอยู่ในรายการที่รองรับ
+  const cookieStore = await cookies()
+  const cookieLocale = cookieStore.get('locale')?.value
+  const runtimeConfig = await getRuntimeConfig()
+  const availableLocales = runtimeConfig.availableLocales
+  const defaultLocale = runtimeConfig.settings.defaultLocale || DEFAULT_LOCALE
   const locale =
-    cookie_locale && SUPPORTED_LOCALES.includes(cookie_locale) ? cookie_locale : DEFAULT_LOCALE
-
-  // 1. ดึงข้อมูลจากไฟล์ JSON พื้นฐาน (Fallback)
-  let base_messages = {}
-  try {
-    base_messages = (await import(`../../messages/${locale}.json`)).default
-  } catch {
-    console.error(`[i18n] Missing ${locale}.json`)
-  }
-
-  // 2. ดึงข้อมูลจาก Database ผ่าน Cache
-  const db_messages = await GetDbTranslations(locale)
-
-  // 3. นำมา Merge โดยเอา DB ทับ JSON พื้นฐาน
-  const merged_messages = deepMerge(base_messages, db_messages)
+    cookieLocale && availableLocales.includes(cookieLocale) ? cookieLocale : defaultLocale
+  const localeRecord = runtimeConfig.locales.find((item) => item.code === locale)
+  const fallbackLocale = localeRecord?.fallbackLocale ?? defaultLocale
+  const baseMessages = TranslationService.getBaseMessages(locale, fallbackLocale)
+  const dbMessages = await getDbTranslations(locale)
+  const mergedMessages = deepMerge(baseMessages, dbMessages)
 
   return {
     locale,
-    messages: merged_messages,
+    messages: mergedMessages,
   }
 })
