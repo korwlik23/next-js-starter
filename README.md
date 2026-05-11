@@ -14,6 +14,12 @@ A production-ready Next.js Starter Template designed for scalability, SaaS appli
 - **External Integrations:** Stripe Billing, Resend Email, OAuth (Google/Github)
 - **Testing:** Unit Tests with Jest & E2E Tests with Playwright
 
+## Project Planning
+
+- Roadmap: [ROADMAP.md](./ROADMAP.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+- Current release: `0.2.0`
+
 ---
 
 ## 🛠 Prerequisites
