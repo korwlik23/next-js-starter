@@ -98,6 +98,16 @@ export function buildOpenApiSpec() {
           },
         },
       },
+      '/api/auth/verify-email/resend': {
+        post: {
+          tags: ['Auth'],
+          summary: 'Resend an email verification link for the authenticated user',
+          responses: {
+            '200': jsonResponse,
+            '401': { $ref: '#/components/responses/Unauthorized' },
+          },
+        },
+      },
       '/api/auth/mfa/setup': {
         post: {
           tags: ['Auth'],

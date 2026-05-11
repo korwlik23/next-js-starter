@@ -1,4 +1,8 @@
-import { LoginService, RegisterService } from '@/modules/auth/service'
+import {
+  LoginService,
+  RegisterService,
+  ResendEmailVerificationService,
+} from '@/modules/auth/service'
 import { AuthRepository } from '@/modules/auth/repository'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
@@ -219,6 +223,40 @@ describe('AuthService', () => {
       expect(result.user.email).toBe('new@example.com')
       expect(prisma.user.create).toHaveBeenCalled()
       expect(prisma.emailVerificationToken.create).toHaveBeenCalled()
+    })
+  })
+
+  describe('ResendEmailVerificationService', () => {
+    it('should send a new verification email for an unverified user', async () => {
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        isActive: true,
+        deletedAt: null,
+        emailVerifiedAt: null,
+      })
+      ;(prisma.emailVerificationToken.deleteMany as jest.Mock).mockResolvedValue({ count: 0 })
+      ;(prisma.emailVerificationToken.create as jest.Mock).mockResolvedValue({})
+
+      const result = await ResendEmailVerificationService('user-1')
+
+      expect(result).toEqual({ sent: true, alreadyVerified: false })
+      expect(prisma.emailVerificationToken.create).toHaveBeenCalled()
+    })
+
+    it('should not resend when the email is already verified', async () => {
+      ;(prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        isActive: true,
+        deletedAt: null,
+        emailVerifiedAt: new Date(),
+      })
+
+      const result = await ResendEmailVerificationService('user-1')
+
+      expect(result).toEqual({ sent: false, alreadyVerified: true })
+      expect(prisma.emailVerificationToken.create).not.toHaveBeenCalled()
     })
   })
 })

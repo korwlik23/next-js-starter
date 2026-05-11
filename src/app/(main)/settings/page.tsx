@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/store/authStore'
@@ -22,12 +22,36 @@ type PasswordFormValues = {
   confirmPassword: string
 }
 
+type AuthDetails = {
+  id: string
+  name: string
+  email: string
+  roles: string[]
+  permissions?: string[]
+  emailVerifiedAt: string | null
+  mfaEnabled: boolean
+}
+
+type MfaSetupState = {
+  secret: string
+  otpauthUrl: string
+}
+
 export default function SettingsPage() {
   const t = useTranslations('settingsPage')
   const tCommon = useTranslations('common')
   const [mounted, setMounted] = useState(false)
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
+  const [authDetails, setAuthDetails] = useState<AuthDetails | null>(null)
+  const [isSendingVerification, setIsSendingVerification] = useState(false)
+  const [isStartingMfa, setIsStartingMfa] = useState(false)
+  const [isConfirmingMfa, setIsConfirmingMfa] = useState(false)
+  const [isDisablingMfa, setIsDisablingMfa] = useState(false)
+  const [mfaSetup, setMfaSetup] = useState<MfaSetupState | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaDisableCode, setMfaDisableCode] = useState('')
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
   const profileSchema = useMemo(
     () =>
@@ -63,6 +87,13 @@ export default function SettingsPage() {
     defaultValues: { currentPassword: '', password: '', confirmPassword: '' },
   })
 
+  const loadAuthDetails = useCallback(async () => {
+    const result = await api.get<AuthDetails>('/api/auth/me')
+    if (!result.error && result.data) {
+      setAuthDetails(result.data)
+    }
+  }, [])
+
   useEffect(() => {
     setMounted(true)
     if (user) {
@@ -70,8 +101,9 @@ export default function SettingsPage() {
         name: user.name,
         email: user.email,
       })
+      void loadAuthDetails()
     }
-  }, [user, profileForm])
+  }, [user, profileForm, loadAuthDetails])
 
   const onSubmitProfile = async (data: ProfileFormValues) => {
     if (!user) return
@@ -81,7 +113,11 @@ export default function SettingsPage() {
         toast.error(result.error)
         return
       }
-      setUser({ ...user, name: data.name, email: data.email })
+      const nextUser = { ...user, name: data.name, email: data.email }
+      setUser(nextUser)
+      setAuthDetails((current) =>
+        current ? { ...current, name: data.name, email: data.email } : current
+      )
       toast.success(t('profileSaveSuccess'))
     } catch {
       toast.error(t('profileSaveError'))
@@ -107,6 +143,112 @@ export default function SettingsPage() {
     }
   }
 
+  const handleResendVerification = async () => {
+    setIsSendingVerification(true)
+    try {
+      const result = await api.post<{ sent: boolean; alreadyVerified: boolean }>(
+        '/api/auth/verify-email/resend',
+        {}
+      )
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      if (result.data?.alreadyVerified) {
+        await loadAuthDetails()
+        toast.success('Email is already verified')
+        return
+      }
+
+      toast.success('Verification email sent')
+    } catch {
+      toast.error('Unable to send verification email')
+    } finally {
+      setIsSendingVerification(false)
+    }
+  }
+
+  const handleStartMfa = async () => {
+    setIsStartingMfa(true)
+    setRecoveryCodes([])
+    try {
+      const result = await api.post<MfaSetupState>('/api/auth/mfa/setup', {})
+      if (result.error || !result.data) {
+        toast.error(result.error ?? 'Unable to start MFA setup')
+        return
+      }
+
+      setMfaSetup(result.data)
+      setMfaCode('')
+    } catch {
+      toast.error('Unable to start MFA setup')
+    } finally {
+      setIsStartingMfa(false)
+    }
+  }
+
+  const handleConfirmMfa = async () => {
+    if (!mfaCode.trim()) {
+      toast.error('Authentication code is required')
+      return
+    }
+
+    setIsConfirmingMfa(true)
+    try {
+      const result = await api.post<{ enabled: boolean; recoveryCodes: string[] }>(
+        '/api/auth/mfa/confirm',
+        { code: mfaCode.trim() }
+      )
+
+      if (result.error || !result.data) {
+        toast.error(result.error ?? 'Unable to enable MFA')
+        return
+      }
+
+      setMfaSetup(null)
+      setMfaCode('')
+      setRecoveryCodes(result.data.recoveryCodes)
+      setAuthDetails((current) => (current ? { ...current, mfaEnabled: true } : current))
+      setUser(user ? { ...user, mfaEnabled: true } : user)
+      toast.success('MFA enabled')
+    } catch {
+      toast.error('Unable to enable MFA')
+    } finally {
+      setIsConfirmingMfa(false)
+    }
+  }
+
+  const handleDisableMfa = async () => {
+    if (!mfaDisableCode.trim()) {
+      toast.error('Authentication code is required')
+      return
+    }
+
+    setIsDisablingMfa(true)
+    try {
+      const result = await api.post<{ enabled: boolean }>('/api/auth/mfa/disable', {
+        code: mfaDisableCode.trim(),
+      })
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      setMfaDisableCode('')
+      setRecoveryCodes([])
+      setAuthDetails((current) => (current ? { ...current, mfaEnabled: false } : current))
+      setUser(user ? { ...user, mfaEnabled: false } : user)
+      toast.success('MFA disabled')
+    } catch {
+      toast.error('Unable to disable MFA')
+    } finally {
+      setIsDisablingMfa(false)
+    }
+  }
+
   if (!mounted || !user) {
     return (
       <div>
@@ -115,6 +257,9 @@ export default function SettingsPage() {
       </div>
     )
   }
+
+  const emailVerifiedAt = authDetails?.emailVerifiedAt ?? user.emailVerifiedAt ?? null
+  const mfaEnabled = authDetails?.mfaEnabled ?? user.mfaEnabled ?? false
 
   return (
     <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-700">
@@ -234,6 +379,161 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </form>
+
+            <div className="p-4 sm:p-5 border-t border-[var(--color-border)] space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+                    Email verification
+                  </h3>
+                  <p className="text-xs font-medium" style={{ color: 'var(--color-text-subtle)' }}>
+                    {emailVerifiedAt
+                      ? `Verified ${new Date(emailVerifiedAt).toLocaleDateString()}`
+                      : 'Verification is pending for this account.'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={emailVerifiedAt ? 'outline' : 'secondary'}
+                  isLoading={isSendingVerification}
+                  disabled={Boolean(emailVerifiedAt) || isSendingVerification}
+                  onClick={handleResendVerification}
+                >
+                  {emailVerifiedAt ? 'Verified' : 'Resend email'}
+                </Button>
+              </div>
+
+              <div className="pt-6 border-t border-[var(--color-border)] border-dashed space-y-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+                      Multi-factor authentication
+                    </h3>
+                    <p
+                      className="text-xs font-medium"
+                      style={{ color: 'var(--color-text-subtle)' }}
+                    >
+                      {mfaEnabled ? 'Enabled for this account.' : 'Not enabled for this account.'}
+                    </p>
+                  </div>
+
+                  {!mfaEnabled && !mfaSetup && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      isLoading={isStartingMfa}
+                      disabled={isStartingMfa}
+                      onClick={handleStartMfa}
+                    >
+                      Enable MFA
+                    </Button>
+                  )}
+                </div>
+
+                {mfaSetup && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <span
+                          className="block text-[10px] font-black uppercase mb-2"
+                          style={{ color: 'var(--color-text-faint)' }}
+                        >
+                          Authenticator secret
+                        </span>
+                        <code className="block text-xs font-mono break-all p-3 bg-[var(--color-surface-low)] rounded-md border border-[var(--color-border)]">
+                          {mfaSetup.secret}
+                        </code>
+                      </div>
+                      <div>
+                        <span
+                          className="block text-[10px] font-black uppercase mb-2"
+                          style={{ color: 'var(--color-text-faint)' }}
+                        >
+                          OTP auth URI
+                        </span>
+                        <code className="block text-xs font-mono break-all p-3 bg-[var(--color-surface-low)] rounded-md border border-[var(--color-border)]">
+                          {mfaSetup.otpauthUrl}
+                        </code>
+                      </div>
+                    </div>
+                    <div className="max-w-sm space-y-3">
+                      <Input
+                        id="mfa-confirm-code"
+                        label="Current code"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={mfaCode}
+                        onChange={(event) => setMfaCode(event.target.value)}
+                      />
+                      <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => {
+                            setMfaSetup(null)
+                            setMfaCode('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          isLoading={isConfirmingMfa}
+                          disabled={isConfirmingMfa}
+                          onClick={handleConfirmMfa}
+                        >
+                          Confirm MFA
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mfaEnabled && (
+                  <div className="max-w-sm space-y-3">
+                    <Input
+                      id="mfa-disable-code"
+                      label="Current code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={mfaDisableCode}
+                      onChange={(event) => setMfaDisableCode(event.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="danger"
+                      isLoading={isDisablingMfa}
+                      disabled={isDisablingMfa}
+                      onClick={handleDisableMfa}
+                    >
+                      Disable MFA
+                    </Button>
+                  </div>
+                )}
+
+                {recoveryCodes.length > 0 && (
+                  <div className="space-y-3">
+                    <h4
+                      className="text-[10px] font-black uppercase"
+                      style={{ color: 'var(--color-text-faint)' }}
+                    >
+                      Recovery codes
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {recoveryCodes.map((code) => (
+                        <code
+                          key={code}
+                          className="text-xs font-mono p-3 bg-[var(--color-surface-low)] rounded-md border border-[var(--color-border)]"
+                        >
+                          {code}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           <section className="p-4 sm:p-5 border border-[var(--color-error)]/20 rounded-[var(--radius-md)] bg-[var(--color-error)]/5">

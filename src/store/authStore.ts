@@ -7,6 +7,8 @@ interface AuthUser {
   email: string
   roles: string[]
   permissions?: string[]
+  emailVerifiedAt?: string | null
+  mfaEnabled?: boolean
   impersonatorId?: string
   tenant?: {
     id: string

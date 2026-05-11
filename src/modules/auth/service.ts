@@ -163,6 +163,32 @@ export async function VerifyEmailService(token: string) {
   return { success: true, email: verificationToken.email }
 }
 
+export async function ResendEmailVerificationService(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      isActive: true,
+      deletedAt: true,
+      emailVerifiedAt: true,
+    },
+  })
+
+  if (!user || !user.isActive || user.deletedAt) {
+    throw new Error('AUTH_USER_NOT_FOUND')
+  }
+
+  if (user.emailVerifiedAt) {
+    return { sent: false, alreadyVerified: true }
+  }
+
+  const verificationToken = await CreateEmailVerificationToken({ id: user.id, email: user.email })
+  await EmailService.SendEmailVerificationEmail(user.email, verificationToken)
+
+  return { sent: true, alreadyVerified: false }
+}
+
 async function createMfaChallenge(userId: string, context: LoginContext = {}) {
   const expiresAt = new Date(Date.now() + MFA_CHALLENGE_EXPIRES_MS)
 
@@ -624,6 +650,7 @@ export const forgotPasswordService = ForgotPasswordService
 export const resetPasswordService = ResetPasswordService
 export const logoutService = LogoutService
 export const verifyEmailService = VerifyEmailService
+export const resendEmailVerificationService = ResendEmailVerificationService
 export const startMfaSetupService = StartMfaSetupService
 export const confirmMfaSetupService = ConfirmMfaSetupService
 export const disableMfaService = DisableMfaService
