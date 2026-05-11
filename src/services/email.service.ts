@@ -4,6 +4,7 @@ import { GenerateId } from '@/lib/ulid'
 import { SendProviderEmail, type SendEmailInput } from '@/lib/email'
 import { QueueService } from '@/lib/queue'
 import {
+  GetEmailVerificationTemplate,
   GetPasswordResetTemplate,
   GetTeamInviteTemplate,
   GetWelcomeEmailTemplate,
@@ -93,6 +94,15 @@ export class EmailService {
     const subject = 'รีเซ็ตรหัสผ่านของคุณ'
     const html = GetPasswordResetTemplate(resetUrl)
     return this.QueueEmail({ to, subject, html, template: 'password_reset' })
+  }
+
+  static async SendEmailVerificationEmail(to: string, verificationToken: string) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const verifyUrl = `${appUrl}/api/auth/verify-email?token=${verificationToken}`
+
+    const subject = 'Verify your email address'
+    const html = GetEmailVerificationTemplate(verifyUrl)
+    return this.QueueEmail({ to, subject, html, template: 'email_verification' })
   }
 
   static async SendTeamInviteEmail(

@@ -3,6 +3,7 @@ import { env } from '@/lib/env'
 export const authConfig = {
   accessTokenExpiry: env.JWT_ACCESS_EXPIRES,
   refreshTokenExpiry: env.JWT_REFRESH_EXPIRES,
+  requireEmailVerification: env.REQUIRE_EMAIL_VERIFICATION,
   cookieName: {
     accessToken: 'access_token',
     refreshToken: 'refresh_token',
@@ -16,6 +17,8 @@ export const authConfig = {
     '/api/auth/register',
     '/api/auth/forgot-password',
     '/api/auth/reset-password',
+    '/api/auth/verify-email',
+    '/api/auth/mfa/verify',
     '/api/auth/refresh',
     '/api/auth/logout',
     '/api/v1/auth/login',

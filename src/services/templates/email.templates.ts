@@ -67,7 +67,45 @@ export const GetPasswordResetTemplate = (resetUrl: string) => `
 </html>
 `
 
-export const GetTeamInviteTemplate = (inviterName: string, tenantName: string, inviteUrl: string) => `
+export const GetEmailVerificationTemplate = (verifyUrl: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 20px; margin: 0; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e5e5e5; }
+    .header { background-color: #000000; padding: 20px; text-align: center; }
+    .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 2px; }
+    .content { padding: 30px; color: #333333; line-height: 1.6; text-align: center; }
+    .btn { display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+    .footer { padding: 20px; text-align: center; font-size: 12px; color: #888888; background-color: #f9f9f9; }
+    .warning { font-size: 11px; margin-top: 30px; color: #999999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>VERIFY EMAIL</h1>
+    </div>
+    <div class="content">
+      <h2>Confirm your email address</h2>
+      <p>Click the button below to verify this email address and finish securing your account.</p>
+      <a href="${verifyUrl}" class="btn">Verify email</a>
+      <p class="warning">This link expires in 24 hours. If you did not create an account, you can ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} Our Company. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+`
+
+export const GetTeamInviteTemplate = (
+  inviterName: string,
+  tenantName: string,
+  inviteUrl: string
+) => `
 <!DOCTYPE html>
 <html>
 <head>

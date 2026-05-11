@@ -8,26 +8,32 @@ datasource db {
 }
 
 model User {
-  id              String           @id
-  name            String
-  email           String           @unique
-  password        String
-  avatar          String?
-  tenantId        String?
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  deletedAt       DateTime?
-  accounts        Account[]
-  auditLogs       AuditLog[]
-  notifications   Notification[]
-  refreshTokens   RefreshToken[]
-  permissions     UserPermission[]
-  roles           UserRole[]
-  idempotencyKeys IdempotencyKey[]
+  id                      String                   @id
+  name                    String
+  email                   String                   @unique
+  password                String
+  avatar                  String?
+  tenantId                String?
+  isActive                Boolean                  @default(true)
+  emailVerifiedAt         DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  deletedAt               DateTime?
+  accounts                Account[]
+  auditLogs               AuditLog[]
+  notifications           Notification[]
+  refreshTokens           RefreshToken[]
+  permissions             UserPermission[]
+  roles                   UserRole[]
+  idempotencyKeys         IdempotencyKey[]
+  emailVerificationTokens EmailVerificationToken[]
+  mfaSetting              UserMfaSetting?
+  mfaChallenges           MfaChallenge[]
+  mfaRecoveryCodes        MfaRecoveryCode[]
 
   @@index([tenantId])
   @@index([isActive])
+  @@index([emailVerifiedAt])
   @@index([deletedAt])
   @@index([tenantId, isActive, deletedAt])
   @@map("users")
@@ -153,6 +159,82 @@ model ResetPasswordToken {
   @@map("reset_password_tokens")
 }
 
+model EmailVerificationToken {
+  id         String    @id
+  userId     String
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
+  @@index([expiresAt])
+  @@index([consumedAt])
+  @@map("email_verification_tokens")
+}
+
+model LoginAttempt {
+  id            String    @id
+  identifier    String    @unique
+  email         String?
+  ipAddress     String?
+  failureCount  Int       @default(0)
+  firstFailedAt DateTime  @default(now())
+  lastFailedAt  DateTime  @updatedAt
+  lockedUntil   DateTime?
+
+  @@index([email])
+  @@index([ipAddress])
+  @@index([lockedUntil])
+  @@map("login_attempts")
+}
+
+model UserMfaSetting {
+  id              String    @id
+  userId          String    @unique
+  secretEncrypted String    @db.Text
+  enabled         Boolean   @default(false)
+  confirmedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([enabled])
+  @@map("user_mfa_settings")
+}
+
+model MfaChallenge {
+  id         String    @id
+  userId     String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([consumedAt])
+  @@map("mfa_challenges")
+}
+
+model MfaRecoveryCode {
+  id        String    @id
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([usedAt])
+  @@map("mfa_recovery_codes")
+}
+
 model Account {
   id                String  @id
   userId            String
@@ -264,17 +346,17 @@ model ApiKey {
 }
 
 model Translation {
-  id        String   @id
-  locale    String
-  namespace String
-  key       String
-  value     String?  @db.Text
-  status    String   @default("published")
-  source    String   @default("manual")
+  id         String    @id
+  locale     String
+  namespace  String
+  key        String
+  value      String?   @db.Text
+  status     String    @default("published")
+  source     String    @default("manual")
   reviewedAt DateTime?
-  updatedBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@unique([locale, namespace, key])
   @@index([locale])

@@ -62,6 +62,18 @@ export default function AdminPage() {
       desc: t('auditLogDescription'),
     },
     {
+      label: 'Operations',
+      href: '/admin/ops',
+      icon: 'monitor_heart',
+      desc: 'Runtime, jobs, webhooks, and email health',
+    },
+    {
+      label: 'API Docs',
+      href: '/api/docs/openapi',
+      icon: 'integration_instructions',
+      desc: 'OpenAPI JSON for core endpoints',
+    },
+    {
       label: t('apiKeys'),
       href: '/settings/api-keys',
       icon: 'key',

@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { QueueService } from '@/lib/queue'
 
 export class AdminService {
   static async getAdminStats() {
@@ -56,6 +57,134 @@ export class AdminService {
         api_requests_24h,
       },
       recent_events: formatted_events,
+    }
+  }
+
+  static async getOpsSnapshot() {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const requiredEnv = [
+      'DATABASE_URL',
+      'JWT_SECRET',
+      'NEXT_PUBLIC_APP_URL',
+      'STORAGE_SIGNING_SECRET',
+    ] as const
+    const optionalIntegrations = [
+      'RESEND_API_KEY',
+      'STRIPE_SECRET_KEY',
+      'STRIPE_WEBHOOK_SECRET',
+      'UPSTASH_REDIS_REST_URL',
+      'S3_BUCKET',
+      'SENTRY_DSN',
+    ] as const
+
+    const [
+      activeSessions,
+      expiredSessions,
+      pendingWebhooks,
+      failedWebhooks,
+      recentWebhookFailures,
+      queuedEmails,
+      failedEmails,
+      recentEmailFailures,
+      uploadedFiles24h,
+      queue,
+    ] = await Promise.all([
+      prisma.session.count({
+        where: {
+          expiresAt: { gt: new Date() },
+          revokedAt: null,
+        },
+      }),
+      prisma.session.count({
+        where: {
+          expiresAt: { lt: new Date() },
+          revokedAt: null,
+        },
+      }),
+      prisma.webhookEvent.count({ where: { status: 'pending' } }),
+      prisma.webhookEvent.count({ where: { status: 'failed' } }),
+      prisma.webhookEvent.findMany({
+        where: {
+          status: 'failed',
+          createdAt: { gte: twentyFourHoursAgo },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          provider: true,
+          eventId: true,
+          eventType: true,
+          createdAt: true,
+        },
+      }),
+      prisma.emailLog.count({ where: { status: 'queued' } }),
+      prisma.emailLog.count({ where: { status: 'failed' } }),
+      prisma.emailLog.findMany({
+        where: {
+          status: 'failed',
+          createdAt: { gte: twentyFourHoursAgo },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          to: true,
+          subject: true,
+          error: true,
+          createdAt: true,
+        },
+      }),
+      prisma.uploadedFile.count({ where: { createdAt: { gte: twentyFourHoursAgo } } }),
+      QueueService.GetStats(),
+    ])
+
+    return {
+      generated_at: new Date().toISOString(),
+      runtime: {
+        node_env: process.env.NODE_ENV ?? 'development',
+        log_format: process.env.LOG_FORMAT ?? 'pretty',
+        uptime_seconds: Math.round(process.uptime()),
+      },
+      readiness: {
+        required_env: requiredEnv.map((key) => ({
+          key,
+          configured: Boolean(process.env[key]),
+        })),
+        optional_integrations: optionalIntegrations.map((key) => ({
+          key,
+          configured: Boolean(process.env[key]),
+        })),
+      },
+      jobs: queue,
+      sessions: {
+        active: activeSessions,
+        expired_not_revoked: expiredSessions,
+      },
+      webhooks: {
+        pending: pendingWebhooks,
+        failed: failedWebhooks,
+        recent_failures: recentWebhookFailures.map((event) => ({
+          ...event,
+          createdAt: event.createdAt.toISOString(),
+        })),
+      },
+      emails: {
+        queued: queuedEmails,
+        failed: failedEmails,
+        recent_failures: recentEmailFailures.map((email) => ({
+          ...email,
+          createdAt: email.createdAt.toISOString(),
+        })),
+      },
+      storage: {
+        uploaded_files_24h: uploadedFiles24h,
+      },
+      health_window: {
+        since_1h: oneHourAgo.toISOString(),
+        since_24h: twentyFourHoursAgo.toISOString(),
+      },
     }
   }
 }

@@ -7,9 +7,38 @@ import prisma from '@/lib/prisma'
 jest.mock('@/modules/auth/repository')
 jest.mock('bcryptjs')
 jest.mock('@/lib/prisma', () => ({
-  user: { findUnique: jest.fn(), create: jest.fn() },
+  user: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   refreshToken: { create: jest.fn() },
   role: { findFirst: jest.fn() },
+  loginAttempt: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  emailVerificationToken: {
+    deleteMany: jest.fn(),
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  userMfaSetting: {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+  },
+  mfaChallenge: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  mfaRecoveryCode: {
+    deleteMany: jest.fn(),
+    createMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  $transaction: jest.fn((operations) => Promise.all(operations)),
 }))
 jest.mock('@/lib/jwt', () => ({
   signAuthTokens: jest.fn().mockResolvedValue({
@@ -24,6 +53,7 @@ jest.mock('@/lib/inngest', () => ({
 }))
 jest.mock('@/services/email.service', () => ({
   EmailService: {
+    SendEmailVerificationEmail: jest.fn().mockResolvedValue(undefined),
     SendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
     SendTeamInviteEmail: jest.fn().mockResolvedValue(undefined),
     SendWelcomeEmail: jest.fn().mockResolvedValue(undefined),
@@ -38,13 +68,25 @@ describe('AuthService', () => {
   describe('LoginService', () => {
     it('should throw error if user not found', async () => {
       ;(AuthRepository.findUserByEmail as jest.Mock).mockResolvedValue(null)
+      ;(prisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(prisma.userMfaSetting.findUnique as jest.Mock).mockResolvedValue(null)
 
       await expect(
         LoginService({ email: 'test@example.com', password: 'password' })
       ).rejects.toThrow('AUTH_INVALID_CREDENTIALS')
+      expect(prisma.loginAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'test@example.com',
+            failureCount: 1,
+          }),
+        })
+      )
     })
 
     it('should throw error if password does not match', async () => {
+      ;(prisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(prisma.userMfaSetting.findUnique as jest.Mock).mockResolvedValue(null)
       ;(AuthRepository.findUserByEmail as jest.Mock).mockResolvedValue({
         id: 'user-1',
         email: 'test@example.com',
@@ -58,7 +100,25 @@ describe('AuthService', () => {
       ).rejects.toThrow('AUTH_INVALID_CREDENTIALS')
     })
 
+    it('should lock login when recent failures are over the threshold', async () => {
+      ;(prisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue({
+        identifier: 'test@example.com:127.0.0.1',
+        lockedUntil: new Date(Date.now() + 60_000),
+        firstFailedAt: new Date(),
+        failureCount: 5,
+      })
+
+      await expect(
+        LoginService(
+          { email: 'test@example.com', password: 'password' },
+          { ipAddress: '127.0.0.1' }
+        )
+      ).rejects.toThrow('AUTH_LOGIN_LOCKED')
+    })
+
     it('should return tokens and payload on successful login', async () => {
+      ;(prisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(prisma.userMfaSetting.findUnique as jest.Mock).mockResolvedValue(null)
       ;(AuthRepository.findUserByEmail as jest.Mock).mockResolvedValue({
         id: 'user-1',
         email: 'test@example.com',
@@ -80,11 +140,38 @@ describe('AuthService', () => {
 
       const result = await LoginService({ email: 'test@example.com', password: 'correct-password' })
 
+      expect(result.mfaRequired).not.toBe(true)
+      if (result.mfaRequired) throw new Error('Expected token login result')
       expect(result.tokens).toBeDefined()
       expect(result.user).toBeDefined()
       expect(result.user.email).toBe('test@example.com')
       expect(result.user.roles).toContain('admin')
       expect(prisma.refreshToken.create).toHaveBeenCalled()
+      expect(prisma.loginAttempt.deleteMany).toHaveBeenCalled()
+    })
+
+    it('should return an MFA challenge when MFA is enabled', async () => {
+      ;(prisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue(null)
+      ;(AuthRepository.findUserByEmail as jest.Mock).mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        password: 'hashed-password',
+        isActive: true,
+      })
+      ;(bcrypt.compare as jest.Mock).mockResolvedValue(true)
+      ;(prisma.userMfaSetting.findUnique as jest.Mock).mockResolvedValue({
+        userId: 'user-1',
+        enabled: true,
+      })
+      ;(prisma.mfaChallenge.create as jest.Mock).mockResolvedValue({
+        id: 'challenge-1',
+        expiresAt: new Date(Date.now() + 300_000),
+      })
+
+      const result = await LoginService({ email: 'test@example.com', password: 'correct-password' })
+
+      expect(result).toMatchObject({ mfaRequired: true, challengeId: 'challenge-1' })
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled()
     })
   })
 
@@ -106,6 +193,8 @@ describe('AuthService', () => {
       ;(AuthRepository.findUserByEmail as jest.Mock).mockResolvedValue(null)
       ;(bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password')
       ;(prisma.role.findFirst as jest.Mock).mockResolvedValue({ id: 'role-1', name: 'member' })
+      ;(prisma.emailVerificationToken.deleteMany as jest.Mock).mockResolvedValue({ count: 0 })
+      ;(prisma.emailVerificationToken.create as jest.Mock).mockResolvedValue({})
       ;(prisma.user.create as jest.Mock).mockResolvedValue({
         id: 'new-user',
         email: 'new@example.com',
@@ -129,6 +218,7 @@ describe('AuthService', () => {
       expect(result.tokens).toBeDefined()
       expect(result.user.email).toBe('new@example.com')
       expect(prisma.user.create).toHaveBeenCalled()
+      expect(prisma.emailVerificationToken.create).toHaveBeenCalled()
     })
   })
 })

@@ -43,8 +43,28 @@ export async function POST(req: NextRequest) {
       return badRequest(t('auth.errors.invalidInput'), errors)
     }
 
-    const { tokens, user } = await loginService(parsed.data)
     const { ipAddress, userAgent } = getRequestMetadata(req)
+    const loginResult = await loginService(parsed.data, { ipAddress, userAgent })
+
+    if (loginResult.mfaRequired) {
+      AuditService.record({
+        action: 'AUTH_LOGIN_MFA_REQUIRED',
+        ipAddress,
+        userAgent,
+        metadata: { email: parsed.data.email },
+      })
+
+      return successResponse(
+        {
+          mfaRequired: true,
+          challengeId: loginResult.challengeId,
+          expiresAt: loginResult.expiresAt,
+        },
+        'Multi-factor authentication required'
+      )
+    }
+
+    const { tokens, user } = loginResult
 
     AuditService.record({
       userId: user.sub,
@@ -98,6 +118,46 @@ export async function POST(req: NextRequest) {
         return NextResponse.redirect(new URL('/login?error=invalid', req.url), 303)
       }
       return errorResponse(t('auth.errors.invalidCredentials'), HTTP_STATUS.UNAUTHORIZED)
+    }
+
+    if (code === 'AUTH_LOGIN_LOCKED') {
+      logger.warn('Login locked', {
+        email: attemptedEmail,
+      })
+
+      const { ipAddress, userAgent } = getRequestMetadata(req)
+      AuditService.record({
+        action: 'AUTH_LOGIN_LOCKED',
+        ipAddress,
+        userAgent,
+        metadata: {
+          email: attemptedEmail,
+        },
+      })
+
+      if (isFormPost) {
+        return NextResponse.redirect(new URL('/login?error=locked', req.url), 303)
+      }
+      return errorResponse(
+        'Too many failed login attempts. Please try again later.',
+        HTTP_STATUS.TOO_MANY_REQUESTS,
+        'AUTH_LOGIN_LOCKED'
+      )
+    }
+
+    if (code === 'AUTH_EMAIL_NOT_VERIFIED') {
+      logger.warn('Login blocked because email is not verified', {
+        email: attemptedEmail,
+      })
+
+      if (isFormPost) {
+        return NextResponse.redirect(new URL('/login?error=unverified', req.url), 303)
+      }
+      return errorResponse(
+        'Please verify your email address before signing in.',
+        HTTP_STATUS.FORBIDDEN,
+        'AUTH_EMAIL_NOT_VERIFIED'
+      )
     }
 
     logger.error('Login error', error)

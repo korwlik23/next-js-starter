@@ -31,6 +31,37 @@ export class QueueService {
   private static QUEUE_KEY = 'app:queue:jobs'
   private static FAILED_KEY = 'app:queue:failed'
 
+  static async GetStats() {
+    if (!redis) {
+      return {
+        configured: false,
+        queueDepth: null,
+        failedDepth: null,
+      }
+    }
+
+    try {
+      const [queueDepth, failedDepth] = await Promise.all([
+        redis.llen(this.QUEUE_KEY),
+        redis.llen(this.FAILED_KEY),
+      ])
+
+      return {
+        configured: true,
+        queueDepth,
+        failedDepth,
+      }
+    } catch (error) {
+      logger.error('[Queue] Failed to read queue stats', { error })
+      return {
+        configured: true,
+        queueDepth: null,
+        failedDepth: null,
+        error: error instanceof Error ? error.message : 'Unknown queue stats error',
+      }
+    }
+  }
+
   /**
    * ส่งงานเข้าคิว
    * @param task ชื่อของงาน (เช่น 'send_email', 'calc_commission')
