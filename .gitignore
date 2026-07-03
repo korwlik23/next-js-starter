@@ -20,7 +20,8 @@
 /.next/
 
 # agents
-/.agents/
+/.agents/*
+!/.agents/rules/
 
 /out/
 
