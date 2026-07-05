@@ -58,6 +58,7 @@
   },
   "nav": {
     "dashboard": "ダッシュボード",
+    "management": "管理",
     "users": "ユーザー",
     "roles": "ロール",
     "analytics": "分析",

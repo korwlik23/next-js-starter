@@ -58,6 +58,7 @@
   },
   "nav": {
     "dashboard": "แดชบอร์ด",
+    "management": "จัดการ",
     "users": "ผู้ใช้งาน",
     "roles": "บทบาท",
     "analytics": "วิเคราะห์ข้อมูล",

@@ -5,17 +5,21 @@ import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { clsx } from 'clsx'
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
+import { SidebarGroup } from '@/components/layout/SidebarGroup'
 import { useAuthStore } from '@/store/authStore'
 
 const NAV_ITEMS = [
   { labelKey: 'dashboard', href: '/dashboard', icon: 'dashboard' },
-  { labelKey: 'users', href: '/user', icon: 'group' },
-  { labelKey: 'roles', href: '/role', icon: 'verified_user' },
   { labelKey: 'analytics', href: '/analytics', icon: 'analytics' },
-  { labelKey: 'auditLogs', href: '/admin/audit-logs', icon: 'history' },
-  { labelKey: 'translations', href: '/admin/translations', icon: 'translate' },
   { labelKey: 'billing', href: '/billing', icon: 'payments' },
   { labelKey: 'settings', href: '/settings', icon: 'settings' },
+] as const
+
+const MANAGEMENT_ITEMS = [
+  { labelKey: 'users', href: '/user', icon: 'group' },
+  { labelKey: 'roles', href: '/role', icon: 'verified_user' },
+  { labelKey: 'auditLogs', href: '/admin/audit-logs', icon: 'history' },
+  { labelKey: 'translations', href: '/admin/translations', icon: 'translate' },
 ] as const
 
 interface SidebarProps {
@@ -36,6 +40,44 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       .join('')
       .slice(0, 2)
       .toUpperCase() ?? 'U'
+
+  const renderNavLink = (item: {
+    labelKey: Parameters<typeof tNav>[0]
+    href: string
+    icon: string
+  }) => {
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => onClose()}
+        className={clsx(
+          'group relative flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
+          isActive ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
+        )}
+        style={
+          isActive
+            ? {
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text)',
+                boxShadow: 'inset 3px 0 0 var(--color-success)',
+              }
+            : {
+                color: 'var(--color-text-subtle)',
+              }
+        }
+      >
+        <span
+          className="material-symbols-outlined text-[1.1rem]"
+          style={{ color: isActive ? 'var(--color-success)' : 'inherit' }}
+        >
+          {item.icon}
+        </span>
+        <span>{tNav(item.labelKey)}</span>
+      </Link>
+    )
+  }
 
   return (
     <>
@@ -86,39 +128,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex-1 flex flex-col gap-1 px-3" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => onClose()}
-                className={clsx(
-                  'group relative flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm transition-colors duration-200',
-                  isActive ? 'font-bold' : 'hover:bg-[var(--color-surface)] hover:opacity-90'
-                )}
-                style={
-                  isActive
-                    ? {
-                        backgroundColor: 'var(--color-surface)',
-                        color: 'var(--color-text)',
-                        boxShadow: 'inset 3px 0 0 var(--color-success)',
-                      }
-                    : {
-                        color: 'var(--color-text-subtle)',
-                      }
-                }
-              >
-                <span
-                  className="material-symbols-outlined text-[1.1rem]"
-                  style={{ color: isActive ? 'var(--color-success)' : 'inherit' }}
-                >
-                  {item.icon}
-                </span>
-                <span>{tNav(item.labelKey)}</span>
-              </Link>
-            )
-          })}
+          {renderNavLink(NAV_ITEMS[0])}
+          <SidebarGroup
+            id="management"
+            label={tNav('management')}
+            icon="tune"
+            active={MANAGEMENT_ITEMS.some(
+              (item) => pathname === item.href || pathname.startsWith(item.href + '/')
+            )}
+          >
+            {MANAGEMENT_ITEMS.map((item) => renderNavLink(item))}
+          </SidebarGroup>
+          {NAV_ITEMS.slice(1).map((item) => renderNavLink(item))}
         </nav>
 
         <div className="px-4 pt-4 pb-4" style={{ borderTop: '1px solid var(--color-border)' }}>
