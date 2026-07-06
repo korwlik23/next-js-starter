@@ -1,0 +1,27 @@
+#!/bin/sh
+# Structure Before Code gate — blocks commits that grow a source file past
+# the 500-line ceiling. Shrinking or leaving a legacy file unchanged is fine;
+# adding lines to an over-limit file is not. See .agents/rules/.
+LIMIT=500
+fail=0
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    resources/lang/*|lang/*|messages/*|database/migrations/*) continue ;;
+    *.json|*.lock|*.min.*|*.svg|*.md|*.map) continue ;;
+    public/build/*|vendor/*|node_modules/*) continue ;;
+  esac
+  case "$f" in
+    *.php|*.ts|*.tsx|*.js|*.jsx|*.vue|*.py) ;;
+    *) continue ;;
+  esac
+  new=$(git show ":$f" 2>/dev/null | wc -l)
+  [ "$new" -le "$LIMIT" ] && continue
+  old=$(git show "HEAD:$f" 2>/dev/null | wc -l)
+  if [ "$new" -gt "$old" ]; then
+    echo "BLOCKED: $f is $new lines (limit $LIMIT, was $old)."
+    echo "  Split the file into single-responsibility modules before adding to it."
+    echo "  (Structure Before Code rule — .agents/rules/coding-structure.md)"
+    fail=1
+  fi
+done
+exit $fail
