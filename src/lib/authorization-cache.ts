@@ -25,7 +25,18 @@ export type AuthorizationCache = {
   set(userId: string, principal: CachedPrincipal): void
 }
 
-const storage = new AsyncLocalStorage<Map<string, CachedPrincipal>>()
+// ผูกกับ globalThis ด้วยเหตุผลเดียวกับ @/lib/tenant-context —
+// Next.js สร้างสำเนาโมดูลได้หลายชุด ถ้าแต่ละชุดมี storage ของตัวเอง
+// cache จะไม่เคยถูกใช้ซ้ำเลย
+const globalForAuthorizationCache = globalThis as unknown as {
+  __authorizationCacheStorage?: AsyncLocalStorage<Map<string, CachedPrincipal>>
+}
+
+const storage =
+  globalForAuthorizationCache.__authorizationCacheStorage ??
+  (globalForAuthorizationCache.__authorizationCacheStorage = new AsyncLocalStorage<
+    Map<string, CachedPrincipal>
+  >())
 
 /**
  * รัน callback โดยมี cache ระดับ request หนึ่งชุด

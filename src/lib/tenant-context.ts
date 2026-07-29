@@ -23,7 +23,20 @@ export type TenantContext = {
   unscopedReason?: string
 }
 
-const storage = new AsyncLocalStorage<TenantContext>()
+// ต้องผูก storage ไว้กับ globalThis
+//
+// Next.js ประเมินโมดูลเดียวกันได้หลายครั้งข้าม bundle (route handler, server
+// component, HMR) ขณะที่ prisma client ถูก cache ไว้บน globalThis ครั้งเดียว
+// ถ้าปล่อยให้แต่ละสำเนามี AsyncLocalStorage ของตัวเอง prisma extension จะอ่าน
+// สำเนาที่ไม่มีใครเขียน แล้วมองไม่เห็น tenant — scope จะเงียบหายไปทั้งระบบ
+// โดยที่ unit test ยังผ่าน เพราะใน jest มีสำเนาเดียว
+const globalForTenantContext = globalThis as unknown as {
+  __tenantContextStorage?: AsyncLocalStorage<TenantContext>
+}
+
+const storage =
+  globalForTenantContext.__tenantContextStorage ??
+  (globalForTenantContext.__tenantContextStorage = new AsyncLocalStorage<TenantContext>())
 
 /**
  * รัน callback ภายใต้บริบทของ tenant ที่ระบุ
