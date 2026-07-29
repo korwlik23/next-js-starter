@@ -2,21 +2,25 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getAuthUser } from '@/lib/auth'
 import { runWithTenantContext } from '@/lib/tenant-context'
+import { getAuthorizationCache, runWithAuthorizationCache } from '@/lib/authorization-cache'
+
+export type AuthorizedPrincipal = {
+  userId: string
+  tenantId: string | null
+  roles: string[]
+  permissions: string[]
+  granted: boolean
+}
 
 /**
- * ฟังก์ชันสำหรับการตรวจสอบ Authorization ระดับ API หรือ Server Component
- * ใช้อ่าน Header ที่ถูกส่งต่อมาจาก proxy.ts (x-user-id)
+ * โหลด principal ปัจจุบันจาก database
+ *
+ * สิทธิ์มาจาก role เท่านั้น — direct user grant (`user_permissions`) ถูกเลิกใช้
+ * โดยเจตนา เพราะทำให้ effective permission มาจากสองทาง ทำให้ตอบไม่ได้ว่า
+ * "ถอด role นี้แล้วสิทธิ์หายจริงไหม" และ audit ยาก
+ * หากต้องการสิทธิ์เฉพาะบุคคล ให้สร้าง role เฉพาะแล้ว assign แทน
  */
-export async function authorize(requiredPermission?: string | string[], requiredRole?: string) {
-  const cookieUser = await getAuthUser()
-  const userId = cookieUser?.sub
-
-  if (!userId) {
-    throw new Error('Unauthorized')
-  }
-
-  // Always resolve the current user from the database so tenant scope,
-  // active status, roles, and permissions cannot be forged from headers.
+async function loadPrincipal(userId: string): Promise<Omit<AuthorizedPrincipal, 'granted'>> {
   const userDetails = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -24,7 +28,6 @@ export async function authorize(requiredPermission?: string | string[], required
       tenantId: true,
       isActive: true,
       deletedAt: true,
-      permissions: { include: { permission: true } },
       roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
     },
   })
@@ -34,27 +37,59 @@ export async function authorize(requiredPermission?: string | string[], required
   }
 
   const roles = userDetails.roles.map((rolePvt) => rolePvt.role.name)
-  const allPermissions = userDetails.permissions.map((p) => p.permission.name)
-  userDetails.roles.forEach((rolePvt) => {
-    rolePvt.role.permissions.forEach((rp) => {
-      if (!allPermissions.includes(rp.permission.name)) {
-        allPermissions.push(rp.permission.name)
-      }
-    })
-  })
-  const tenantId = userDetails.tenantId ?? null
+
+  const permissions = [
+    ...new Set(
+      userDetails.roles.flatMap((rolePvt) =>
+        rolePvt.role.permissions.map((rp) => rp.permission.name)
+      )
+    ),
+  ]
+
+  return { userId, tenantId: userDetails.tenantId ?? null, roles, permissions }
+}
+
+/**
+ * ฟังก์ชันสำหรับการตรวจสอบ Authorization ระดับ API หรือ Server Component
+ *
+ * principal ถูก resolve จาก database เสมอ เพื่อไม่ให้ tenant scope, สถานะ active,
+ * role และ permission ถูกปลอมผ่าน header หรือเนื้อใน token
+ *
+ * ผลลัพธ์ถูก cache ไว้ต่อหนึ่ง request เท่านั้น (ดู @/lib/authorization-cache)
+ * จึงไม่มีปัญหาสิทธิ์ค้างข้าม request
+ */
+export async function authorize(
+  requiredPermission?: string | string[],
+  requiredRole?: string
+): Promise<AuthorizedPrincipal> {
+  const cookieUser = await getAuthUser()
+  const userId = cookieUser?.sub
+
+  if (!userId) {
+    throw new Error('Unauthorized')
+  }
+
+  const cache = getAuthorizationCache()
+  let principal = cache?.get(userId)
+
+  if (!principal) {
+    principal = await loadPrincipal(userId)
+    cache?.set(userId, principal)
+  }
+
+  const { tenantId, roles, permissions } = principal
 
   // ถ้าไม่มีการระบุสิทธิ์ที่อ้างอิง แค่ต้องการบอกว่าต้องล็อกอิน ถือว่าผ่าน
   if (!requiredPermission && !requiredRole) {
-    return { userId, tenantId, roles, permissions: allPermissions, granted: true }
+    return { userId, tenantId, roles, permissions, granted: true }
   }
 
-  let granted = false
-
   // เทียบตรงตัวเท่านั้น ไม่รองรับ wildcard — ดูเหตุผลใน @/lib/permissions
-  const hasPermission = (perm: string) => allPermissions.includes(perm)
-  const hasAnyPermission = (permissions: string | string[]) =>
-    Array.isArray(permissions) ? permissions.some(hasPermission) : hasPermission(permissions)
+  const hasPermission = (perm: string) => permissions.includes(perm)
+  const hasAnyPermission = (required: string | string[]) =>
+    Array.isArray(required) ? required.some(hasPermission) : hasPermission(required)
+
+  let granted = false
 
   if (requiredPermission && requiredRole) {
     granted = hasAnyPermission(requiredPermission) && roles.includes(requiredRole)
@@ -68,13 +103,14 @@ export async function authorize(requiredPermission?: string | string[], required
     throw new Error('Forbidden')
   }
 
-  return { userId, tenantId, roles, permissions: allPermissions, granted }
+  return { userId, tenantId, roles, permissions, granted }
 }
 
 /**
  * Wrapper สำหรับป้องกัน API Routes (Next.js App Router)
+ *
  * @example
- * export const GET = withAuth(async (req, { params, user }) => { ... }, { permission: 'user.read' })
+ * export const GET = withAuth(async (req, { user }) => { ... }, { permission: 'user.read' })
  */
 export function withAuth(
   handler: (req: Request, ctx: any) => Promise<NextResponse>,
@@ -82,14 +118,16 @@ export function withAuth(
 ) {
   return async (req: Request, ctx: any = {}) => {
     try {
-      const auth = await authorize(options?.permission, options?.role)
-      ctx.user = auth
+      return await runWithAuthorizationCache(async () => {
+        const auth = await authorize(options?.permission, options?.role)
+        ctx.user = auth
 
-      // ผูก tenant context ให้ทั้ง handler — prisma จะกรอง tenantId ให้อัตโนมัติ
-      // ทำให้ route ใหม่ได้ isolation ฟรีโดยไม่ต้องจำส่ง tenantId เอง
-      return await runWithTenantContext({ tenantId: auth.tenantId, userId: auth.userId }, () =>
-        handler(req, ctx)
-      )
+        // ผูก tenant context ให้ทั้ง handler — prisma จะกรอง tenantId ให้อัตโนมัติ
+        // ทำให้ route ใหม่ได้ isolation ฟรีโดยไม่ต้องจำส่ง tenantId เอง
+        return await runWithTenantContext({ tenantId: auth.tenantId, userId: auth.userId }, () =>
+          handler(req, ctx)
+        )
+      })
     } catch (error: any) {
       if (error.message === 'Unauthorized') {
         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
