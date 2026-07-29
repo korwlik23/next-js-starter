@@ -23,7 +23,10 @@ test.describe('Authentication Flow', () => {
 
     await page.waitForURL('/dashboard')
     await expect(page).toHaveURL(/.*\/dashboard/)
-    await expect(page.getByText(/Platform|Tenant overview/).first()).toBeVisible()
+    // seed ตั้ง default locale เป็น th จึงต้องรับข้อความไทยด้วย ดู example.spec.ts
+    await expect(
+      page.getByText(/Platform|Tenant overview|แพลตฟอร์ม|ภาพรวม tenant/).first()
+    ).toBeVisible()
   })
 
   test('validates registration and redirects a new user to dashboard', async ({ page }) => {
