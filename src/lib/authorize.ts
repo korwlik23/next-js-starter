@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getAuthUser } from '@/lib/auth'
+import { runWithTenantContext } from '@/lib/tenant-context'
 
 /**
  * ฟังก์ชันสำหรับการตรวจสอบ Authorization ระดับ API หรือ Server Component
@@ -50,12 +51,8 @@ export async function authorize(requiredPermission?: string | string[], required
 
   let granted = false
 
-  const hasPermission = (perm: string) => {
-    if (allPermissions.includes('*')) return true
-    const [module] = perm.split('.')
-    if (allPermissions.includes(`${module}.*`)) return true
-    return allPermissions.includes(perm)
-  }
+  // เทียบตรงตัวเท่านั้น ไม่รองรับ wildcard — ดูเหตุผลใน @/lib/permissions
+  const hasPermission = (perm: string) => allPermissions.includes(perm)
   const hasAnyPermission = (permissions: string | string[]) =>
     Array.isArray(permissions) ? permissions.some(hasPermission) : hasPermission(permissions)
 
@@ -87,7 +84,12 @@ export function withAuth(
     try {
       const auth = await authorize(options?.permission, options?.role)
       ctx.user = auth
-      return await handler(req, ctx)
+
+      // ผูก tenant context ให้ทั้ง handler — prisma จะกรอง tenantId ให้อัตโนมัติ
+      // ทำให้ route ใหม่ได้ isolation ฟรีโดยไม่ต้องจำส่ง tenantId เอง
+      return await runWithTenantContext({ tenantId: auth.tenantId, userId: auth.userId }, () =>
+        handler(req, ctx)
+      )
     } catch (error: any) {
       if (error.message === 'Unauthorized') {
         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })

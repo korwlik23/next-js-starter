@@ -76,9 +76,15 @@ Before deploying or utilizing third-party features, make sure your `.env` file i
    - Dashboard: `http://localhost:3000/dashboard`
    - UI Component Library: `http://localhost:3000/dev/ui`
 
-   _Default Admin Login (from Seeder):_
-   - **Email:** `admin@acme.com`
-   - **Password:** `password123`
+   _Seeded accounts (from `prisma/seed.ts`):_
+
+   | Account | Email | Password | Purpose |
+   | --- | --- | --- | --- |
+   | Platform owner | `owner@starter.dev` | `password123` | Full permission set, not bound to the demo tenant |
+   | Demo tenant admin | `admin@acme.com` | `password123` | Admin inside the seeded "Acme" tenant |
+   | Demo tenant editor | `editor@acme.com` | `password123` | Reduced permissions, useful for testing boundaries |
+
+   > Change these before exposing the app beyond local development.
 
 ---
 
