@@ -66,6 +66,13 @@ Before deploying or utilizing third-party features, make sure your `.env` file i
 
    _(Alternatively, you can run `npm run setup` to install dependencies and initialize the DB in one command)._
 
+   > **Baseline an existing database.** `db:push` writes the schema but records
+   > nothing in `_prisma_migrations`, so `prisma migrate deploy` later reports
+   > every migration as pending and fails against tables that already exist.
+   > Check with `npm run db:status`; if it lists pending migrations while the
+   > schema is already correct, run `npm run db:baseline` once to mark them as
+   > applied. The command is idempotent and never alters the schema.
+
 3. **Run the Development Server:**
 
    ```bash
