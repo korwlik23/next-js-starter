@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   AlertCircle,
@@ -16,362 +15,106 @@ import {
   Trash2,
   Type,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { Button, Input, Modal, ConfirmModal, Badge, SelectMenu } from '@/components/ui'
-import { api } from '@/services/apiClient'
+import { ALL, STATUS_FILTERS } from './types'
+import { useAutoTranslate } from './use-auto-translate'
+import { useI18nConfig } from './use-i18n-config'
+import { useTranslationCatalog } from './use-translation-catalog'
+import { useTranslationEditor } from './use-translation-editor'
 
-interface Translation {
-  id: string
-  locale: string
-  namespace: string
-  key: string
-  value: string | null
-  effectiveValue: string
-  baseValue: string
-  source: 'manual' | 'machine' | 'imported' | 'json'
-  status: 'missing' | 'machine_translated' | 'reviewed' | 'published' | 'json'
-  isOverridden: boolean
-}
-
-interface LocaleRecord {
-  code: string
-  name: string
-  nativeName: string
-  enabled: boolean
-  isDefault: boolean
-  fallbackLocale: string | null
-}
-
-interface I18nSettings {
-  langMode: 'switch' | 'multi'
-  defaultLocale: string
-  switchLocaleA: string
-  switchLocaleB: string
-}
-
-interface LanguageOption {
-  code: string
-  name: string
-  nativeName: string
-}
-
-interface I18nAdminPayload {
-  settings: I18nSettings
-  locales: LocaleRecord[]
-  availableLocales: string[]
-  languageOptions: LanguageOption[]
-}
-
-const ALL = '__all__'
-
-const STATUS_FILTERS = [
-  { labelKey: 'allStatuses', value: ALL },
-  { labelKey: 'missingStatus', value: 'missing' },
-  { labelKey: 'publishedStatus', value: 'published' },
-  { labelKey: 'machineStatus', value: 'machine_translated' },
-  { labelKey: 'jsonDefault', value: 'json' },
-] as const
-
-const FALLBACK_SETTINGS: I18nSettings = {
-  langMode: 'switch',
-  defaultLocale: 'th',
-  switchLocaleA: 'th',
-  switchLocaleB: 'en',
-}
+// หน้านี้เคยถือ state 22 ตัวและยิง 7 endpoint ในคอมโพเนนต์เดียว 855 บรรทัด
+// ตอนนี้เหลือหน้าที่ประกอบ hook ตามความรับผิดชอบแล้วเรนเดอร์เท่านั้น
+// ตรรกะและการเรียก API อยู่ในไฟล์ข้างเคียง
 
 export default function TranslationsPage() {
   const t = useTranslations('translationsAdmin')
   const tCommon = useTranslations('common')
-  const [translations, setTranslations] = useState<Translation[]>([])
-  const [i18nConfig, setI18nConfig] = useState<I18nAdminPayload | null>(null)
-  const [settingsDraft, setSettingsDraft] = useState<I18nSettings>(FALLBACK_SETTINGS)
-  const [loading, setLoading] = useState(true)
-  const [configLoading, setConfigLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [settingsSaving, setSettingsSaving] = useState(false)
-  const [languageSaving, setLanguageSaving] = useState(false)
-  const [autoTranslating, setAutoTranslating] = useState(false)
-  const [error, setError] = useState('')
-  const [currentLocale, setCurrentLocale] = useState('th')
-  const [selectedNamespace, setSelectedNamespace] = useState(ALL)
-  const [selectedStatus, setSelectedStatus] = useState(ALL)
-  const [search, setSearch] = useState('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false)
-  const [deletingLocale, setDeletingLocale] = useState<LocaleRecord | null>(null)
-  const [editingItem, setEditingItem] = useState<Translation | null>(null)
-  const [formError, setFormError] = useState('')
-  const [translationValue, setTranslationValue] = useState('')
-  const [selectedLanguageCode, setSelectedLanguageCode] = useState('')
 
-  async function fetchI18nConfig() {
-    setConfigLoading(true)
-    const res = await api.get<I18nAdminPayload>('/api/admin/i18n')
-    setConfigLoading(false)
+  const {
+    translations,
+    loading,
+    error,
+    currentLocale,
+    setCurrentLocale,
+    selectedNamespace,
+    setSelectedNamespace,
+    selectedStatus,
+    setSelectedStatus,
+    search,
+    setSearch,
+    fetchTranslations,
+    namespaces,
+    namespaceCounts,
+    filteredData,
+    stats,
+  } = useTranslationCatalog('th', t('loadError'))
 
-    if (res.error || !res.data) {
-      toast.error(res.error ?? t('settingsLoadError'))
-      return
-    }
+  const {
+    i18nConfig,
+    settingsDraft,
+    setSettingsDraft,
+    configLoading,
+    settingsSaving,
+    languageSaving,
+    isLanguageModalOpen,
+    setIsLanguageModalOpen,
+    selectedLanguageCode,
+    setSelectedLanguageCode,
+    deletingLocale,
+    setDeletingLocale,
+    localeOptions,
+    languageOptions,
+    handleSaveSettings,
+    handleCreateLanguage,
+    handleDeleteLanguage,
+  } = useI18nConfig({
+    currentLocale,
+    setCurrentLocale,
+    onLanguageCreated: () => {
+      setSelectedNamespace(ALL)
+      setSelectedStatus('missing')
+    },
+    messages: {
+      settingsLoadError: t('settingsLoadError'),
+      settingsSaveError: t('settingsSaveError'),
+      settingsSaved: t('settingsSaved'),
+      languageCreateFailed: t('languageCreateFailed'),
+      languageCreated: t('languageCreated'),
+      languageDeleteFailed: t('languageDeleteFailed'),
+      languageDeleted: t('languageDeleted'),
+    },
+  })
 
-    setI18nConfig(res.data)
-    setSettingsDraft(res.data.settings)
-
-    if (!res.data.locales.some((locale) => locale.code === currentLocale)) {
-      setCurrentLocale(res.data.settings.defaultLocale)
-    }
-  }
-
-  async function fetchTranslations(locale = currentLocale) {
-    setLoading(true)
-    setError('')
-
-    try {
-      const res = await api.get<Translation[]>(
-        `/api/admin/translations?locale=${encodeURIComponent(locale)}`
-      )
-
-      if (res.error) {
-        setTranslations([])
-        setError(res.error)
-        toast.error(res.error)
-        return
-      }
-
-      setTranslations(res.data ?? [])
-    } catch {
-      setTranslations([])
-      setError(t('loadError'))
-      toast.error(t('loadError'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchI18nConfig()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    fetchTranslations(currentLocale)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLocale])
-
-  const localeOptions = useMemo(() => {
-    const locales = i18nConfig?.locales ?? [
-      { code: 'th', nativeName: 'ไทย', name: 'Thai', enabled: true },
-      { code: 'en', nativeName: 'English', name: 'English', enabled: true },
-    ]
-
-    return locales
-      .filter((locale) => locale.enabled)
-      .map((locale) => ({
-        label: `${locale.nativeName} (${locale.code})`,
-        value: locale.code,
-      }))
-  }, [i18nConfig])
-
-  const languageOptions = useMemo(() => {
-    const existingCodes = new Set(i18nConfig?.locales.map((locale) => locale.code) ?? [])
-    return (i18nConfig?.languageOptions ?? [])
-      .filter((language) => !existingCodes.has(language.code))
-      .map((language) => ({
-        label: `${language.nativeName} (${language.name})`,
-        value: language.code,
-      }))
-  }, [i18nConfig])
-
-  const selectedLanguage = useMemo(() => {
-    return i18nConfig?.languageOptions.find((language) => language.code === selectedLanguageCode)
-  }, [i18nConfig, selectedLanguageCode])
-
-  const namespaces = useMemo(() => {
-    return Array.from(new Set(translations.map((item) => item.namespace))).sort((a, b) =>
-      a.localeCompare(b)
-    )
-  }, [translations])
-
-  const namespaceCounts = useMemo(() => {
-    return translations.reduce<Record<string, number>>((counts, item) => {
-      counts[item.namespace] = (counts[item.namespace] ?? 0) + 1
-      return counts
-    }, {})
-  }, [translations])
-
-  const filteredData = useMemo(() => {
-    const query = search.trim().toLowerCase()
-
-    return translations.filter((item) => {
-      const matchesNamespace = selectedNamespace === ALL || item.namespace === selectedNamespace
-      const matchesStatus = selectedStatus === ALL || item.status === selectedStatus
-      const matchesSearch =
-        !query ||
-        item.key.toLowerCase().includes(query) ||
-        item.effectiveValue.toLowerCase().includes(query) ||
-        item.baseValue.toLowerCase().includes(query) ||
-        item.namespace.toLowerCase().includes(query)
-
-      return matchesNamespace && matchesStatus && matchesSearch
-    })
-  }, [search, selectedNamespace, selectedStatus, translations])
-
-  const stats = useMemo(
-    () => ({
-      total: translations.length,
-      namespaces: namespaces.length,
-      missing: translations.filter((item) => item.status === 'missing').length,
-      published: translations.filter((item) => item.status === 'published').length,
-    }),
-    [namespaces.length, translations]
+  const {
+    isModalOpen,
+    editingItem,
+    translationValue,
+    setTranslationValue,
+    formError,
+    saving,
+    handleOpenModal,
+    closeModal,
+    handleSubmit,
+  } = useTranslationEditor(
+    {
+      editOnlyHint: t('editOnlyHint'),
+      requiredField: t('requiredField'),
+      updateSuccess: t('updateSuccess'),
+      saveError: t('saveError'),
+    },
+    () => fetchTranslations()
   )
 
-  function handleOpenModal(item: Translation) {
-    setFormError('')
-    setEditingItem(item)
-    setTranslationValue(item.value ?? '')
-    setIsModalOpen(true)
-  }
-
-  function closeModal() {
-    if (saving) return
-    setIsModalOpen(false)
-    setEditingItem(null)
-    setFormError('')
-    setTranslationValue('')
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setFormError('')
-
-    if (!editingItem) {
-      setFormError(t('editOnlyHint'))
-      return
-    }
-    if (!translationValue.trim()) {
-      setFormError(t('requiredField'))
-      return
-    }
-
-    setSaving(true)
-    try {
-      const res = await api.post('/api/admin/translations', {
-        locale: editingItem.locale,
-        namespace: editingItem.namespace,
-        key: editingItem.key,
-        value: translationValue,
-      })
-
-      if (res.error) {
-        setFormError(res.error)
-        toast.error(res.error)
-        return
-      }
-
-      toast.success(t('updateSuccess'))
-      setIsModalOpen(false)
-      setEditingItem(null)
-      setFormError('')
-      setTranslationValue('')
+  const { autoTranslating, handleAutoTranslate } = useAutoTranslate({
+    locale: currentLocale,
+    failedMessage: t('autoTranslateFailed'),
+    buildCompleteMessage: ({ translated, skipped }) =>
+      t('autoTranslateComplete', { translated, skipped }),
+    onCompleted: async () => {
+      setSelectedStatus('machine_translated')
       await fetchTranslations()
-    } catch {
-      setFormError(t('saveError'))
-      toast.error(t('saveError'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleSaveSettings() {
-    setSettingsSaving(true)
-    const res = await api.patch<I18nAdminPayload>('/api/admin/i18n', settingsDraft)
-    setSettingsSaving(false)
-
-    if (res.error || !res.data) {
-      toast.error(res.error ?? t('settingsSaveError'))
-      return
-    }
-
-    setI18nConfig(res.data)
-    setSettingsDraft(res.data.settings)
-    toast.success(t('settingsSaved'))
-  }
-
-  async function handleCreateLanguage(e: React.FormEvent) {
-    e.preventDefault()
-    if (!selectedLanguage) return
-
-    setLanguageSaving(true)
-    const res = await api.post<I18nAdminPayload>('/api/admin/i18n', {
-      code: selectedLanguage.code,
-      name: selectedLanguage.name,
-      nativeName: selectedLanguage.nativeName,
-      enabled: true,
-      fallbackLocale: settingsDraft.defaultLocale,
-    })
-    setLanguageSaving(false)
-
-    if (res.error || !res.data) {
-      toast.error(res.error ?? t('languageCreateFailed'))
-      return
-    }
-
-    setI18nConfig(res.data)
-    setSettingsDraft(res.data.settings)
-    setCurrentLocale(selectedLanguage.code)
-    setSelectedNamespace(ALL)
-    setSelectedStatus('missing')
-    setSelectedLanguageCode('')
-    setIsLanguageModalOpen(false)
-    toast.success(t('languageCreated'))
-  }
-
-  async function handleDeleteLanguage() {
-    if (!deletingLocale) return
-
-    setLanguageSaving(true)
-    const res = await api.delete<I18nAdminPayload>(
-      `/api/admin/i18n?code=${encodeURIComponent(deletingLocale.code)}`
-    )
-    setLanguageSaving(false)
-
-    if (res.error || !res.data) {
-      toast.error(res.error ?? t('languageDeleteFailed'))
-      return
-    }
-
-    setI18nConfig(res.data)
-    setSettingsDraft(res.data.settings)
-    if (currentLocale === deletingLocale.code) {
-      setCurrentLocale(res.data.settings.defaultLocale)
-    }
-    setDeletingLocale(null)
-    toast.success(t('languageDeleted'))
-  }
-
-  async function handleAutoTranslate() {
-    setAutoTranslating(true)
-    const res = await api.post<{ translated: number; skipped: number; total: number }>(
-      '/api/admin/i18n/auto-translate',
-      { locale: currentLocale }
-    )
-    setAutoTranslating(false)
-
-    if (res.error || !res.data) {
-      toast.error(res.error ?? t('autoTranslateFailed'))
-      return
-    }
-
-    toast.success(
-      t('autoTranslateComplete', {
-        translated: res.data.translated,
-        skipped: res.data.skipped,
-      })
-    )
-    setSelectedStatus('machine_translated')
-    await fetchTranslations()
-  }
+    },
+  })
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12 animate-in fade-in duration-500">
