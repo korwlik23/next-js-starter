@@ -1,41 +1,18 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/store/authStore'
-import { api } from '@/services/apiClient'
-import toast from 'react-hot-toast'
 import { Skeleton, Input, Button } from '@/components/ui'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useAuthDetails } from './use-auth-details'
+import { useEmailVerification } from './use-email-verification'
+import { useMfaSettings } from './use-mfa-settings'
+import { useProfileForms } from './use-profile-forms'
 
-type ProfileFormValues = {
-  name: string
-  email: string
-}
-
-type PasswordFormValues = {
-  currentPassword: string
-  password: string
-  confirmPassword: string
-}
-
-type AuthDetails = {
-  id: string
-  name: string
-  email: string
-  roles: string[]
-  permissions?: string[]
-  emailVerifiedAt: string | null
-  mfaEnabled: boolean
-}
-
-type MfaSetupState = {
-  secret: string
-  otpauthUrl: string
-}
+// หน้านี้เคยถือ state 11 ตัวและยิง 6 endpoint ในคอมโพเนนต์เดียว 620 บรรทัด
+// ครอบสามเรื่องที่แยกจากกันได้: โปรไฟล์/รหัสผ่าน, ยืนยันอีเมล และ MFA
+// ตอนนี้เหลือหน้าที่ประกอบ hook แล้วเรนเดอร์
 
 export default function SettingsPage() {
   const t = useTranslations('settingsPage')
@@ -43,56 +20,45 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false)
   const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
-  const [authDetails, setAuthDetails] = useState<AuthDetails | null>(null)
-  const [isSendingVerification, setIsSendingVerification] = useState(false)
-  const [isStartingMfa, setIsStartingMfa] = useState(false)
-  const [isConfirmingMfa, setIsConfirmingMfa] = useState(false)
-  const [isDisablingMfa, setIsDisablingMfa] = useState(false)
-  const [mfaSetup, setMfaSetup] = useState<MfaSetupState | null>(null)
-  const [mfaCode, setMfaCode] = useState('')
-  const [mfaDisableCode, setMfaDisableCode] = useState('')
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
-  const profileSchema = useMemo(
-    () =>
-      z.object({
-        name: z.string().min(1, t('nameRequired')),
-        email: z.string().email(t('invalidEmail')),
-      }),
-    [t]
-  )
+  const { authDetails, setAuthDetails, loadAuthDetails } = useAuthDetails()
 
-  const passwordSchema = useMemo(
-    () =>
-      z
-        .object({
-          currentPassword: z.string().min(1, t('currentPasswordRequired')),
-          password: z.string().min(6, t('passwordMin')),
-          confirmPassword: z.string().min(1, t('confirmPasswordRequired')),
-        })
-        .refine((data) => data.password === data.confirmPassword, {
-          message: t('passwordMismatch'),
-          path: ['confirmPassword'],
-        }),
-    [t]
-  )
-
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: { name: '', email: '' },
+  const { profileForm, passwordForm, onSubmitProfile, onSubmitPassword } = useProfileForms({
+    user,
+    setUser,
+    setAuthDetails,
+    messages: {
+      nameRequired: t('nameRequired'),
+      invalidEmail: t('invalidEmail'),
+      currentPasswordRequired: t('currentPasswordRequired'),
+      passwordMin: t('passwordMin'),
+      confirmPasswordRequired: t('confirmPasswordRequired'),
+      passwordMismatch: t('passwordMismatch'),
+      profileSaveSuccess: t('profileSaveSuccess'),
+      profileSaveError: t('profileSaveError'),
+      passwordSaveSuccess: t('passwordSaveSuccess'),
+      passwordSaveError: t('passwordSaveError'),
+    },
   })
 
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
-    defaultValues: { currentPassword: '', password: '', confirmPassword: '' },
-  })
+  const { isSendingVerification, handleResendVerification } =
+    useEmailVerification(loadAuthDetails)
 
-  const loadAuthDetails = useCallback(async () => {
-    const result = await api.get<AuthDetails>('/api/auth/me')
-    if (!result.error && result.data) {
-      setAuthDetails(result.data)
-    }
-  }, [])
+  const {
+    isStartingMfa,
+    isConfirmingMfa,
+    isDisablingMfa,
+    mfaSetup,
+    setMfaSetup,
+    mfaCode,
+    setMfaCode,
+    mfaDisableCode,
+    setMfaDisableCode,
+    recoveryCodes,
+    handleStartMfa,
+    handleConfirmMfa,
+    handleDisableMfa,
+  } = useMfaSettings({ user, setUser, setAuthDetails })
 
   useEffect(() => {
     setMounted(true)
@@ -104,150 +70,6 @@ export default function SettingsPage() {
       void loadAuthDetails()
     }
   }, [user, profileForm, loadAuthDetails])
-
-  const onSubmitProfile = async (data: ProfileFormValues) => {
-    if (!user) return
-    try {
-      const result = await api.patch(`/api/user/${user.id}`, data)
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      const nextUser = { ...user, name: data.name, email: data.email }
-      setUser(nextUser)
-      setAuthDetails((current) =>
-        current ? { ...current, name: data.name, email: data.email } : current
-      )
-      toast.success(t('profileSaveSuccess'))
-    } catch {
-      toast.error(t('profileSaveError'))
-    }
-  }
-
-  const onSubmitPassword = async (data: PasswordFormValues) => {
-    if (!user) return
-    try {
-      const result = await api.patch(`/api/user/${user.id}`, {
-        currentPassword: data.currentPassword,
-        newPassword: data.password,
-        confirmPassword: data.confirmPassword,
-      })
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-      toast.success(t('passwordSaveSuccess'))
-      passwordForm.reset()
-    } catch {
-      toast.error(t('passwordSaveError'))
-    }
-  }
-
-  const handleResendVerification = async () => {
-    setIsSendingVerification(true)
-    try {
-      const result = await api.post<{ sent: boolean; alreadyVerified: boolean }>(
-        '/api/auth/verify-email/resend',
-        {}
-      )
-
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-
-      if (result.data?.alreadyVerified) {
-        await loadAuthDetails()
-        toast.success('Email is already verified')
-        return
-      }
-
-      toast.success('Verification email sent')
-    } catch {
-      toast.error('Unable to send verification email')
-    } finally {
-      setIsSendingVerification(false)
-    }
-  }
-
-  const handleStartMfa = async () => {
-    setIsStartingMfa(true)
-    setRecoveryCodes([])
-    try {
-      const result = await api.post<MfaSetupState>('/api/auth/mfa/setup', {})
-      if (result.error || !result.data) {
-        toast.error(result.error ?? 'Unable to start MFA setup')
-        return
-      }
-
-      setMfaSetup(result.data)
-      setMfaCode('')
-    } catch {
-      toast.error('Unable to start MFA setup')
-    } finally {
-      setIsStartingMfa(false)
-    }
-  }
-
-  const handleConfirmMfa = async () => {
-    if (!mfaCode.trim()) {
-      toast.error('Authentication code is required')
-      return
-    }
-
-    setIsConfirmingMfa(true)
-    try {
-      const result = await api.post<{ enabled: boolean; recoveryCodes: string[] }>(
-        '/api/auth/mfa/confirm',
-        { code: mfaCode.trim() }
-      )
-
-      if (result.error || !result.data) {
-        toast.error(result.error ?? 'Unable to enable MFA')
-        return
-      }
-
-      setMfaSetup(null)
-      setMfaCode('')
-      setRecoveryCodes(result.data.recoveryCodes)
-      setAuthDetails((current) => (current ? { ...current, mfaEnabled: true } : current))
-      setUser(user ? { ...user, mfaEnabled: true } : user)
-      toast.success('MFA enabled')
-    } catch {
-      toast.error('Unable to enable MFA')
-    } finally {
-      setIsConfirmingMfa(false)
-    }
-  }
-
-  const handleDisableMfa = async () => {
-    if (!mfaDisableCode.trim()) {
-      toast.error('Authentication code is required')
-      return
-    }
-
-    setIsDisablingMfa(true)
-    try {
-      const result = await api.post<{ enabled: boolean }>('/api/auth/mfa/disable', {
-        code: mfaDisableCode.trim(),
-      })
-
-      if (result.error) {
-        toast.error(result.error)
-        return
-      }
-
-      setMfaDisableCode('')
-      setRecoveryCodes([])
-      setAuthDetails((current) => (current ? { ...current, mfaEnabled: false } : current))
-      setUser(user ? { ...user, mfaEnabled: false } : user)
-      toast.success('MFA disabled')
-    } catch {
-      toast.error('Unable to disable MFA')
-    } finally {
-      setIsDisablingMfa(false)
-    }
-  }
 
   if (!mounted || !user) {
     return (
