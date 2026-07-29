@@ -73,6 +73,8 @@ export interface AuthUser extends User {
 
 export interface TokenPayload {
   sub: string // userId
+  /** id ของ refresh-token record ที่ผูกกับ session นี้ ใช้ตรวจว่ายังไม่ถูกเพิกถอน */
+  sid?: string
   email: string
   name: string
   roles: string[]

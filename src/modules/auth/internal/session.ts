@@ -8,7 +8,12 @@ import type { TokenPayload } from '@/types'
 import { AuthRepository } from '../repository'
 import { assertLoginNotLocked, clearLoginFailures, recordLoginFailure } from './login-throttle'
 import { createMfaChallenge } from './mfa'
-import { BuildTokenPayload, GetUserWithPermissions, issueRefreshToken } from './principal'
+import {
+  BuildTokenPayload,
+  createSessionId,
+  GetUserWithPermissions,
+  issueRefreshToken,
+} from './principal'
 import { normalizeEmail } from './tokens'
 import type { LoginContext, LoginServiceResult } from './types'
 
@@ -49,10 +54,11 @@ export async function LoginService(
   }
 
   const user_with_perms = await GetUserWithPermissions(user.id)
-  const payload = BuildTokenPayload(user_with_perms)
+  const sessionId = createSessionId()
+  const payload = { ...BuildTokenPayload(user_with_perms), sid: sessionId }
   const tokens = await signAuthTokens(payload)
 
-  await issueRefreshToken(user.id, tokens.refreshToken)
+  await issueRefreshToken(user.id, tokens.refreshToken, sessionId)
 
   await clearLoginFailures(email, context.ipAddress)
   logger.info(`User logged in: ${user.email}`)
@@ -74,7 +80,8 @@ export async function RefreshTokenService(
   if (!stored_token) throw new Error('Refresh token expired or revoked')
 
   const user_with_perms = await GetUserWithPermissions(user_id)
-  const payload = BuildTokenPayload(user_with_perms)
+  // access token ใบใหม่ต้องผูกกับ session เดิม ไม่งั้นการเพิกถอน session นั้นจะไม่มีผล
+  const payload = { ...BuildTokenPayload(user_with_perms), sid: stored_token.id }
   const access_token = await signAccessToken(payload)
 
   return { accessToken: access_token, user: payload }

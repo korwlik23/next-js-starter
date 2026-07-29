@@ -9,7 +9,12 @@ import type { RegisterInput } from '../schema'
 import type { AuthTokens, TokenPayload } from '@/types'
 import { AuthRepository } from '../repository'
 import { CreateEmailVerificationToken } from './email-verification'
-import { BuildTokenPayload, GetUserWithPermissions, issueRefreshToken } from './principal'
+import {
+  BuildTokenPayload,
+  createSessionId,
+  GetUserWithPermissions,
+  issueRefreshToken,
+} from './principal'
 import { normalizeEmail } from './tokens'
 
 /**
@@ -47,10 +52,11 @@ export async function RegisterService(
   })
 
   const user_with_perms = await GetUserWithPermissions(user.id)
-  const payload = BuildTokenPayload(user_with_perms)
+  const sessionId = createSessionId()
+  const payload = { ...BuildTokenPayload(user_with_perms), sid: sessionId }
   const tokens = await signAuthTokens(payload)
 
-  await issueRefreshToken(user.id, tokens.refreshToken)
+  await issueRefreshToken(user.id, tokens.refreshToken, sessionId)
 
   await inngest
     .send({

@@ -61,14 +61,26 @@ export function BuildTokenPayload(
 /**
  * บันทึก refresh token ที่เพิ่งออกให้ผู้ใช้
  * รวมไว้ที่เดียวเพราะ login, register และ MFA ต่างต้องใช้อายุชุดเดียวกัน
+ *
+ * `sessionId` คือ id ของแถวนี้ และถูกฝังไว้ใน access token ด้วย (`sid`)
+ * ทำให้ตรวจได้ว่า access token ใบหนึ่งยังผูกกับ session ที่ยังไม่ถูกเพิกถอน
  */
-export async function issueRefreshToken(userId: string, refreshToken: string) {
+export async function issueRefreshToken(
+  userId: string,
+  refreshToken: string,
+  sessionId: string = GenerateId()
+) {
   return prisma.refreshToken.create({
     data: {
-      id: GenerateId(),
+      id: sessionId,
       userId,
       token: refreshToken,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS),
     },
   })
+}
+
+/** id ของ session ใหม่ ใช้ผูก access token กับ refresh-token record */
+export function createSessionId() {
+  return GenerateId()
 }

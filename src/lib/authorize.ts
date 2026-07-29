@@ -69,6 +69,7 @@ export async function authorize(
     throw new Error('Unauthorized')
   }
 
+  // getAuthUser() ปฏิเสธ token ที่ session ถูกเพิกถอนแล้ว จึงไม่ต้องตรวจซ้ำที่นี่
   const cache = getAuthorizationCache()
   let principal = cache?.get(userId)
 

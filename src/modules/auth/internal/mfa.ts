@@ -189,7 +189,8 @@ export async function VerifyMfaChallengeService(challengeId: string, code: strin
 
   if (!codeValid) throw new Error('MFA_INVALID_CODE')
 
-  const payload = BuildTokenPayload(challenge.user)
+  const sessionId = GenerateId()
+  const payload = { ...BuildTokenPayload(challenge.user), sid: sessionId }
   const tokens = await signAuthTokens(payload)
 
   await prisma.$transaction([
@@ -199,7 +200,7 @@ export async function VerifyMfaChallengeService(challengeId: string, code: strin
     }),
     prisma.refreshToken.create({
       data: {
-        id: GenerateId(),
+        id: sessionId,
         userId: challenge.userId,
         token: tokens.refreshToken,
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_MS),
