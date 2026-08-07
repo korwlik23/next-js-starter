@@ -743,6 +743,291 @@
     "submit": "Change password",
     "backToLogin": "Back to sign in"
   },
+  "dev": {
+    "metadataTitle": "Dev UI",
+    "tools": "Developer tools",
+    "uiComponents": "UI components",
+    "testApi": "Test API"
+  },
+  "devUi": {
+    "header": {
+      "eyebrow": "Developer",
+      "title": "UI Component Library",
+      "description": "All reusable components from"
+    },
+    "sections": {
+      "button": "Button",
+      "badge": "Badge",
+      "avatar": "Avatar",
+      "input": "Input",
+      "select": "Select",
+      "selectMenu": "Select menu",
+      "checkbox": "Checkbox",
+      "radio": "Radio",
+      "switch": "Switch",
+      "datePicker": "Date picker",
+      "searchInput": "Search input",
+      "fileUpload": "File upload",
+      "tooltip": "Tooltip",
+      "dropdown": "Dropdown",
+      "tabs": "Tabs",
+      "accordion": "Accordion",
+      "permissionGuard": "Permission guard",
+      "notification": "Notifications",
+      "modal": "Modal / Dialog",
+      "drawer": "Drawer",
+      "loader": "Loader / Spinner",
+      "skeleton": "Skeleton",
+      "textarea": "Textarea",
+      "alert": "Alerts",
+      "pageHeader": "Page header",
+      "card": "Card",
+      "statCard": "Stat card",
+      "table": "Table",
+      "chart": "Charts",
+      "toast": "Toast",
+      "typography": "Typography scale",
+      "colors": "Color system",
+      "icons": "Icons"
+    },
+    "button": {
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "ghost": "Ghost",
+      "outline": "Outline",
+      "danger": "Danger",
+      "disabled": "Disabled",
+      "loading": "Loading"
+    },
+    "badge": {
+      "default": "Default",
+      "success": "Success",
+      "warning": "Warning",
+      "error": "Error",
+      "info": "Info"
+    },
+    "avatar": {
+      "admin": "Admin user",
+      "john": "John Doe",
+      "superAdmin": "Super admin",
+      "extraLarge": "Extra large user"
+    },
+    "input": {
+      "defaultLabel": "Default input",
+      "defaultPlaceholder": "Type something...",
+      "errorLabel": "With error",
+      "errorPlaceholder": "Invalid input",
+      "requiredError": "This field is required",
+      "disabledLabel": "Disabled",
+      "disabledPlaceholder": "Disabled input",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "readonlyLabel": "Readonly",
+      "readonlyValue": "This value cannot be edited"
+    },
+    "options": {
+      "a": "Option A",
+      "b": "Option B",
+      "c": "Option C",
+      "one": "Option 1",
+      "two": "Option 2",
+      "empty": "No selection"
+    },
+    "select": {
+      "label": "Choose an option",
+      "errorLabel": "Invalid selection",
+      "error": "Choose a valid option",
+      "disabledLabel": "Disabled selection"
+    },
+    "selectMenu": {
+      "label": "Choose from menu",
+      "placeholder": "Select an option"
+    },
+    "checkbox": {
+      "label": "Remember this choice",
+      "description": "This demonstrates a checked and unchecked state.",
+      "disabled": "Disabled item"
+    },
+    "radio": {
+      "label": "Choose one option",
+      "disabled": "Disabled option"
+    },
+    "switch": {
+      "label": "Notifications",
+      "disabled": "Disabled switch"
+    },
+    "datePicker": {
+      "label": "Start date",
+      "helper": "Select a date",
+      "error": "Enter a valid date",
+      "disabledLabel": "Disabled date",
+      "disabledHelper": "Date selection is unavailable"
+    },
+    "searchInput": {
+      "placeholder": "Search components..."
+    },
+    "fileUpload": {
+      "label": "Upload images",
+      "helper": "Drop up to two images or browse your files.",
+      "errorLabel": "Rejected file",
+      "error": "This file type is not accepted",
+      "disabledLabel": "Disabled upload",
+      "disabledHelper": "Uploading is unavailable in this state."
+    },
+    "textarea": {
+      "defaultLabel": "Default textarea",
+      "placeholder": "Write a note...",
+      "hint": "The character limit is shown below.",
+      "errorLabel": "With error",
+      "error": "This message needs attention",
+      "disabledLabel": "Disabled textarea",
+      "disabledPlaceholder": "Textarea is disabled"
+    },
+    "tooltip": {
+      "top": "Tooltip on top",
+      "bottom": "Tooltip on bottom",
+      "left": "Tooltip on left",
+      "right": "Tooltip on right",
+      "topButton": "Top",
+      "bottomButton": "Bottom",
+      "leftButton": "Left",
+      "rightButton": "Right"
+    },
+    "dropdown": {
+      "trigger": "Open menu",
+      "profile": "View profile",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "settings": "Settings",
+      "disabled": "Disabled",
+      "overviewContent": "Overview content for the component preview.",
+      "settingsContent": "Settings content for the component preview."
+    },
+    "accordion": {
+      "starterQuestion": "What is this starter template?",
+      "starterAnswer": "A production-ready fullstack template with reusable UI, auth, RBAC, and i18n foundations.",
+      "databaseQuestion": "What database does it use?",
+      "databaseAnswer": "It uses Prisma ORM with the configured MySQL database.",
+      "disabled": "Disabled item",
+      "disabledAnswer": "This item cannot be opened."
+    },
+    "permission": {
+      "denied": "Permission denied preview",
+      "allowedAction": "Allowed action"
+    },
+    "notification": {
+      "description": "Shared notification dropdown preview"
+    },
+    "alert": {
+      "neutralTitle": "Neutral notice",
+      "neutral": "Informational feedback keeps the context visible.",
+      "successTitle": "Success",
+      "success": "The action completed successfully.",
+      "warningTitle": "Warning",
+      "warning": "Review this before continuing.",
+      "errorTitle": "Error",
+      "error": "The action could not be completed.",
+      "dismiss": "Dismiss"
+    },
+    "pageHeader": {
+      "eyebrow": "Shared layout",
+      "title": "Component overview",
+      "description": "A page header keeps title hierarchy and actions consistent.",
+      "action": "Primary action"
+    },
+    "card": {
+      "title": "Reusable card",
+      "description": "A composable surface for related content.",
+      "longContent": "Long content wraps inside the card without changing the surrounding layout.",
+      "emptyTitle": "Nothing here yet",
+      "emptyDescription": "An empty card still communicates what the user can expect.",
+      "footer": "Card footer"
+    },
+    "statCard": {
+      "activeUsers": "Active users",
+      "activeUsersValue": "128",
+      "revenue": "Monthly revenue",
+      "revenueValue": "$12.4k",
+      "trend": "vs last period"
+    },
+    "table": {
+      "stateControls": "Table state",
+      "states": {
+        "data": "Data",
+        "loading": "Loading",
+        "empty": "Empty",
+        "error": "Error"
+      },
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "active": "Active",
+      "invited": "Invited",
+      "emptyMessage": "No rows found",
+      "errorTitle": "Table unavailable",
+      "errorDescription": "The data source returned an error.",
+      "alexName": "Alex Morgan",
+      "mayaName": "Maya Chen",
+      "samName": "Sam Lee",
+      "alexEmail": "alex@example.test",
+      "mayaEmail": "maya@example.test",
+      "samEmail": "sam@example.test"
+    },
+    "chart": {
+      "lineTitle": "Trend line",
+      "barTitle": "Monthly comparison",
+      "value": "Value",
+      "signups": "Signups",
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr"
+    },
+    "toast": {
+      "description": "Shared toast facade backed by react-hot-toast.",
+      "successButton": "Show success",
+      "errorButton": "Show error",
+      "warningButton": "Show warning",
+      "dismissButton": "Dismiss latest",
+      "successMessage": "Changes saved successfully.",
+      "errorMessage": "The action failed.",
+      "warningMessage": "Review the latest change."
+    },
+    "modal": {
+      "open": "Open modal",
+      "openConfirm": "Confirm modal",
+      "title": "Example modal",
+      "description": "A reusable modal with overlay and Escape-key support.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "confirmTitle": "Delete confirmation",
+      "confirmMessage": "Are you sure you want to delete this item?"
+    },
+    "drawer": {
+      "open": "Open drawer",
+      "title": "Side drawer",
+      "description": "A drawer preview with scrollable content.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter a name...",
+      "save": "Save and close"
+    },
+    "feedback": {
+      "loadingSmall": "Loading small",
+      "loadingMedium": "Loading medium",
+      "loadingLarge": "Loading large",
+      "cardLabel": "Skeleton card"
+    },
+    "visual": {
+      "display": "Display XL",
+      "headingOne": "Heading 1",
+      "headingTwo": "Heading 2",
+      "body": "Body text for regular paragraph content",
+      "caption": "Caption text for supporting content"
+    }
+  },
   "table": {
     "name": "Name",
     "email": "Email",

@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { authConfig } from '@/config'
 import { verifyAccessToken, verifyRefreshToken } from '@/lib/jwt'
+import {
+  attachRequestIdHeaders,
+  getRequestId,
+  isValidRequestId,
+  REQUEST_ID_HEADER,
+} from '@/lib/request-id'
 import { checkRateLimit } from '@/utils/rate-limit'
+import { forbidden, tooManyRequests, unauthorized } from '@/utils/api'
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type SupportedLocale } from '@/i18n/config'
 
 const OAUTH_PUBLIC_ROUTE = /^\/api\/auth\/[^/]+\/(login|callback)$/
 const ADMIN_PERMISSION = 'admin.access'
 const LOCALE_COOKIE_NAME = 'locale'
-const REQUEST_ID_HEADER = 'x-request-id'
 
 function detectLocale(request: NextRequest): SupportedLocale {
   const cookieLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value
@@ -70,22 +76,16 @@ function hasPermission(permissions: string[] | undefined, permission: string) {
   return permissions.includes(permission) || permissions.includes(`${module}.*`)
 }
 
-function getRequestId(request: NextRequest) {
-  return request.headers.get(REQUEST_ID_HEADER) || crypto.randomUUID()
-}
-
 function attachRequestHeaders(response: NextResponse, requestId: string) {
-  response.headers.set(REQUEST_ID_HEADER, requestId)
-  response.headers.set('x-trace-id', requestId)
-  return response
+  const responseRequestId = response.headers.get(REQUEST_ID_HEADER)
+  const effectiveRequestId = isValidRequestId(responseRequestId) ? responseRequestId : requestId
+
+  return attachRequestIdHeaders(response, effectiveRequestId)
 }
 
 function unauthorizedResponse(request: NextRequest, pathname: string, requestId: string) {
   if (isApiRoute(pathname)) {
-    return attachRequestHeaders(
-      NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 }),
-      requestId
-    )
+    return attachRequestHeaders(unauthorized('Unauthorized', undefined, requestId), requestId)
   }
 
   const loginUrl = new URL('/login', request.url)
@@ -99,20 +99,12 @@ async function applyRateLimit(request: NextRequest, type: 'api' | 'auth', reques
 
   if (success) return null
 
-  return attachRequestHeaders(
-    NextResponse.json(
-      { success: false, message: 'Too Many Requests' },
-      {
-        status: 429,
-        headers: {
-          'X-RateLimit-Limit': String(limit || 0),
-          'X-RateLimit-Remaining': String(remaining || 0),
-          'X-RateLimit-Reset': String(reset || 0),
-        },
-      }
-    ),
-    requestId
-  )
+  const response = tooManyRequests('Too Many Requests', undefined, requestId)
+  response.headers.set('X-RateLimit-Limit', String(limit || 0))
+  response.headers.set('X-RateLimit-Remaining', String(remaining || 0))
+  response.headers.set('X-RateLimit-Reset', String(reset || 0))
+
+  return attachRequestHeaders(response, requestId)
 }
 
 function nextForRequest(request: NextRequest, requestId: string) {
@@ -181,10 +173,7 @@ export async function proxy(request: NextRequest) {
         !hasPermission(payload.permissions, ADMIN_PERMISSION)
       ) {
         if (apiRoute) {
-          return attachRequestHeaders(
-            NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 }),
-            requestId
-          )
+          return attachRequestHeaders(forbidden('Forbidden', undefined, requestId), requestId)
         }
         return attachRequestHeaders(
           NextResponse.redirect(new URL('/forbidden', request.url)),
@@ -200,13 +189,9 @@ export async function proxy(request: NextRequest) {
     const userId = await verifyRefreshToken(refreshToken)
     if (userId) {
       if (apiRoute) {
-        return attachRequestHeaders(
-          NextResponse.json(
-            { success: false, message: 'Access token expired' },
-            { status: 401, headers: { 'x-auth-refreshable': 'true' } }
-          ),
-          requestId
-        )
+        const response = unauthorized('Access token expired', 'AUTH_TOKEN_EXPIRED', requestId)
+        response.headers.set('x-auth-refreshable', 'true')
+        return attachRequestHeaders(response, requestId)
       }
 
       const refreshUrl = new URL('/api/auth/refresh', request.url)

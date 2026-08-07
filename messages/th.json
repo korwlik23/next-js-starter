@@ -743,6 +743,291 @@
     "submit": "เปลี่ยนรหัสผ่าน",
     "backToLogin": "กลับไปหน้าเข้าสู่ระบบ"
   },
+  "dev": {
+    "metadataTitle": "UI สำหรับนักพัฒนา",
+    "tools": "เครื่องมือสำหรับนักพัฒนา",
+    "uiComponents": "คอมโพเนนต์ UI",
+    "testApi": "ทดสอบ API"
+  },
+  "devUi": {
+    "header": {
+      "eyebrow": "นักพัฒนา",
+      "title": "คลังคอมโพเนนต์ UI",
+      "description": "คอมโพเนนต์ที่นำกลับมาใช้ใหม่ทั้งหมดจาก"
+    },
+    "sections": {
+      "button": "ปุ่ม",
+      "badge": "ป้ายสถานะ",
+      "avatar": "รูปโปรไฟล์",
+      "input": "ช่องกรอกข้อมูล",
+      "select": "ตัวเลือก",
+      "selectMenu": "เมนูตัวเลือก",
+      "checkbox": "เช็กบ็อกซ์",
+      "radio": "ตัวเลือกแบบวิทยุ",
+      "switch": "สวิตช์",
+      "datePicker": "ตัวเลือกวันที่",
+      "searchInput": "ช่องค้นหา",
+      "fileUpload": "อัปโหลดไฟล์",
+      "tooltip": "คำแนะนำ",
+      "dropdown": "เมนูดรอปดาวน์",
+      "tabs": "แท็บ",
+      "accordion": "แอคคอร์เดียน",
+      "permissionGuard": "ตัวตรวจสอบสิทธิ์",
+      "notification": "การแจ้งเตือน",
+      "modal": "โมดัล / กล่องโต้ตอบ",
+      "drawer": "แผงด้านข้าง",
+      "loader": "ตัวโหลด / สปินเนอร์",
+      "skeleton": "โครงร่างโหลด",
+      "textarea": "พื้นที่ข้อความ",
+      "alert": "การแจ้งเตือน",
+      "pageHeader": "ส่วนหัวหน้า",
+      "card": "การ์ด",
+      "statCard": "การ์ดสถิติ",
+      "table": "ตาราง",
+      "chart": "กราฟ",
+      "toast": "Toast",
+      "typography": "มาตราส่วนตัวอักษร",
+      "colors": "ระบบสี",
+      "icons": "ไอคอน"
+    },
+    "button": {
+      "primary": "หลัก",
+      "secondary": "รอง",
+      "ghost": "โปร่งใส",
+      "outline": "เส้นขอบ",
+      "danger": "อันตราย",
+      "disabled": "ปิดใช้งาน",
+      "loading": "กำลังโหลด"
+    },
+    "badge": {
+      "default": "ค่าเริ่มต้น",
+      "success": "สำเร็จ",
+      "warning": "คำเตือน",
+      "error": "ข้อผิดพลาด",
+      "info": "ข้อมูล"
+    },
+    "avatar": {
+      "admin": "ผู้ดูแลระบบ",
+      "john": "จอห์น โด",
+      "superAdmin": "ผู้ดูแลระบบระดับสูง",
+      "extraLarge": "ผู้ใช้ขนาดใหญ่"
+    },
+    "input": {
+      "defaultLabel": "ช่องกรอกข้อมูลเริ่มต้น",
+      "defaultPlaceholder": "พิมพ์ข้อความ...",
+      "errorLabel": "มีข้อผิดพลาด",
+      "errorPlaceholder": "ข้อมูลไม่ถูกต้อง",
+      "requiredError": "จำเป็นต้องกรอกข้อมูลนี้",
+      "disabledLabel": "ปิดใช้งาน",
+      "disabledPlaceholder": "ช่องกรอกข้อมูลถูกปิดใช้งาน",
+      "passwordLabel": "รหัสผ่าน",
+      "passwordPlaceholder": "กรอกรหัสผ่าน",
+      "readonlyLabel": "อ่านอย่างเดียว",
+      "readonlyValue": "ไม่สามารถแก้ไขค่านี้ได้"
+    },
+    "options": {
+      "a": "ตัวเลือก A",
+      "b": "ตัวเลือก B",
+      "c": "ตัวเลือก C",
+      "one": "ตัวเลือก 1",
+      "two": "ตัวเลือก 2",
+      "empty": "ไม่เลือก"
+    },
+    "select": {
+      "label": "เลือกตัวเลือก",
+      "errorLabel": "ตัวเลือกไม่ถูกต้อง",
+      "error": "กรุณาเลือกตัวเลือกที่ถูกต้อง",
+      "disabledLabel": "ตัวเลือกที่ปิดใช้งาน"
+    },
+    "selectMenu": {
+      "label": "เลือกจากเมนู",
+      "placeholder": "เลือกตัวเลือก"
+    },
+    "checkbox": {
+      "label": "จดจำตัวเลือกนี้",
+      "description": "ตัวอย่างสถานะที่เลือกและไม่ได้เลือก",
+      "disabled": "รายการที่ปิดใช้งาน"
+    },
+    "radio": {
+      "label": "เลือกหนึ่งตัวเลือก",
+      "disabled": "ตัวเลือกที่ปิดใช้งาน"
+    },
+    "switch": {
+      "label": "การแจ้งเตือน",
+      "disabled": "สวิตช์ที่ปิดใช้งาน"
+    },
+    "datePicker": {
+      "label": "วันที่เริ่มต้น",
+      "helper": "เลือกวันที่",
+      "error": "กรุณาระบุวันที่ที่ถูกต้อง",
+      "disabledLabel": "วันที่ปิดใช้งาน",
+      "disabledHelper": "ไม่สามารถเลือกวันที่ในสถานะนี้ได้"
+    },
+    "searchInput": {
+      "placeholder": "ค้นหาคอมโพเนนต์..."
+    },
+    "fileUpload": {
+      "label": "อัปโหลดรูปภาพ",
+      "helper": "วางรูปภาพได้สูงสุดสองไฟล์หรือเลือกจากเครื่อง",
+      "errorLabel": "ไฟล์ที่ไม่ผ่านการตรวจสอบ",
+      "error": "ไม่รองรับประเภทไฟล์นี้",
+      "disabledLabel": "การอัปโหลดที่ปิดใช้งาน",
+      "disabledHelper": "ไม่สามารถอัปโหลดในสถานะนี้ได้"
+    },
+    "textarea": {
+      "defaultLabel": "พื้นที่ข้อความเริ่มต้น",
+      "placeholder": "เขียนบันทึก...",
+      "hint": "แสดงจำนวนอักขระด้านล่าง",
+      "errorLabel": "มีข้อผิดพลาด",
+      "error": "ข้อความนี้ต้องตรวจสอบ",
+      "disabledLabel": "พื้นที่ข้อความที่ปิดใช้งาน",
+      "disabledPlaceholder": "พื้นที่ข้อความถูกปิดใช้งาน"
+    },
+    "tooltip": {
+      "top": "คำแนะนำด้านบน",
+      "bottom": "คำแนะนำด้านล่าง",
+      "left": "คำแนะนำด้านซ้าย",
+      "right": "คำแนะนำด้านขวา",
+      "topButton": "บน",
+      "bottomButton": "ล่าง",
+      "leftButton": "ซ้าย",
+      "rightButton": "ขวา"
+    },
+    "dropdown": {
+      "trigger": "เปิดเมนู",
+      "profile": "ดูโปรไฟล์",
+      "edit": "แก้ไข",
+      "delete": "ลบ"
+    },
+    "tabs": {
+      "overview": "ภาพรวม",
+      "settings": "การตั้งค่า",
+      "disabled": "ปิดใช้งาน",
+      "overviewContent": "เนื้อหาภาพรวมสำหรับตัวอย่างคอมโพเนนต์",
+      "settingsContent": "เนื้อหาการตั้งค่าสำหรับตัวอย่างคอมโพเนนต์"
+    },
+    "accordion": {
+      "starterQuestion": "Starter นี้คืออะไร",
+      "starterAnswer": "เทมเพลตฟูลสแตกพร้อมใช้สำหรับ production พร้อม UI, auth, RBAC และ i18n ที่นำกลับมาใช้ใหม่ได้",
+      "databaseQuestion": "ใช้ฐานข้อมูลอะไร",
+      "databaseAnswer": "ใช้ Prisma ORM กับฐานข้อมูล MySQL ที่ตั้งค่าไว้",
+      "disabled": "รายการที่ปิดใช้งาน",
+      "disabledAnswer": "ไม่สามารถเปิดรายการนี้ได้"
+    },
+    "permission": {
+      "denied": "ตัวอย่างเมื่อไม่มีสิทธิ์",
+      "allowedAction": "การดำเนินการที่ได้รับอนุญาต"
+    },
+    "notification": {
+      "description": "ตัวอย่างเมนูการแจ้งเตือนที่ใช้ร่วมกัน"
+    },
+    "alert": {
+      "neutralTitle": "ประกาศทั่วไป",
+      "neutral": "ข้อมูลนี้ช่วยให้เห็นบริบทของการดำเนินการ",
+      "successTitle": "สำเร็จ",
+      "success": "ดำเนินการสำเร็จแล้ว",
+      "warningTitle": "คำเตือน",
+      "warning": "โปรดตรวจสอบก่อนดำเนินการต่อ",
+      "errorTitle": "ข้อผิดพลาด",
+      "error": "ไม่สามารถดำเนินการได้",
+      "dismiss": "ปิดการแจ้งเตือน"
+    },
+    "pageHeader": {
+      "eyebrow": "เลย์เอาต์ที่ใช้ร่วมกัน",
+      "title": "ภาพรวมคอมโพเนนต์",
+      "description": "ส่วนหัวหน้าช่วยให้ลำดับหัวข้อและการดำเนินการสอดคล้องกัน",
+      "action": "การดำเนินการหลัก"
+    },
+    "card": {
+      "title": "การ์ดที่นำกลับมาใช้ใหม่",
+      "description": "พื้นผิวแบบประกอบได้สำหรับเนื้อหาที่เกี่ยวข้องกัน",
+      "longContent": "เนื้อหาที่ยาวจะตัดบรรทัดภายในการ์ดโดยไม่เปลี่ยนเลย์เอาต์รอบข้าง",
+      "emptyTitle": "ยังไม่มีข้อมูล",
+      "emptyDescription": "การ์ดว่างยังสื่อสารสิ่งที่ผู้ใช้คาดหวังได้",
+      "footer": "ส่วนท้ายการ์ด"
+    },
+    "statCard": {
+      "activeUsers": "ผู้ใช้ที่ใช้งานอยู่",
+      "activeUsersValue": "128",
+      "revenue": "รายได้ต่อเดือน",
+      "revenueValue": "$12.4k",
+      "trend": "เทียบกับช่วงก่อนหน้า"
+    },
+    "table": {
+      "stateControls": "สถานะตาราง",
+      "states": {
+        "data": "ข้อมูล",
+        "loading": "กำลังโหลด",
+        "empty": "ว่าง",
+        "error": "ข้อผิดพลาด"
+      },
+      "name": "ชื่อ",
+      "email": "อีเมล",
+      "status": "สถานะ",
+      "active": "ใช้งานอยู่",
+      "invited": "เชิญแล้ว",
+      "emptyMessage": "ไม่พบแถวข้อมูล",
+      "errorTitle": "ไม่สามารถโหลดตารางได้",
+      "errorDescription": "แหล่งข้อมูลส่งข้อผิดพลาดกลับมา",
+      "alexName": "อเล็กซ์ มอร์แกน",
+      "mayaName": "มายา เฉิน",
+      "samName": "แซม ลี",
+      "alexEmail": "alex@example.test",
+      "mayaEmail": "maya@example.test",
+      "samEmail": "sam@example.test"
+    },
+    "chart": {
+      "lineTitle": "เส้นแนวโน้ม",
+      "barTitle": "เปรียบเทียบรายเดือน",
+      "value": "ค่า",
+      "signups": "การสมัครใช้งาน",
+      "jan": "ม.ค.",
+      "feb": "ก.พ.",
+      "mar": "มี.ค.",
+      "apr": "เม.ย."
+    },
+    "toast": {
+      "description": "facade ของ Toast ที่ใช้ react-hot-toast ร่วมกัน",
+      "successButton": "แสดงสำเร็จ",
+      "errorButton": "แสดงข้อผิดพลาด",
+      "warningButton": "แสดงคำเตือน",
+      "dismissButton": "ปิดรายการล่าสุด",
+      "successMessage": "บันทึกการเปลี่ยนแปลงแล้ว",
+      "errorMessage": "การดำเนินการล้มเหลว",
+      "warningMessage": "โปรดตรวจสอบการเปลี่ยนแปลงล่าสุด"
+    },
+    "modal": {
+      "open": "เปิดโมดัล",
+      "openConfirm": "เปิดโมดัลยืนยัน",
+      "title": "โมดัลตัวอย่าง",
+      "description": "โมดัลที่ใช้ซ้ำได้ พร้อม overlay และการรองรับปุ่ม Escape",
+      "cancel": "ยกเลิก",
+      "confirm": "ยืนยัน",
+      "confirmTitle": "ยืนยันการลบ",
+      "confirmMessage": "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้"
+    },
+    "drawer": {
+      "open": "เปิดแผงด้านข้าง",
+      "title": "แผงด้านข้าง",
+      "description": "ตัวอย่างแผงด้านข้างที่รองรับเนื้อหาซึ่งเลื่อนได้",
+      "nameLabel": "ชื่อ",
+      "namePlaceholder": "กรอกชื่อ...",
+      "save": "บันทึกและปิด"
+    },
+    "feedback": {
+      "loadingSmall": "กำลังโหลดขนาดเล็ก",
+      "loadingMedium": "กำลังโหลดขนาดกลาง",
+      "loadingLarge": "กำลังโหลดขนาดใหญ่",
+      "cardLabel": "การ์ดโครงร่างโหลด"
+    },
+    "visual": {
+      "display": "ตัวอักษรแสดงผล XL",
+      "headingOne": "หัวข้อ 1",
+      "headingTwo": "หัวข้อ 2",
+      "body": "ข้อความเนื้อหาสำหรับย่อหน้าทั่วไป",
+      "caption": "ข้อความคำอธิบายประกอบ"
+    }
+  },
   "table": {
     "name": "ชื่อ",
     "email": "อีเมล",

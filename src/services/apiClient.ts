@@ -16,6 +16,21 @@ interface ApiResult<T> {
   status: number
 }
 
+const PAGINATION_META_FIELDS = ['total', 'page', 'limit', 'totalPages'] as const
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isPaginatedResponse(value: unknown): boolean {
+  if (!isRecord(value) || value.data === undefined) return false
+
+  const meta = value.meta
+  if (!isRecord(meta)) return false
+
+  return PAGINATION_META_FIELDS.some((field) => field in meta)
+}
+
 let isRefreshing = false
 
 async function refreshAccessToken(): Promise<boolean> {
@@ -66,9 +81,8 @@ export async function apiClient<T = unknown>(
     return { data: null, error: json?.message ?? `HTTP ${status}`, status }
   }
 
-  // ถ้าเป็น Paginated Response (มี meta) ห้าม unwrap แค่ data ให้ส่งคืนทั้งก้อน
-  const resultData =
-    json?.data !== undefined && json?.meta !== undefined ? json : (json?.data ?? json)
+  // Keep pagination metadata available while unwrapping correlation-only success envelopes.
+  const resultData = isPaginatedResponse(json) ? json : (json?.data ?? json)
 
   return { data: resultData, error: null, status }
 }

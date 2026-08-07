@@ -743,6 +743,291 @@
     "submit": "パスワードを変更",
     "backToLogin": "サインインに戻る"
   },
+  "dev": {
+    "metadataTitle": "開発 UI",
+    "tools": "開発者ツール",
+    "uiComponents": "UI コンポーネント",
+    "testApi": "API をテスト"
+  },
+  "devUi": {
+    "header": {
+      "eyebrow": "開発者",
+      "title": "UI コンポーネントライブラリ",
+      "description": "再利用可能なコンポーネントの場所"
+    },
+    "sections": {
+      "button": "ボタン",
+      "badge": "バッジ",
+      "avatar": "アバター",
+      "input": "入力",
+      "select": "セレクト",
+      "selectMenu": "セレクトメニュー",
+      "checkbox": "チェックボックス",
+      "radio": "ラジオ",
+      "switch": "スイッチ",
+      "datePicker": "日付選択",
+      "searchInput": "検索入力",
+      "fileUpload": "ファイルアップロード",
+      "tooltip": "ツールチップ",
+      "dropdown": "ドロップダウン",
+      "tabs": "タブ",
+      "accordion": "アコーディオン",
+      "permissionGuard": "権限ガード",
+      "notification": "通知",
+      "modal": "モーダル / ダイアログ",
+      "drawer": "ドロワー",
+      "loader": "ローダー / スピナー",
+      "skeleton": "スケルトン",
+      "textarea": "テキストエリア",
+      "alert": "アラート",
+      "pageHeader": "ページヘッダー",
+      "card": "カード",
+      "statCard": "統計カード",
+      "table": "テーブル",
+      "chart": "チャート",
+      "toast": "Toast",
+      "typography": "タイポグラフィスケール",
+      "colors": "カラーシステム",
+      "icons": "アイコン"
+    },
+    "button": {
+      "primary": "プライマリ",
+      "secondary": "セカンダリ",
+      "ghost": "ゴースト",
+      "outline": "アウトライン",
+      "danger": "危険",
+      "disabled": "無効",
+      "loading": "読み込み中"
+    },
+    "badge": {
+      "default": "デフォルト",
+      "success": "成功",
+      "warning": "警告",
+      "error": "エラー",
+      "info": "情報"
+    },
+    "avatar": {
+      "admin": "管理者ユーザー",
+      "john": "ジョン・ドゥ",
+      "superAdmin": "スーパー管理者",
+      "extraLarge": "大きなユーザー"
+    },
+    "input": {
+      "defaultLabel": "通常の入力",
+      "defaultPlaceholder": "入力してください...",
+      "errorLabel": "エラー付き",
+      "errorPlaceholder": "無効な入力",
+      "requiredError": "この項目は必須です",
+      "disabledLabel": "無効",
+      "disabledPlaceholder": "無効な入力",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "readonlyLabel": "読み取り専用",
+      "readonlyValue": "この値は編集できません"
+    },
+    "options": {
+      "a": "オプション A",
+      "b": "オプション B",
+      "c": "オプション C",
+      "one": "オプション 1",
+      "two": "オプション 2",
+      "empty": "未選択"
+    },
+    "select": {
+      "label": "オプションを選択",
+      "errorLabel": "無効な選択",
+      "error": "有効なオプションを選択してください",
+      "disabledLabel": "無効な選択"
+    },
+    "selectMenu": {
+      "label": "メニューから選択",
+      "placeholder": "オプションを選択"
+    },
+    "checkbox": {
+      "label": "この選択を記憶",
+      "description": "選択済みと未選択の状態を表示します",
+      "disabled": "無効な項目"
+    },
+    "radio": {
+      "label": "1つ選択",
+      "disabled": "無効なオプション"
+    },
+    "switch": {
+      "label": "通知",
+      "disabled": "無効なスイッチ"
+    },
+    "datePicker": {
+      "label": "開始日",
+      "helper": "日付を選択",
+      "error": "有効な日付を入力してください",
+      "disabledLabel": "無効な日付",
+      "disabledHelper": "この状態では日付を選択できません"
+    },
+    "searchInput": {
+      "placeholder": "コンポーネントを検索..."
+    },
+    "fileUpload": {
+      "label": "画像をアップロード",
+      "helper": "最大2枚の画像をドロップするか、ファイルを選択してください",
+      "errorLabel": "拒否されたファイル",
+      "error": "このファイル形式は対応していません",
+      "disabledLabel": "無効なアップロード",
+      "disabledHelper": "この状態ではアップロードできません"
+    },
+    "textarea": {
+      "defaultLabel": "通常のテキストエリア",
+      "placeholder": "メモを入力...",
+      "hint": "文字数の上限を下に表示します",
+      "errorLabel": "エラー付き",
+      "error": "このメッセージを確認してください",
+      "disabledLabel": "無効なテキストエリア",
+      "disabledPlaceholder": "テキストエリアは無効です"
+    },
+    "tooltip": {
+      "top": "上のツールチップ",
+      "bottom": "下のツールチップ",
+      "left": "左のツールチップ",
+      "right": "右のツールチップ",
+      "topButton": "上",
+      "bottomButton": "下",
+      "leftButton": "左",
+      "rightButton": "右"
+    },
+    "dropdown": {
+      "trigger": "メニューを開く",
+      "profile": "プロフィールを見る",
+      "edit": "編集",
+      "delete": "削除"
+    },
+    "tabs": {
+      "overview": "概要",
+      "settings": "設定",
+      "disabled": "無効",
+      "overviewContent": "コンポーネントプレビューの概要コンテンツです",
+      "settingsContent": "コンポーネントプレビューの設定コンテンツです"
+    },
+    "accordion": {
+      "starterQuestion": "このスターターテンプレートとは何ですか？",
+      "starterAnswer": "再利用可能な UI、認証、RBAC、i18n の基盤を備えた本番向けフルスタックテンプレートです",
+      "databaseQuestion": "どのデータベースを使用しますか？",
+      "databaseAnswer": "設定された MySQL データベースと Prisma ORM を使用します",
+      "disabled": "無効な項目",
+      "disabledAnswer": "この項目は開けません"
+    },
+    "permission": {
+      "denied": "権限なしのプレビュー",
+      "allowedAction": "許可された操作"
+    },
+    "notification": {
+      "description": "共有通知ドロップダウンのプレビュー"
+    },
+    "alert": {
+      "neutralTitle": "一般のお知らせ",
+      "neutral": "情報フィードバックはコンテキストを表示します",
+      "successTitle": "成功",
+      "success": "操作が正常に完了しました",
+      "warningTitle": "警告",
+      "warning": "続行する前に確認してください",
+      "errorTitle": "エラー",
+      "error": "操作を完了できませんでした",
+      "dismiss": "閉じる"
+    },
+    "pageHeader": {
+      "eyebrow": "共有レイアウト",
+      "title": "コンポーネント概要",
+      "description": "ページヘッダーでタイトル階層とアクションを統一します",
+      "action": "主要アクション"
+    },
+    "card": {
+      "title": "再利用可能なカード",
+      "description": "関連コンテンツをまとめるための組み合わせ可能なサーフェスです",
+      "longContent": "長いコンテンツもカード内で折り返され、周囲のレイアウトを変えません",
+      "emptyTitle": "まだデータがありません",
+      "emptyDescription": "空のカードでもユーザーが期待できる内容を伝えられます",
+      "footer": "カードフッター"
+    },
+    "statCard": {
+      "activeUsers": "アクティブユーザー",
+      "activeUsersValue": "128",
+      "revenue": "月間収益",
+      "revenueValue": "$12.4k",
+      "trend": "前の期間との比較"
+    },
+    "table": {
+      "stateControls": "テーブルの状態",
+      "states": {
+        "data": "データ",
+        "loading": "読み込み中",
+        "empty": "空",
+        "error": "エラー"
+      },
+      "name": "名前",
+      "email": "メールアドレス",
+      "status": "ステータス",
+      "active": "有効",
+      "invited": "招待済み",
+      "emptyMessage": "行が見つかりません",
+      "errorTitle": "テーブルを利用できません",
+      "errorDescription": "データソースがエラーを返しました",
+      "alexName": "アレックス・モーガン",
+      "mayaName": "マヤ・チェン",
+      "samName": "サム・リー",
+      "alexEmail": "alex@example.test",
+      "mayaEmail": "maya@example.test",
+      "samEmail": "sam@example.test"
+    },
+    "chart": {
+      "lineTitle": "推移ライン",
+      "barTitle": "月別比較",
+      "value": "値",
+      "signups": "登録数",
+      "jan": "1月",
+      "feb": "2月",
+      "mar": "3月",
+      "apr": "4月"
+    },
+    "toast": {
+      "description": "react-hot-toast を利用する共有 Toast facade です",
+      "successButton": "成功を表示",
+      "errorButton": "エラーを表示",
+      "warningButton": "警告を表示",
+      "dismissButton": "最新を閉じる",
+      "successMessage": "変更を保存しました",
+      "errorMessage": "操作に失敗しました",
+      "warningMessage": "最新の変更を確認してください"
+    },
+    "modal": {
+      "open": "モーダルを開く",
+      "openConfirm": "確認モーダルを開く",
+      "title": "モーダルの例",
+      "description": "オーバーレイと Escape キーに対応した再利用可能なモーダルです",
+      "cancel": "キャンセル",
+      "confirm": "確認",
+      "confirmTitle": "削除の確認",
+      "confirmMessage": "この項目を削除してもよろしいですか？"
+    },
+    "drawer": {
+      "open": "ドロワーを開く",
+      "title": "サイドドロワー",
+      "description": "スクロール可能なコンテンツを表示するドロワーの例です",
+      "nameLabel": "名前",
+      "namePlaceholder": "名前を入力...",
+      "save": "保存して閉じる"
+    },
+    "feedback": {
+      "loadingSmall": "小サイズを読み込み中",
+      "loadingMedium": "中サイズを読み込み中",
+      "loadingLarge": "大サイズを読み込み中",
+      "cardLabel": "スケルトンカード"
+    },
+    "visual": {
+      "display": "ディスプレイ XL",
+      "headingOne": "見出し 1",
+      "headingTwo": "見出し 2",
+      "body": "通常の段落に使用する本文テキスト",
+      "caption": "補足コンテンツ用のキャプション"
+    }
+  },
   "table": {
     "name": "名前",
     "email": "メールアドレス",

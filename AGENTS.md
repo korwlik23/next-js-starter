@@ -95,6 +95,8 @@ operations, and preserve valid YAML frontmatter with `name` and `description`.
 - `.agents/rules/structure.md` — **Structure Before Code / no god modules (HARD GATE)**:
   state the file/module layout before implementing; one file = one responsibility;
   ~500-line ceiling per file; never bolt a feature onto an oversized file — split first.
+- `.agents/rules/starter-reuse-first.md` — mandatory reuse-first workflow for all AI work;
+  search existing starter capabilities before creating new code.
 - The "NOT the Next.js you know" block at the top of this file: read
   `node_modules/next/dist/docs/` before writing Next.js code.
 
