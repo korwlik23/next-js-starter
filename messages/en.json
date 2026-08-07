@@ -1009,6 +1009,7 @@
     "drawer": {
       "open": "Open drawer",
       "title": "Side drawer",
+      "close": "Close drawer",
       "description": "A drawer preview with scrollable content.",
       "nameLabel": "Name",
       "namePlaceholder": "Enter a name...",

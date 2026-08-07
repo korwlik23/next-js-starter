@@ -1009,6 +1009,7 @@
     "drawer": {
       "open": "ドロワーを開く",
       "title": "サイドドロワー",
+      "close": "ドロワーを閉じる",
       "description": "スクロール可能なコンテンツを表示するドロワーの例です",
       "nameLabel": "名前",
       "namePlaceholder": "名前を入力...",

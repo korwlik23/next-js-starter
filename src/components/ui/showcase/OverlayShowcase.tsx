@@ -55,7 +55,12 @@ export function OverlayShowcase() {
           {t('drawer.open')}
         </Button>
 
-        <Drawer is_open={drawerOpen} onClose={() => setDrawerOpen(false)} title={t('drawer.title')}>
+        <Drawer
+          is_open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          title={t('drawer.title')}
+          close_label={t('drawer.close')}
+        >
           <div className="space-y-4">
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
               {t('drawer.description')}
