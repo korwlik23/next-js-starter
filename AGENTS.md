@@ -102,6 +102,31 @@ operations, and preserve valid YAML frontmatter with `name` and `description`.
 - The "NOT the Next.js you know" block at the top of this file: read
   `node_modules/next/dist/docs/` before writing Next.js code.
 
+### UI Component Reuse Gate — HARD GATE
+
+For every new screen or UI behavior change, inspect the existing component library
+before writing UI implementation code. This gate is mandatory; do not treat it as a
+suggestion.
+
+1. Inspect `src/components/ui/index.tsx`, the source of matching components, the
+   relevant files under `src/components/ui/showcase/`, and the closest existing page
+   or feature using those components.
+2. Before implementation, record a reuse map in the task plan or progress update. For
+   each UI need, name the matching component and its file/import path, or state that no
+   suitable component exists and cite the files/searches checked. Do not start UI
+   implementation until this map is recorded.
+3. Reuse an existing component when it provides the required behavior. Do not recreate
+   an equivalent button, input, select, modal, table, loading state, or other shared UI
+   with native elements or page-local markup. If a component is unsuitable, identify
+   the specific missing behavior or API limitation before adding a new implementation.
+4. Keep page-specific composition colocated according to `.agents/rules/structure.md`;
+   share new UI only when it has a real second use. Do not make a generic page shell to
+   avoid composing the existing components.
+5. Before completion, review the diff against the reuse map. Confirm that existing
+   components were reused and that every new UI component has a documented reason it
+   could not use an existing one. If the map or review is missing, the UI task is not
+   complete.
+
 ## Enforcement
 
 - One-time setup per clone: `git config core.hooksPath .githooks`
