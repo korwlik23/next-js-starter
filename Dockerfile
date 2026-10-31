@@ -4,7 +4,8 @@
 FROM node:24-alpine AS builder
 
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
+# openssl: the Prisma engine detects and links against it (missing = "failed to detect libssl")
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 # Enable corepack for pnpm/yarn, though we are using npm here
@@ -20,11 +21,25 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# NEXT_PUBLIC_* are inlined into the client bundle at build time — pass them as build args
+ARG NEXT_PUBLIC_APP_NAME="Next.js Starter"
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_ROOT_DOMAIN=""
+ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_ROOT_DOMAIN=$NEXT_PUBLIC_ROOT_DOMAIN
+
 # Build Next.js
-RUN npm run build
+# `next build` loads route modules that validate secrets at import time. Give this one
+# command build-only placeholders; they are not kept in any layer and the runner stage
+# gets the real values from the container environment.
+RUN DATABASE_URL="mysql://build:build@localhost:3306/build" \
+    JWT_SECRET="build-time-placeholder-not-used-at-runtime-000000" \
+    npm run build
 
 # Production image, copy all the files and run next
 FROM node:24-alpine AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV production
