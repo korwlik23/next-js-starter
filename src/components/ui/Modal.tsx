@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useId } from 'react'
 import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { clsx } from 'clsx'
@@ -15,10 +15,14 @@ const SIZE_STYLES: Record<ModalSize, string> = {
   full: 'max-w-[95vw] h-[90vh]',
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+
 export interface ModalProps {
   is_open: boolean
   onClose: () => void
   title?: string
+  aria_label?: string
   size?: ModalSize
   children: React.ReactNode
   close_on_overlay?: boolean
@@ -30,6 +34,7 @@ export function Modal({
   is_open,
   onClose,
   title,
+  aria_label,
   size = 'md',
   children,
   close_on_overlay = true,
@@ -37,31 +42,73 @@ export function Modal({
   footer,
 }: ModalProps) {
   const t = useTranslations('components.modal')
-  const overlayRef = useRef<HTMLDivElement>(null)
+  const overlay_ref = useRef<HTMLDivElement>(null)
+  const panel_ref = useRef<HTMLDivElement>(null)
+  const opener_ref = useRef<HTMLElement | null>(null)
+  const on_close_ref = useRef(onClose)
+  const title_id = useId()
+
+  useEffect(() => {
+    on_close_ref.current = onClose
+  }, [onClose])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (close_on_esc && e.key === 'Escape') {
-        onClose()
+        e.preventDefault()
+        on_close_ref.current()
       }
     },
-    [close_on_esc, onClose]
+    [close_on_esc]
   )
 
-  useEffect(() => {
-    if (is_open) {
-      document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
+  const handlePanelKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return
+
+    const items = Array.from(
+      panel_ref.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? []
+    )
+
+    if (!items.length) return
+
+    const first = items[0]
+    const last = items[items.length - 1]
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
     }
+  }, [])
+
+  useEffect(() => {
+    if (!is_open) return
+
+    const previous_focus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previous_overflow = document.body.style.overflow
+    opener_ref.current = previous_focus
+    document.body.style.overflow = 'hidden'
+
+    const first = panel_ref.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
+    first?.focus()
+    document.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
+      document.body.style.overflow = previous_overflow
+
+      const opener = opener_ref.current
+      opener_ref.current = null
+      opener?.focus()
     }
   }, [is_open, handleKeyDown])
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (close_on_overlay && e.target === overlayRef.current) {
-      onClose()
+    if (close_on_overlay && e.target === overlay_ref.current) {
+      on_close_ref.current()
     }
   }
 
@@ -69,18 +116,21 @@ export function Modal({
 
   return createPortal(
     <div
-      ref={overlayRef}
+      ref={overlay_ref}
       onClick={handleOverlayClick}
       className={clsx(
         'fixed inset-0 z-50 flex items-center justify-center p-4',
         'bg-black/60 backdrop-blur-sm',
         'animate-in fade-in duration-200'
       )}
-      role="dialog"
       aria-modal="true"
-      aria-label={title}
+      role="dialog"
+      aria-labelledby={title ? title_id : undefined}
+      aria-label={!title ? (aria_label ?? t('label')) : undefined}
     >
       <div
+        ref={panel_ref}
+        onKeyDown={handlePanelKeyDown}
         className={clsx(
           'w-full bg-neutral-950 border border-neutral-800 shadow-2xl',
           'flex flex-col overflow-hidden',
@@ -90,24 +140,32 @@ export function Modal({
       >
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-white">{title}</h2>
+            <h2 id={title_id} className="text-sm font-bold uppercase tracking-widest text-white">
+              {title}
+            </h2>
             <button
-              onClick={onClose}
+              type="button"
+              onClick={() => on_close_ref.current()}
               className="w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors"
               aria-label={t('close')}
             >
-              <span className="material-symbols-outlined text-lg">close</span>
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">
+                close
+              </span>
             </button>
           </div>
         )}
 
         {!title && (
           <button
-            onClick={onClose}
+            type="button"
+            onClick={() => on_close_ref.current()}
             className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-white transition-colors z-10"
             aria-label={t('close')}
           >
-            <span className="material-symbols-outlined text-lg">close</span>
+            <span className="material-symbols-outlined text-lg" aria-hidden="true">
+              close
+            </span>
           </button>
         )}
 

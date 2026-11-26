@@ -2,7 +2,9 @@
 
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
 
@@ -27,6 +29,7 @@ at `skills/<bucket>/<name>/SKILL.md`. Each `SKILL.md` reaches the contract via
 `../../../../RULES.md` (four levels up).
 
 Buckets:
+
 - **engineering/** — 15 domain skills for code work (backend, frontend, security,
   database, deployment, migration, testing, git, bug-debugging, code-review-refactor,
   scrutinize, release-version, remove-color-transition, remove-shadow-utilities,
@@ -76,6 +79,7 @@ Review path: pair `scrutinize` (outsider stance, simpler-alternative pass) with
 `code-review-refactor` (checklist) — they don't overlap.
 
 The three HARD GATES from `RULES.md` always apply:
+
 - **Design before code** — no implementation until a design is approved.
 - **Structure before code** — state the file/module layout before implementing; one file =
   one responsibility; ~500-line ceiling per file; never put an entire product in one
@@ -95,8 +99,35 @@ operations, and preserve valid YAML frontmatter with `name` and `description`.
 - `.agents/rules/structure.md` — **Structure Before Code / no god modules (HARD GATE)**:
   state the file/module layout before implementing; one file = one responsibility;
   ~500-line ceiling per file; never bolt a feature onto an oversized file — split first.
+- `.agents/rules/starter-reuse-first.md` — mandatory reuse-first workflow for all AI work;
+  search existing starter capabilities before creating new code.
 - The "NOT the Next.js you know" block at the top of this file: read
   `node_modules/next/dist/docs/` before writing Next.js code.
+
+### UI Component Reuse Gate — HARD GATE
+
+For every new screen or UI behavior change, inspect the existing component library
+before writing UI implementation code. This gate is mandatory; do not treat it as a
+suggestion.
+
+1. Inspect `src/components/ui/index.tsx`, the source of matching components, the
+   relevant files under `src/components/ui/showcase/`, and the closest existing page
+   or feature using those components.
+2. Before implementation, record a reuse map in the task plan or progress update. For
+   each UI need, name the matching component and its file/import path, or state that no
+   suitable component exists and cite the files/searches checked. Do not start UI
+   implementation until this map is recorded.
+3. Reuse an existing component when it provides the required behavior. Do not recreate
+   an equivalent button, input, select, modal, table, loading state, or other shared UI
+   with native elements or page-local markup. If a component is unsuitable, identify
+   the specific missing behavior or API limitation before adding a new implementation.
+4. Keep page-specific composition colocated according to `.agents/rules/structure.md`;
+   share new UI only when it has a real second use. Do not make a generic page shell to
+   avoid composing the existing components.
+5. Before completion, review the diff against the reuse map. Confirm that existing
+   components were reused and that every new UI component has a documented reason it
+   could not use an existing one. If the map or review is missing, the UI task is not
+   complete.
 
 ## Enforcement
 
@@ -112,3 +143,32 @@ operations, and preserve valid YAML frontmatter with `name` and `description`.
 - Every UI string goes through next-intl: add keys to `messages/en.json`, `th.json`,
   and `ja.json` together, namespaced (`nav.*`, `auth.*`, …).
 - Layout components live in `src/components/layout/` (`Sidebar`, `SidebarGroup`, `TopNav`).
+
+<!-- security-baseline:2026-10-31 start -->
+
+## 🔒 Security baseline — อัปเดต version ก่อนพัฒนาต่อหรือ deploy (ตรวจเมื่อ 2026-10-31)
+
+ก่อนแก้โค้ด เพิ่มฟีเจอร์ หรือ deploy โปรเจกต์นี้ **ต้องยกเวอร์ชันขึ้นอย่างน้อยตามตารางก่อน** แล้วรันเทสต์ให้ผ่าน
+ถ้ากลับมาทำหลังวันที่ด้านบนนาน ให้เช็ค advisory ล่าสุดอีกครั้ง — ตารางนี้คือขั้นต่ำ ณ วันตรวจเท่านั้น
+
+**ที่พบในโปรเจกต์นี้ตอนตรวจ:**
+
+- Next.js < 16.4.1 — RCE (CVE-2026-96889, use cache) + DoS
+- Docker node:20-alpine — Node EOL ไม่ได้แพตช์ Brotli RCE
+
+| ตัว                                  | ขั้นต่ำ                              | เหตุผล                                                                                                                                                                                                    |
+| ------------------------------------ | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `next`                               | **16.4.1+** (ใช้ล่าสุดของสาย 16)     | CVE-2026-96889 RCE (Image Optimization + SVG), RCE ใน `use cache`, CVE-2026-94482 DoS (Server Actions) · สาย 15 หมด LTS 21 ต.ค. 2026 · ≤ 14 ไม่มีแพตช์ · CVE-2025-29927 middleware bypass (ต้อง ≥ 15.2.3) |
+| `sharp`                              | **0.35.5**                           | ส่วนหนึ่งของ RCE รูปภาพของ Next.js                                                                                                                                                                        |
+| `react-server-dom-*` (มากับ Next.js) | ≥ 19.0.1 / 19.1.2 / 19.2.1           | React2Shell CVE-2025-55182 (CVSS 10) — อัป next แล้วเช็คด้วย `npm ls react-server-dom-webpack`                                                                                                            |
+| Node.js (เครื่อง dev + Docker image) | **24.22.1** (หรือ 22.23.4 / 26.12.1) | CVE-2026-111497 Brotli decoder RCE · Node 20 / 23 / 25 หมดอายุ ไม่ได้แพตช์                                                                                                                                |
+
+ตรวจหลังอัป (ต้องไม่มี advisory ค้าง):
+
+```bash
+node -v
+npm audit --omit=dev
+npm ls next sharp react-server-dom-webpack
+```
+
+<!-- security-baseline:2026-10-31 end -->

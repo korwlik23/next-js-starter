@@ -66,6 +66,13 @@ Before deploying or utilizing third-party features, make sure your `.env` file i
 
    _(Alternatively, you can run `npm run setup` to install dependencies and initialize the DB in one command)._
 
+   > **Baseline an existing database.** `db:push` writes the schema but records
+   > nothing in `_prisma_migrations`, so `prisma migrate deploy` later reports
+   > every migration as pending and fails against tables that already exist.
+   > Check with `npm run db:status`; if it lists pending migrations while the
+   > schema is already correct, run `npm run db:baseline` once to mark them as
+   > applied. The command is idempotent and never alters the schema.
+
 3. **Run the Development Server:**
 
    ```bash
@@ -76,9 +83,15 @@ Before deploying or utilizing third-party features, make sure your `.env` file i
    - Dashboard: `http://localhost:3000/dashboard`
    - UI Component Library: `http://localhost:3000/dev/ui`
 
-   _Default Admin Login (from Seeder):_
-   - **Email:** `admin@acme.com`
-   - **Password:** `password123`
+   _Seeded accounts (from `prisma/seed.ts`):_
+
+   | Account            | Email               | Password      | Purpose                                            |
+   | ------------------ | ------------------- | ------------- | -------------------------------------------------- |
+   | Platform owner     | `owner@starter.dev` | `password123` | Full permission set, not bound to the demo tenant  |
+   | Demo tenant admin  | `admin@acme.com`    | `password123` | Admin inside the seeded "Acme" tenant              |
+   | Demo tenant editor | `editor@acme.com`   | `password123` | Reduced permissions, useful for testing boundaries |
+
+   > Change these before exposing the app beyond local development.
 
 ---
 

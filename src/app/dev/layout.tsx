@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Dev UI' }
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('dev')
+  return { title: t('metadataTitle') }
+}
 
-export default function DevLayout({ children }: { children: React.ReactNode }) {
+export default async function DevLayout({ children }: { children: React.ReactNode }) {
   if (process.env.NODE_ENV === 'production') {
     notFound()
   }
+
+  const t = await getTranslations('dev')
 
   return (
     <div className="dev-layout-wrapper">
@@ -38,12 +44,12 @@ export default function DevLayout({ children }: { children: React.ReactNode }) {
               marginBottom: '1rem',
             }}
           >
-            Dev Tools
+            {t('tools')}
           </p>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {[
-              { href: '/dev/ui', label: 'UI Components', icon: 'palette' },
-              { href: '/dev/test-api', label: 'Test API', icon: 'api' },
+              { href: '/dev/ui', label: t('uiComponents'), icon: 'palette' },
+              { href: '/dev/test-api', label: t('testApi'), icon: 'api' },
             ].map((item) => (
               <a key={item.href} href={item.href} className="dev-link">
                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>

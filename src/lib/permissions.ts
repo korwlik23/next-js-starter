@@ -7,7 +7,15 @@ import type { PermissionKey } from '@/constants'
 
 /**
  * Check if user has a specific permission
- * Supports wildcard: "user.*" matches "user.create", "user.read", etc.
+ *
+ * ใช้การเทียบแบบตรงตัวเท่านั้น — ไม่รองรับ wildcard โดยเจตนา
+ *
+ * เหตุผล: wildcard (`user.*` หรือ `*`) ทำให้ permission ที่เพิ่มใหม่ในโมดูล
+ * ถูก grant ให้ผู้ถืออยู่แล้วโดยอัตโนมัติ ซึ่งเป็นช่องทาง privilege escalation
+ * ที่มองไม่เห็นตอน review และทำให้ตอบไม่ได้ว่า "ใครมีสิทธิ์อะไรบ้าง"
+ *
+ * role ที่ต้องการสิทธิ์ครบให้ระบุรายการจริงผ่าน `ROLE_PERMISSIONS`
+ * (ดู `owner` ใน `@/constants/roles` ที่ใช้ `Object.values(PERMISSIONS)`)
  */
 export function can(
   user: TokenPayload | null | undefined,
@@ -15,19 +23,7 @@ export function can(
 ): boolean {
   if (!user) return false
 
-  const userPermissions = user.permissions ?? []
-
-  // Direct match
-  if (userPermissions.includes(permission)) return true
-
-  // Wildcard match: e.g. "user.*" covers any "user.something"
-  const [module] = permission.split('.')
-  if (userPermissions.includes(`${module}.*`)) return true
-
-  // Owner wildcard: "*" covers everything
-  if (userPermissions.includes('*')) return true
-
-  return false
+  return (user.permissions ?? []).includes(permission)
 }
 
 /**

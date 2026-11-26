@@ -35,13 +35,24 @@ describe('Permissions Utility Tests', () => {
       expect(can(admin_user, 'user.delete')).toBe(false)
     })
 
-    it('ต้องคืนค่า true ถ้าใช้ wildcard permission ระดับ module', () => {
-      expect(can(admin_user, 'settings.update')).toBe(true)
-      expect(can(admin_user, 'settings.delete')).toBe(true)
+    // wildcard ถูกถอดออกโดยเจตนา — permission ที่เพิ่มใหม่ต้องไม่ถูก grant อัตโนมัติ
+    it('ต้องไม่ยอมรับ wildcard ระดับ module (settings.* ไม่ครอบ settings.update)', () => {
+      expect(can(admin_user, 'settings.update')).toBe(false)
+      expect(can(admin_user, 'settings.delete')).toBe(false)
     })
 
-    it('ต้องคืนค่า true สำหรับ Owner ที่มี permission เป็น *', () => {
-      expect(can(owner_user, 'any_module.any_action')).toBe(true)
+    it('ต้องไม่ยอมรับ wildcard ทั้งระบบ (* ไม่ครอบทุกอย่าง)', () => {
+      expect(can(owner_user, 'any_module.any_action')).toBe(false)
+    })
+
+    it('role ที่ต้องการสิทธิ์ครบต้องระบุรายการจริง', () => {
+      const explicit_owner: TokenPayload = {
+        ...owner_user,
+        permissions: ['user.create', 'user.read', 'settings.update'],
+      }
+
+      expect(can(explicit_owner, 'settings.update')).toBe(true)
+      expect(can(explicit_owner, 'settings.delete')).toBe(false)
     })
 
     it('ต้องคืนค่า false ถ้าลืมส่งค่า user (null / undefined)', () => {

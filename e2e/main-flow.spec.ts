@@ -8,7 +8,11 @@ test.describe('Main SaaS Flow', () => {
     await page.click('button[type="submit"]')
     await page.waitForURL('/dashboard')
 
-    await expect(page.getByText(/Tenant overview|Platform/).first()).toBeVisible()
+    // เดิมเช็คเฉพาะข้อความอังกฤษ แต่ seed ตั้ง default locale เป็น th
+    // แดชบอร์ดจึงเรนเดอร์ไทยและ test ล้มเสมอ ใช้รูปแบบสองภาษาเดียวกับ example.spec.ts
+    await expect(
+      page.getByText(/Tenant overview|Platform|ภาพรวม tenant|แพลตฟอร์ม/).first()
+    ).toBeVisible()
 
     await page.goto('/settings/billing')
     await expect(page).toHaveURL(/.*\/settings\/billing/)
