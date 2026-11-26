@@ -23,6 +23,7 @@ jest.mock('next-intl', () => ({
 
     return translations[`${namespace}.${key}`] ?? `${namespace}.${key}`
   },
+  useLocale: () => 'en',
 }))
 
 jest.mock('@/components/chart/LineChart', () => ({
@@ -46,6 +47,9 @@ describe('UI component barrel and showcase', () => {
     expect(ui.Modal).toBeDefined()
     expect(ui.Drawer).toBeDefined()
     expect(ui.Tabs).toBeDefined()
+    expect(ui.StatCard).toBeDefined()
+    expect(ui.DataTable).toBeDefined()
+    expect(ui.EmptyState).toBeDefined()
   })
 
   it('exposes a showcase that renders the complete UI inventory', async () => {

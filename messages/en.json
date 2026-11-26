@@ -396,6 +396,15 @@
       "retry": "Retry",
       "emptyTitle": "No data found"
     },
+    "notification": {
+      "trigger": "Notifications",
+      "title": "Notifications",
+      "markAllRead": "Mark all as read",
+      "unreadCount": "{count} unread notifications",
+      "loading": "Loading notifications...",
+      "empty": "No new notifications",
+      "refresh": "Refresh notifications"
+    },
     "fileUpload": {
       "placeholder": "Drag a file here or click to choose",
       "fileTooLarge": "File is too large (maximum {size}MB)",
@@ -421,6 +430,7 @@
     },
     "modal": {
       "close": "Close",
+      "label": "Modal",
       "confirmTitle": "Confirm action",
       "confirmMessage": "Are you sure you want to continue?",
       "confirm": "Confirm",
