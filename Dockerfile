@@ -37,6 +37,18 @@ RUN DATABASE_URL="mysql://build:build@localhost:3306/build" \
     JWT_SECRET="build-time-placeholder-not-used-at-runtime-000000" \
     npm run build
 
+# Migration tools for deploys (infra-stack DEPLOY_TOOLS_TARGET=migrate): Prisma CLI + schema,
+# no Next.js build. Built and run only for `prisma migrate deploy` before traffic switches.
+# Must stay above the runner stage — a plain `docker build` uses the last stage.
+FROM node:24-alpine AS migrate
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY prisma ./prisma
+RUN npx prisma generate
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 # Production image, copy all the files and run next
 FROM node:24-alpine AS runner
 RUN apk add --no-cache openssl
