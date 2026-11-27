@@ -1,8 +1,11 @@
 import { NextRequest } from 'next/server'
-import { ImpersonationService } from '@/modules/auth/impersonation.service'
+import {
+  ImpersonationService,
+  ImpersonationForbiddenError,
+} from '@/modules/auth/impersonation.service'
 import { verifyAccessToken } from '@/lib/jwt'
 import { authConfig } from '@/config'
-import { successResponse, unauthorized, badRequest } from '@/utils/api'
+import { successResponse, unauthorized, badRequest, forbidden } from '@/utils/api'
 import { can } from '@/lib/permissions'
 import { PERMISSIONS } from '@/constants'
 import { getLocaleFromRequest, translate } from '@/i18n/server'
@@ -15,8 +18,9 @@ export async function POST(req: NextRequest) {
     if (!accessToken) return unauthorized(translate(locale, 'api.errors.unauthorized'))
 
     const adminPayload = await verifyAccessToken(accessToken)
-    if (!adminPayload || !can(adminPayload, PERMISSIONS.ADMIN_IMPERSONATE)) {
-      return unauthorized(translate(locale, 'api.messages.impersonationForbidden'))
+    if (!adminPayload) return unauthorized(translate(locale, 'api.errors.unauthorized'))
+    if (!can(adminPayload, PERMISSIONS.ADMIN_IMPERSONATE)) {
+      return forbidden(translate(locale, 'api.messages.impersonationForbidden'))
     }
 
     const { target_user_id } = await req.json()
@@ -42,6 +46,9 @@ export async function POST(req: NextRequest) {
 
     return response
   } catch (error: any) {
+    if (error instanceof ImpersonationForbiddenError) {
+      return forbidden(translate(locale, 'api.messages.impersonationForbidden'))
+    }
     return badRequest(error.message)
   }
 }
@@ -59,7 +66,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { tokens, user } = await ImpersonationService.StopImpersonation(
-      currentPayload.impersonatorId
+      currentPayload.impersonatorId,
+      currentPayload.sub
     )
 
     const response = successResponse(
