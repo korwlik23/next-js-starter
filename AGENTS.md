@@ -131,7 +131,10 @@ suggestion.
 
 ## Enforcement
 
-- One-time setup per clone: `git config core.hooksPath .githooks`
+- Hooks are installed by husky on `npm install` (`prepare` script sets
+  `core.hooksPath` to `.husky/_`). `.husky/pre-commit` runs the structure gate in
+  `.githooks/pre-commit`, then `lint-staged`. Do not point `core.hooksPath` at
+  `.githooks` directly — that would skip lint-staged.
 - The pre-commit hook blocks any commit that grows a source file past 500 lines.
   Fix by splitting the file — do not bypass with `--no-verify`.
 
