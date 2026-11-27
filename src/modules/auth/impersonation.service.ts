@@ -1,12 +1,17 @@
 import { signAuthTokens } from '@/lib/jwt'
 import { logger } from '@/lib/logger'
+import { CreateAuditLog } from '@/lib/audit'
 import { GetUserWithPermissions, BuildTokenPayload } from './service'
 import type { AuthTokens, TokenPayload } from '@/types'
 import { can } from '@/lib/permissions'
 import { PERMISSIONS } from '@/constants'
 
+const FORBIDDEN_MESSAGE = 'สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้'
+
+type DenyReason = 'self' | 'cross_tenant' | 'privilege_gain'
+
 /**
- * ตรวจว่า actor สวมสิทธิ์เป็น target ได้หรือไม่
+ * ตรวจว่า actor สวมสิทธิ์เป็น target ได้หรือไม่ — คืนเหตุผลที่ปฏิเสธ หรือ null ถ้าอนุญาต
  *
  * - ห้ามสวมสิทธิ์ตัวเอง
  * - ต้องอยู่ tenant เดียวกัน ยกเว้น actor เป็นผู้ใช้ระดับแพลตฟอร์ม (tenantId = null)
@@ -14,20 +19,18 @@ import { PERMISSIONS } from '@/constants'
  *
  * ถ้าไม่มีข้อนี้ admin ของ tenant หนึ่งจะออก token ในนาม owner ของแพลตฟอร์มได้
  */
-function AssertCanImpersonate(actor: TokenPayload, target: TokenPayload) {
-  if (actor.sub === target.sub) {
-    throw new Error('ไม่สามารถสวมสิทธิ์เป็นบัญชีของตัวเองได้')
-  }
+function GetDenyReason(actor: TokenPayload, target: TokenPayload): DenyReason | null {
+  if (actor.sub === target.sub) return 'self'
 
   const actor_is_platform = actor.tenantId == null
-  if (!actor_is_platform && target.tenantId !== actor.tenantId) {
-    throw new Error('สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้')
-  }
+  if (!actor_is_platform && target.tenantId !== actor.tenantId) return 'cross_tenant'
 
   const actor_permissions = new Set(actor.permissions)
   if (!target.permissions.every((permission) => actor_permissions.has(permission))) {
-    throw new Error('สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้')
+    return 'privilege_gain'
   }
+
+  return null
 }
 
 export class ImpersonationService {
@@ -45,7 +48,7 @@ export class ImpersonationService {
     const admin_payload = admin ? BuildTokenPayload(admin) : null
 
     if (!admin_payload || !can(admin_payload, PERMISSIONS.ADMIN_IMPERSONATE)) {
-      throw new Error('สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้')
+      throw new Error(FORBIDDEN_MESSAGE)
     }
 
     // 2. ดึงข้อมูล Target User
@@ -56,16 +59,37 @@ export class ImpersonationService {
 
     // 3. สร้าง Payload แล้วตรวจขอบเขต tenant + สิทธิ์ ก่อนออก token
     const payload = BuildTokenPayload(target_user)
-    AssertCanImpersonate(admin_payload, payload)
+    const deny_reason = GetDenyReason(admin_payload, payload)
+    if (deny_reason) {
+      // บันทึกความพยายามที่ถูกปฏิเสธ — เป็นสัญญาณของการพยายามยกระดับสิทธิ์
+      await CreateAuditLog({
+        action: 'ADMIN_IMPERSONATION_DENIED',
+        userId: admin_id,
+        tenantId: admin_payload.tenantId ?? undefined,
+        entity: 'User',
+        entityId: target_user_id,
+        metadata: { reason: deny_reason, targetTenantId: payload.tenantId ?? null },
+      })
+      logger.warn(`Impersonation denied (${deny_reason}): ${admin_id} -> ${target_user_id}`)
+      throw new Error(
+        deny_reason === 'self' ? 'ไม่สามารถสวมสิทธิ์เป็นบัญชีของตัวเองได้' : FORBIDDEN_MESSAGE
+      )
+    }
     payload.impersonatorId = admin_id
 
     // 4. สร้าง Tokens ใหม่
     const tokens = await signAuthTokens(payload)
 
-    logger.warn(`Admin ${admin?.email} started impersonating user ${target_user.email}`)
-
-    // 5. บันทึก Audit Log (ถ้ามีระบบ Audit Log)
-    // TODO: บันทึกรายการลง Audit Log
+    // 5. บันทึก Audit Log ใน tenant ของผู้ถูกสวมสิทธิ์ เพื่อให้ tenant นั้นเห็นว่าใครเข้ามาในนามใคร
+    await CreateAuditLog({
+      action: 'ADMIN_IMPERSONATION_STARTED',
+      userId: admin_id,
+      tenantId: payload.tenantId ?? undefined,
+      entity: 'User',
+      entityId: target_user_id,
+      metadata: { adminEmail: admin_payload.email, targetEmail: payload.email },
+    })
+    logger.warn(`Admin ${admin_payload.email} started impersonating user ${payload.email}`)
 
     return { tokens, user: payload }
   }
@@ -73,9 +97,11 @@ export class ImpersonationService {
   /**
    * หยุดการปลอมตัวและกลับสู่สิทธิ์เดิม
    * @param impersonator_id ID ของ Admin ที่ปลอมตัวอยู่
+   * @param impersonated_user_id ID ของผู้ใช้ที่ถูกสวมสิทธิ์อยู่ (ใช้บันทึก audit)
    */
   static async StopImpersonation(
-    impersonator_id: string
+    impersonator_id: string,
+    impersonated_user_id?: string
   ): Promise<{ tokens: AuthTokens; user: TokenPayload }> {
     const admin = await GetUserWithPermissions(impersonator_id)
     if (!admin) {
@@ -85,6 +111,13 @@ export class ImpersonationService {
     const payload = BuildTokenPayload(admin)
     const tokens = await signAuthTokens(payload)
 
+    await CreateAuditLog({
+      action: 'ADMIN_IMPERSONATION_STOPPED',
+      userId: impersonator_id,
+      tenantId: payload.tenantId ?? undefined,
+      entity: 'User',
+      entityId: impersonated_user_id,
+    })
     logger.info(`Admin ${admin.email} stopped impersonation`)
 
     return { tokens, user: payload }

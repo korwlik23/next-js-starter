@@ -1,6 +1,7 @@
 import { ImpersonationService } from '@/modules/auth/impersonation.service'
 import prisma from '@/lib/prisma'
 import { signAuthTokens } from '@/lib/jwt'
+import { CreateAuditLog } from '@/lib/audit'
 
 jest.mock('@/lib/prisma', () => ({
   user: { findUnique: jest.fn() },
@@ -13,6 +14,9 @@ jest.mock('@/lib/jwt', () => ({
 }))
 // auth/service ลาก email.service → queue → @upstash/redis (ESM) เข้ามา ซึ่ง jest parse ไม่ได้
 jest.mock('@/services/email.service', () => ({ EmailService: {} }))
+jest.mock('@/lib/audit', () => ({ CreateAuditLog: jest.fn().mockResolvedValue(undefined) }))
+
+const audit_mock = CreateAuditLog as jest.Mock
 
 const TENANT_ACME = 'tenant-acme'
 const TENANT_OTHER = 'tenant-other'
@@ -127,5 +131,67 @@ describe('ImpersonationService.StartImpersonation', () => {
       ImpersonationService.StartImpersonation('acme-member', 'acme-other')
     ).rejects.toThrow()
     expect(signAuthTokens).not.toHaveBeenCalled()
+  })
+})
+
+describe('ImpersonationService audit trail', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('records ADMIN_IMPERSONATION_STARTED with actor, target and target tenant', async () => {
+    MockUsers(
+      MakeUser('acme-admin', TENANT_ACME, SUPPORT_PERMS),
+      MakeUser('acme-member', TENANT_ACME, ['user.read'])
+    )
+
+    await ImpersonationService.StartImpersonation('acme-admin', 'acme-member')
+
+    expect(audit_mock).toHaveBeenCalledTimes(1)
+    expect(audit_mock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ADMIN_IMPERSONATION_STARTED',
+        userId: 'acme-admin',
+        tenantId: TENANT_ACME,
+        entity: 'User',
+        entityId: 'acme-member',
+      })
+    )
+  })
+
+  it('records ADMIN_IMPERSONATION_DENIED when the guard rejects the request', async () => {
+    MockUsers(
+      MakeUser('acme-admin', TENANT_ACME, SUPPORT_PERMS),
+      MakeUser('platform-owner', null, [...SUPPORT_PERMS, 'billing.manage'])
+    )
+
+    await expect(
+      ImpersonationService.StartImpersonation('acme-admin', 'platform-owner')
+    ).rejects.toThrow()
+
+    expect(audit_mock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ADMIN_IMPERSONATION_DENIED',
+        userId: 'acme-admin',
+        tenantId: TENANT_ACME,
+        entity: 'User',
+        entityId: 'platform-owner',
+        metadata: expect.objectContaining({ reason: expect.any(String) }),
+      })
+    )
+  })
+
+  it('records ADMIN_IMPERSONATION_STOPPED with the impersonated user', async () => {
+    MockUsers(MakeUser('acme-admin', TENANT_ACME, SUPPORT_PERMS))
+
+    await ImpersonationService.StopImpersonation('acme-admin', 'acme-member')
+
+    expect(audit_mock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'ADMIN_IMPERSONATION_STOPPED',
+        userId: 'acme-admin',
+        tenantId: TENANT_ACME,
+        entity: 'User',
+        entityId: 'acme-member',
+      })
+    )
   })
 })

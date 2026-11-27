@@ -59,7 +59,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { tokens, user } = await ImpersonationService.StopImpersonation(
-      currentPayload.impersonatorId
+      currentPayload.impersonatorId,
+      currentPayload.sub
     )
 
     const response = successResponse(
