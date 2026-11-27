@@ -1,1 +1,4 @@
+# Structure Before Code gate (500-line ceiling) — husky owns core.hooksPath,
+# so the gate in .githooks/ is chained here instead of being a separate hooksPath.
+sh .githooks/pre-commit || exit 1
 npx lint-staged
