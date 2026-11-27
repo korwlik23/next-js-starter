@@ -1,4 +1,7 @@
-import { ImpersonationService } from '@/modules/auth/impersonation.service'
+import {
+  ImpersonationService,
+  ImpersonationForbiddenError,
+} from '@/modules/auth/impersonation.service'
 import prisma from '@/lib/prisma'
 import { signAuthTokens } from '@/lib/jwt'
 import { CreateAuditLog } from '@/lib/audit'
@@ -72,7 +75,7 @@ describe('ImpersonationService.StartImpersonation', () => {
 
     await expect(
       ImpersonationService.StartImpersonation('acme-admin', 'other-member')
-    ).rejects.toThrow()
+    ).rejects.toBeInstanceOf(ImpersonationForbiddenError)
     expect(signAuthTokens).not.toHaveBeenCalled()
   })
 

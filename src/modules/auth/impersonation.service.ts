@@ -6,9 +6,19 @@ import type { AuthTokens, TokenPayload } from '@/types'
 import { can } from '@/lib/permissions'
 import { PERMISSIONS } from '@/constants'
 
-const FORBIDDEN_MESSAGE = 'สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้'
+type DenyReason = 'missing_permission' | 'self' | 'cross_tenant' | 'privilege_gain'
 
-type DenyReason = 'self' | 'cross_tenant' | 'privilege_gain'
+/** ผู้เรียกไม่มีสิทธิ์สวมสิทธิ์เป็นเป้าหมายนี้ — route แปลงเป็น HTTP 403 */
+export class ImpersonationForbiddenError extends Error {
+  constructor(public readonly reason: DenyReason) {
+    super(
+      reason === 'self'
+        ? 'ไม่สามารถสวมสิทธิ์เป็นบัญชีของตัวเองได้'
+        : 'สิทธิ์ไม่เพียงพอสำหรับการทำรายการนี้'
+    )
+    this.name = 'ImpersonationForbiddenError'
+  }
+}
 
 /**
  * ตรวจว่า actor สวมสิทธิ์เป็น target ได้หรือไม่ — คืนเหตุผลที่ปฏิเสธ หรือ null ถ้าอนุญาต
@@ -48,7 +58,7 @@ export class ImpersonationService {
     const admin_payload = admin ? BuildTokenPayload(admin) : null
 
     if (!admin_payload || !can(admin_payload, PERMISSIONS.ADMIN_IMPERSONATE)) {
-      throw new Error(FORBIDDEN_MESSAGE)
+      throw new ImpersonationForbiddenError('missing_permission')
     }
 
     // 2. ดึงข้อมูล Target User
@@ -71,9 +81,7 @@ export class ImpersonationService {
         metadata: { reason: deny_reason, targetTenantId: payload.tenantId ?? null },
       })
       logger.warn(`Impersonation denied (${deny_reason}): ${admin_id} -> ${target_user_id}`)
-      throw new Error(
-        deny_reason === 'self' ? 'ไม่สามารถสวมสิทธิ์เป็นบัญชีของตัวเองได้' : FORBIDDEN_MESSAGE
-      )
+      throw new ImpersonationForbiddenError(deny_reason)
     }
     payload.impersonatorId = admin_id
 
