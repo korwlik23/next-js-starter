@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { BuildAppRedirectUrl } from '@/lib/app-url'
 import { verifyEmailService } from '@/modules/auth/service'
 import { badRequest, successResponse } from '@/utils/api'
 import { logger } from '@/lib/logger'
@@ -7,15 +8,15 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
 
   if (!token) {
-    return NextResponse.redirect(new URL('/login?error=verification', req.url), 303)
+    return NextResponse.redirect(BuildAppRedirectUrl('/login?error=verification', req.url), 303)
   }
 
   try {
     await verifyEmailService(token)
-    return NextResponse.redirect(new URL('/login?verified=1', req.url), 303)
+    return NextResponse.redirect(BuildAppRedirectUrl('/login?verified=1', req.url), 303)
   } catch (error) {
     logger.warn('Email verification failed', { error })
-    return NextResponse.redirect(new URL('/login?error=verification', req.url), 303)
+    return NextResponse.redirect(BuildAppRedirectUrl('/login?error=verification', req.url), 303)
   }
 }
 

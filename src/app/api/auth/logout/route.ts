@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { BuildAppRedirectUrl } from '@/lib/app-url'
 import { logoutService } from '@/modules/auth/service'
 import { clearAuthCookies, getAuthUser } from '@/lib/auth'
 import { successResponse, unauthorized } from '@/utils/api'
@@ -41,5 +42,5 @@ export async function GET(request: NextRequest) {
 
   await clearAuthCookies()
 
-  return NextResponse.redirect(new URL('/login', request.url))
+  return NextResponse.redirect(BuildAppRedirectUrl('/login', request.url))
 }

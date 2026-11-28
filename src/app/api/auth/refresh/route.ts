@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { BuildAppRedirectUrl } from '@/lib/app-url'
 import { refreshTokenService } from '@/modules/auth/service'
 import { authConfig } from '@/config'
 import { successResponse, unauthorized } from '@/utils/api'
@@ -28,16 +29,16 @@ export async function GET(request: NextRequest) {
     const refreshToken = cookieStore.get(authConfig.cookieName.refreshToken)?.value
 
     if (!refreshToken) {
-      return NextResponse.redirect(new URL('/login', request.url))
+      return NextResponse.redirect(BuildAppRedirectUrl('/login', request.url))
     }
 
     const { accessToken } = await refreshTokenService(refreshToken)
     await setAccessTokenCookie(accessToken)
 
-    return NextResponse.redirect(new URL(getSafeCallbackUrl(request), request.url))
+    return NextResponse.redirect(BuildAppRedirectUrl(getSafeCallbackUrl(request), request.url))
   } catch (error) {
     logger.error('Refresh token redirect error', error)
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(BuildAppRedirectUrl('/login', request.url))
   }
 }
 
