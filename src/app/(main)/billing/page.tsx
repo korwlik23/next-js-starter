@@ -168,7 +168,7 @@ export default function BillingPage() {
   const displayPlan = currentPlan ? currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1) : ''
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-150">
       <header className="mb-10 pt-4">
         <h1
           className="text-3xl md:text-4xl font-extrabold tracking-tighter mb-2"

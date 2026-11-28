@@ -107,7 +107,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <span className="text-sm font-black uppercase">Digital Gallery</span>
         </div>
 
-        <div className="w-full max-w-[420px] animate-in fade-in duration-500">{children}</div>
+        <div className="w-full max-w-[420px] animate-in fade-in duration-150">{children}</div>
       </main>
     </div>
   )

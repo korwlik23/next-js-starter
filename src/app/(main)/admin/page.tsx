@@ -107,7 +107,7 @@ export default function AdminPage() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-150">
       <header className="mb-6 pt-2">
         <h1
           className="text-2xl sm:text-3xl font-extrabold mb-2"

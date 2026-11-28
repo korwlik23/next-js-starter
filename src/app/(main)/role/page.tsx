@@ -156,7 +156,7 @@ export default function RoleManagementPage() {
   }
 
   return (
-    <div className="space-y-8 pb-12 animate-in fade-in duration-500">
+    <div className="space-y-8 pb-12 animate-in fade-in duration-150">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1
