@@ -165,6 +165,7 @@ export default function SettingsPage() {
                   <Input
                     label={t('currentPassword')}
                     type="password"
+                    autoComplete="current-password"
                     placeholder="********"
                     {...passwordForm.register('currentPassword')}
                     error={passwordForm.formState.errors.currentPassword?.message}
@@ -174,6 +175,7 @@ export default function SettingsPage() {
                     <Input
                       label={t('newPassword')}
                       type="password"
+                      autoComplete="new-password"
                       placeholder={t('newPasswordPlaceholder')}
                       {...passwordForm.register('password')}
                       error={passwordForm.formState.errors.password?.message}
@@ -182,6 +184,7 @@ export default function SettingsPage() {
                     <Input
                       label={t('confirmNewPassword')}
                       type="password"
+                      autoComplete="new-password"
                       placeholder="********"
                       {...passwordForm.register('confirmPassword')}
                       error={passwordForm.formState.errors.confirmPassword?.message}
