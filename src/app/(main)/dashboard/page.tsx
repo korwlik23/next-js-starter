@@ -148,7 +148,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="flex w-full max-w-full flex-col gap-5 pb-12 animate-in fade-in duration-500 sm:gap-6">
+    <div className="flex w-full max-w-full flex-col gap-5 pb-12 animate-in fade-in duration-150 sm:gap-6">
       <header className="editorial-card-elevated overflow-hidden">
         <div className="flex flex-col gap-6 p-5 sm:p-6 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0 space-y-4">

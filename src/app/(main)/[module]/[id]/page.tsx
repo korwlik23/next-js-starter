@@ -35,7 +35,7 @@ export default function ModuleDetailPage() {
   const skipKeys = ['password', 'deletedAt']
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto pb-20 animate-in fade-in duration-150">
       <header className="mb-12 pt-4">
         <div className="flex items-center gap-3 mb-6">
           <Link

@@ -127,7 +127,7 @@ export default function AdminOpsPage() {
   const queueReady = data?.jobs.configured ?? false
 
   return (
-    <div className="mx-auto max-w-6xl pb-12 animate-in fade-in duration-700">
+    <div className="mx-auto max-w-6xl pb-12 animate-in fade-in duration-150">
       <header className="mb-6 pt-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

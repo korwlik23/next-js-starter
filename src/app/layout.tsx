@@ -3,7 +3,12 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { ThemeProvider } from '@/components/layout/ThemeProvider'
 import { QueryProvider } from '@/components/layout/QueryProvider'
+import { Inter } from 'next/font/google'
 import '@/app/globals.css'
+
+// Inter แบบ self-host ผ่าน next/font — ไม่ต้องต่อ Google ตอนเปิดหน้า และมี fallback ที่ปรับขนาด
+// ให้ใกล้ Inter จึงไม่กระตุกตอนสลับฟอนต์ (variable font ครอบทุกน้ำหนักที่ใช้อยู่)
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' })
 
 // ────────────────────────────────────────
 // Root Metadata — SEO + OpenGraph + Twitter
@@ -62,17 +67,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const messages = await getMessages()
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={inter.variable} suppressHydrationWarning>
       <head>
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        {/* Icon font ยังโหลดจาก Google — next/font ตัด subset แล้ว ligature ของไอคอนหาย
+            display=block: ระหว่างรอฟอนต์ ซ่อนชื่อไอคอนไว้แทนการโชว์เป็นตัวหนังสือ (swap) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* ตั้งใจใช้ block: กฎนี้แนะนำ swap สำหรับฟอนต์ข้อความ แต่ icon font ที่ swap จะโชว์ชื่อไอคอนเป็นตัวหนังสือ */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font, @next/next/google-font-display */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap"
-        />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=block"
         />
       </head>
       <body>
