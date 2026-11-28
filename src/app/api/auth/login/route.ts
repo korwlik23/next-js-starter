@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { BuildAppRedirectUrl } from '@/lib/app-url'
 import { createLoginSchema } from '@/modules/auth/schema'
 import { loginService } from '@/modules/auth/service'
 import { setAuthCookies } from '@/lib/auth'
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       const errors = parsed.error.flatten().fieldErrors as Record<string, string[]>
       if (isFormPost) {
-        return NextResponse.redirect(new URL('/login?error=invalid', req.url), 303)
+        return NextResponse.redirect(BuildAppRedirectUrl('/login?error=invalid', req.url), 303)
       }
       return badRequest(t('auth.errors.invalidInput'), errors)
     }
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     await setAuthCookies(tokens.accessToken, tokens.refreshToken)
 
     if (isFormPost) {
-      return NextResponse.redirect(new URL('/dashboard', req.url), 303)
+      return NextResponse.redirect(BuildAppRedirectUrl('/dashboard', req.url), 303)
     }
 
     return successResponse(
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (isFormPost) {
-        return NextResponse.redirect(new URL('/login?error=invalid', req.url), 303)
+        return NextResponse.redirect(BuildAppRedirectUrl('/login?error=invalid', req.url), 303)
       }
       return errorResponse(t('auth.errors.invalidCredentials'), HTTP_STATUS.UNAUTHORIZED)
     }
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (isFormPost) {
-        return NextResponse.redirect(new URL('/login?error=locked', req.url), 303)
+        return NextResponse.redirect(BuildAppRedirectUrl('/login?error=locked', req.url), 303)
       }
       return errorResponse(
         'Too many failed login attempts. Please try again later.',
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
       })
 
       if (isFormPost) {
-        return NextResponse.redirect(new URL('/login?error=unverified', req.url), 303)
+        return NextResponse.redirect(BuildAppRedirectUrl('/login?error=unverified', req.url), 303)
       }
       return errorResponse(
         'Please verify your email address before signing in.',
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
     logger.error('Login error', error)
 
     if (isFormPost) {
-      return NextResponse.redirect(new URL('/login?error=server', req.url), 303)
+      return NextResponse.redirect(BuildAppRedirectUrl('/login?error=server', req.url), 303)
     }
     return errorResponse(t('auth.errors.server'), HTTP_STATUS.INTERNAL_ERROR)
   }
